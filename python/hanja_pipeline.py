@@ -42,14 +42,15 @@ from svgpathtools import parse_path
 NAMU_URL = "https://namu.wiki/w/%ED%95%9C%EB%AC%B8%20%EA%B5%90%EC%9C%A1%EC%9A%A9%20%EA%B8%B0%EC%B4%88%20%ED%95%9C%EC%9E%90"
 NAVER_URL_TMPL = "https://hanja.dict.naver.com/#/search?query={query}"
 
-OUT_DIR = Path("./output")
+_ROOT = Path(__file__).resolve().parent
+OUT_DIR = _ROOT / "output"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # 차집합 계산을 위해 1817자 원본을 파일로 둘 수 있게 함.
 # 우선순위:
 # 1) namu wiki 본문/주석 [2] 에서 직접 17자 추출 시도
 # 2) grade3_1817.txt 존재 시 파일에서 읽어서 1800과 diff 계산
-GRADE3_1817_FILE = Path("./grade3_1817.txt")
+GRADE3_1817_FILE = _ROOT / "grade3_1817.txt"
 
 
 # ============================================================
