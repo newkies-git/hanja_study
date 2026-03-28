@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/firebase/firebase_bootstrap.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/hanja_theme.dart';
 
-void main() {
-  runApp(const HanjaApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await bootstrapFirebase();
+  runApp(const ProviderScope(child: HanjaApp()));
 }
 
 /// 한자정습 앱의 루트 위젯.

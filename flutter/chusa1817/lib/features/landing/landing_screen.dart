@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
@@ -96,6 +98,45 @@ class LandingScreen extends StatelessWidget {
                 GradientPrimaryButton(
                   label: '로그인',
                   onPressed: () => context.push(AppRoutes.login),
+                ),
+                const SizedBox(height: 20),
+                Consumer(
+                  builder: (BuildContext context, WidgetRef ref, _) {
+                    return TextButton.icon(
+                      onPressed: () async {
+                        final ScaffoldMessengerState? messenger =
+                            ScaffoldMessenger.maybeOf(context);
+                        try {
+                          messenger?.showSnackBar(
+                            const SnackBar(content: Text('Firestore 동기화 중…')),
+                          );
+                          final result = await ref
+                              .read(firestoreContentSyncProvider)
+                              .syncAllContent();
+                          messenger?.hideCurrentSnackBar();
+                          messenger?.showSnackBar(
+                            SnackBar(content: Text('동기화 완료: $result')),
+                          );
+                        } catch (e) {
+                          messenger?.hideCurrentSnackBar();
+                          messenger?.showSnackBar(
+                            SnackBar(content: Text('동기화 실패: $e')),
+                          );
+                        }
+                      },
+                      icon: Icon(
+                        Icons.cloud_download_outlined,
+                        size: 18,
+                        color: HanjaColors.onSurfaceVariant,
+                      ),
+                      label: Text(
+                        'Firestore에서 콘텐츠 받기',
+                        style: textTheme.labelLarge?.copyWith(
+                          color: HanjaColors.onSurfaceVariant,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),

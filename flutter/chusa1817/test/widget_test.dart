@@ -5,15 +5,15 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/widgets.dart';
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:chusa1817/main.dart';
 import 'package:chusa1817/shared/widgets/gradient_primary_button.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('Landing screen renders', (WidgetTester tester) async {
-    await tester.pumpWidget(const HanjaApp());
+    await tester.pumpWidget(const ProviderScope(child: HanjaApp()));
     await tester.pumpAndSettle();
     expect(find.text('Welcome to Learning'), findsOneWidget);
     expect(find.text('학습 시작하기'), findsOneWidget);
