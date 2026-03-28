@@ -17,6 +17,7 @@ abstract final class HanjaColors {
 
   // ── Tertiary (Error / Stroke wrong) ──────────────────────────────────────
   static const Color tertiary = Color(0xFF98000C);
+  static const Color tertiaryContainer = Color(0xFFFFDAD6);
 
   // ── Surface hierarchy ────────────────────────────────────────────────────
   static const Color surface = Color(0xFFF8F9FA);

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../shared/widgets/won_go_ji_grid.dart';
-import '../../shared/widgets/stroke_hint_overlay.dart';
 import '../study/study_screen.dart';
+import '../study/widgets/stroke_animation_player.dart';
 
 /// 한자 상세 정보 화면.
 ///
@@ -72,7 +72,7 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
         ),
         Expanded(
           child: Text(
-            '한자정습',
+            '추사 1817',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: HanjaColors.onSurface,
@@ -219,6 +219,17 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
   }
 
   Widget _buildStrokesTab(TextTheme textTheme) {
+    // 佳 한자의 하드코딩 획 좌표 (정규화 0~1). Phase 3에서 SVG 파이프라인 데이터로 교체.
+    final List<List<Offset>> strokes = [
+      [const Offset(0.30, 0.20), const Offset(0.30, 0.55)],
+      [const Offset(0.28, 0.20), const Offset(0.70, 0.20)],
+      [const Offset(0.28, 0.38), const Offset(0.70, 0.38)],
+      [const Offset(0.55, 0.21), const Offset(0.55, 0.80)],
+      [const Offset(0.28, 0.55), const Offset(0.55, 0.55)],
+      [const Offset(0.30, 0.60), const Offset(0.70, 0.75)],
+      [const Offset(0.28, 0.72), const Offset(0.70, 0.72)],
+      [const Offset(0.28, 0.80), const Offset(0.70, 0.80)],
+    ];
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -232,52 +243,8 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
             '획순 보기',
             style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
-          const SizedBox(height: 12),
-          AspectRatio(
-            aspectRatio: 1.3,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: Stack(
-                children: [
-                  const Positioned.fill(child: WonGoJiGrid(opacity: 0.14)),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      widget.hanja,
-                      style: textTheme.displayLarge?.copyWith(
-                        fontSize: 110,
-                        color: const Color(0xFF9A9DA0).withValues(alpha: 0.22),
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                  const Positioned.fill(child: StrokeHintOverlay()),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: List.generate(
-              widget.totalStrokes,
-              (index) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: HanjaColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'Stroke ${index + 1}',
-                  style: textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: HanjaColors.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          const SizedBox(height: 16),
+          StrokeAnimationPlayer(hanja: widget.hanja, strokes: strokes),
         ],
       ),
     );
@@ -327,7 +294,12 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
           child: GradientPrimaryButton(
             label: '쓰기 연습 시작',
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const StudyScreen()),
+              MaterialPageRoute(
+                builder: (_) => StudyScreen(
+                  hanja: widget.hanja,
+                  meaning: widget.meaning,
+                ),
+              ),
             ),
           ),
         ),

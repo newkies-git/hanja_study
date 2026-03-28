@@ -3,17 +3,39 @@ import 'package:flutter/material.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/ghost_button.dart';
 import 'practice_result_screen.dart';
-import 'widgets/practice_canvas_card.dart';
 import 'widgets/practice_action_tile.dart';
+import 'widgets/writing_canvas_widget.dart';
 
 /// 한자 쓰기 연습 화면.
 ///
-/// 현재 학습 한자와 진행 획 정보를 상단에 표시하고,
-/// [PracticeCanvasCard] (쓰기 캔버스)와 4개의 [PracticeActionTile]을 제공한다.
-///
-/// Phase 2에서 실제 터치 입력(Gesture → stroke 좌표) 및 획순 판정 엔진이 추가된다.
-class StudyScreen extends StatelessWidget {
-  const StudyScreen({super.key});
+/// [WritingCanvasWidget]으로 실제 터치 입력을 받고,
+/// [WritingCanvasController]를 통해 초기화·되돌리기를 제어한다.
+/// 획 판정은 Phase 2 엔진 연동 전까지 Mock으로 처리한다.
+class StudyScreen extends StatefulWidget {
+  const StudyScreen({super.key, this.hanja = '佳', this.meaning = '아름다울 (가)'});
+
+  final String hanja;
+  final String meaning;
+
+  @override
+  State<StudyScreen> createState() => _StudyScreenState();
+}
+
+class _StudyScreenState extends State<StudyScreen> {
+  final WritingCanvasController _canvasController = WritingCanvasController();
+  static const int _totalStrokes = 8;
+
+  @override
+  void dispose() {
+    _canvasController.dispose();
+    super.dispose();
+  }
+
+  void _onComplete() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PracticeResultScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +44,14 @@ class StudyScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _PracticeTopBar(
-              lessonLabel: '제 4강',
-              title: '한자정습',
-              progress: 0.6,
-              onBack: () => Navigator.of(context).maybePop(),
+            ListenableBuilder(
+              listenable: _canvasController,
+              builder: (context, child) => _PracticeTopBar(
+                lessonLabel: '제 4강',
+                title: '추사 1817',
+                progress: (_canvasController.strokeCount / _totalStrokes).clamp(0.0, 1.0),
+                onBack: () => Navigator.of(context).maybePop(),
+              ),
             ),
             Expanded(
               child: ListView(
@@ -34,12 +59,15 @@ class StudyScreen extends StatelessWidget {
                 children: [
                   _buildHanjaInfoRow(context),
                   const SizedBox(height: 18),
-                  const AspectRatio(
+                  AspectRatio(
                     aspectRatio: 1,
-                    child: PracticeCanvasCard(hanja: '佳', showNudge: true),
+                    child: WritingCanvasWidget(
+                      hanja: widget.hanja,
+                      controller: _canvasController,
+                    ),
                   ),
                   const SizedBox(height: 22),
-                  _buildActionGrid(context),
+                  _buildActionGrid(),
                 ],
               ),
             ),
@@ -61,9 +89,9 @@ class StudyScreen extends StatelessWidget {
                 alignment: Alignment.center,
                 children: [
                   Text(
-                    '佳',
+                    widget.hanja,
                     style: textTheme.displayMedium?.copyWith(
-                      color: HanjaColors.onSurface.withValues(alpha: 0.1),
+                      color: HanjaColors.onSurface.withValues(alpha: 0.08),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -81,24 +109,27 @@ class StudyScreen extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('아름다울 (가)', style: textTheme.headlineSmall),
+                  Text(widget.meaning, style: textTheme.headlineSmall),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.draw,
-                        size: 16,
-                        color: HanjaColors.primaryContainer,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '획 3 / 8',
-                        style: textTheme.bodyMedium?.copyWith(
+                  ListenableBuilder(
+                    listenable: _canvasController,
+                    builder: (context, child) => Row(
+                      children: [
+                        const Icon(
+                          Icons.draw,
+                          size: 16,
                           color: HanjaColors.primaryContainer,
-                          fontWeight: FontWeight.w700,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          '획 ${_canvasController.strokeCount} / $_totalStrokes',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: HanjaColors.primaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -114,7 +145,7 @@ class StudyScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionGrid(BuildContext context) {
+  Widget _buildActionGrid() {
     return GridView.count(
       crossAxisCount: 4,
       shrinkWrap: true,
@@ -125,12 +156,12 @@ class StudyScreen extends StatelessWidget {
         PracticeActionTile(
           icon: Icons.restart_alt,
           label: '초기화',
-          onTap: () {},
+          onTap: _canvasController.reset,
         ),
         PracticeActionTile(
           icon: Icons.undo,
           label: '되돌리기',
-          onTap: () {},
+          onTap: _canvasController.undo,
         ),
         PracticeActionTile(
           icon: Icons.visibility,
@@ -141,9 +172,7 @@ class StudyScreen extends StatelessWidget {
           icon: Icons.arrow_forward,
           label: '완료',
           variant: PracticeActionTileVariant.primary,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const PracticeResultScreen()),
-          ),
+          onTap: _onComplete,
         ),
       ],
     );
@@ -202,12 +231,13 @@ class _PracticeTopBar extends StatelessWidget {
               ),
             ),
           ),
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
             height: 4,
             color: HanjaColors.surfaceContainerLow,
             alignment: Alignment.centerLeft,
             child: FractionallySizedBox(
-              widthFactor: progress.clamp(0.0, 1.0),
+              widthFactor: progress,
               child: const DecoratedBox(
                 decoration: BoxDecoration(color: HanjaColors.primary),
               ),
