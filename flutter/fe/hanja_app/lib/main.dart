@@ -17,7 +17,7 @@ class HanjaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '한자정습',
+      title: '추사 1817',
       debugShowCheckedModeBanner: false,
       theme: HanjaTheme.light(),
       home: const LandingScreen(),

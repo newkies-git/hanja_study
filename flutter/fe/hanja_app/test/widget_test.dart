@@ -8,8 +8,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:hanja_app/main.dart';
-import 'package:hanja_app/shared/widgets/gradient_primary_button.dart';
+import 'package:breeze_chusa_1817/main.dart';
+import 'package:breeze_chusa_1817/shared/widgets/gradient_primary_button.dart';
 
 void main() {
   testWidgets('Landing screen renders', (WidgetTester tester) async {

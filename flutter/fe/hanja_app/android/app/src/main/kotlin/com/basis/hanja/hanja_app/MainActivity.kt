@@ -1,4 +1,4 @@
-package com.basis.hanja.hanja_app
+package com.basis.hanja.breeze_chusa_1817
 
 import io.flutter.embedding.android.FlutterActivity
 
