@@ -1,13 +1,13 @@
 import 'package:go_router/go_router.dart';
 
-import 'package:breeze_chusa_1817/features/landing/landing_screen.dart';
-import 'package:breeze_chusa_1817/features/auth/login_screen.dart';
-import 'package:breeze_chusa_1817/features/shell/app_shell.dart';
-import 'package:breeze_chusa_1817/features/learn/hanja_detail_screen.dart';
-import 'package:breeze_chusa_1817/features/study/study_screen.dart';
-import 'package:breeze_chusa_1817/features/study/practice_result_screen.dart';
-import 'package:breeze_chusa_1817/features/profile/plan_settings_screen.dart';
-import 'package:breeze_chusa_1817/features/review/review_screen.dart';
+import 'package:chusa1817/features/auth/login_screen.dart';
+import 'package:chusa1817/features/landing/landing_screen.dart';
+import 'package:chusa1817/features/learn/hanja_detail_screen.dart';
+import 'package:chusa1817/features/profile/plan_settings_screen.dart';
+import 'package:chusa1817/features/review/review_screen.dart';
+import 'package:chusa1817/features/shell/app_shell.dart';
+import 'package:chusa1817/features/study/practice_result_screen.dart';
+import 'package:chusa1817/features/study/study_screen.dart';
 
 /// 앱 전체 라우트 테이블.
 ///

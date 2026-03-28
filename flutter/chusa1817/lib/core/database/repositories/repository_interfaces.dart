@@ -1,4 +1,4 @@
-import '../database/app_database.dart';
+import '../app_database.dart';
 
 /// 한자 콘텐츠 Repository 인터페이스.
 ///

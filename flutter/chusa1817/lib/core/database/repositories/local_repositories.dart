@@ -59,7 +59,6 @@ class LocalProgressRepository implements ProgressRepository {
   LocalProgressRepository(this._db);
 
   final AppDatabase _db;
-  static const _uuid = Uuid();
 
   @override
   Future<UserProgressTableData?> fetchProgress(String hanjaId) =>
