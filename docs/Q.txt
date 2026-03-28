@@ -12,7 +12,7 @@
 단어 정보, 고사성어/숙어 정보을 보여 준다.
 
 한자에 대한 세부 속성은 
-https://hanja.dict.naver.com/#/search?query=%E4%BD%B3
+https://hanja.dict.naver.com/#/search?query={}
 을 참고한다
 
 획순정보는
