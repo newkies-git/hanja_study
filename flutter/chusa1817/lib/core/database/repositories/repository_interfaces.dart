@@ -26,6 +26,9 @@ abstract class HanjaRepository {
 
   /// 성어/숙어 목록을 반환한다.
   Future<List<HanjaIdiomTableData>> fetchIdioms(String hanjaId);
+
+  /// 로컬 DB에 있는 한자의 총 갯수를 조회한다.
+  Future<int> fetchTotalCount();
 }
 
 /// 사용자 진도 Repository 인터페이스.

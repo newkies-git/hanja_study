@@ -28,7 +28,7 @@ class LearnListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const EditorialTopBar(title: 'Hanja Jeongseup'),
+        const EditorialTopBar(title: '추사 1817'),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 6, 20, 12),
           child: SingleChildScrollView(

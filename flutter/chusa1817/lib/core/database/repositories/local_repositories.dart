@@ -52,6 +52,14 @@ class LocalHanjaRepository implements HanjaRepository {
       (_db.select(_db.hanjaIdiomTable)
             ..where((t) => t.hanjaId.equals(hanjaId)))
           .get();
+
+  @override
+  Future<int> fetchTotalCount() async {
+    final countExp = _db.hanjaTable.id.count();
+    final query = _db.selectOnly(_db.hanjaTable)..addColumns([countExp]);
+    final result = await query.map((row) => row.read(countExp)).getSingle();
+    return result ?? 0;
+  }
 }
 
 /// [ProgressRepository]의 로컬 DB 구현체.

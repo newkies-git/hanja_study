@@ -14,6 +14,7 @@ class EditorialTextField extends StatelessWidget {
     required this.hintText,
     this.keyboardType,
     this.obscureText = false,
+    this.prefix,
     this.suffix,
     this.validator,
   });
@@ -22,6 +23,7 @@ class EditorialTextField extends StatelessWidget {
   final String hintText;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final Widget? prefix;
   final Widget? suffix;
   final String? Function(String?)? validator;
 
@@ -36,6 +38,7 @@ class EditorialTextField extends StatelessWidget {
         hintText: hintText,
         filled: true,
         fillColor: HanjaColors.surfaceContainerLow,
+        prefixIcon: prefix,
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,

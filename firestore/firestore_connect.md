@@ -2,6 +2,8 @@
 
 이 문서는 **HANJA** 저장소의 Flutter 앱 `flutter/chusa1817`에 적용된 **Firebase / Firestore 연동** 내용을 정리한다. 서버 스키마 업로드, 클라이언트 동기화, 빌드 설정을 한곳에서 참고할 수 있도록 한다.
 
+**Firebase `projectId`는 `chusa-1817`**이다. Dart 패키지명·Android `applicationId`의 `chusa1817`과 혼동하지 말 것.
+
 ---
 
 ## 1. 목적과 아키텍처
@@ -30,6 +32,7 @@ flowchart LR
 | 패키지           | 역할                          |
 |------------------|-------------------------------|
 | `firebase_core`  | Firebase 앱 초기화            |
+| `firebase_auth`  | 익명 로그인 (`request.auth` 대응) |
 | `cloud_firestore`| Firestore 읽기·쿼리           |
 
 버전은 도구 실행 시점에 따라 달라질 수 있으므로 `pubspec.lock`을 기준으로 한다.
@@ -44,12 +47,12 @@ flowchart LR
 |------|------|
 | `flutter/chusa1817/lib/main.dart` | `WidgetsFlutterBinding.ensureInitialized()` → `bootstrapFirebase()` → `ProviderScope`로 앱 실행 |
 | `flutter/chusa1817/lib/firebase_options.dart` | `Firebase.initializeApp`용 `DefaultFirebaseOptions` (플레이스홀더; 실제 값은 `flutterfire configure` 권장) |
-| `flutter/chusa1817/lib/core/firebase/firebase_bootstrap.dart` | `bootstrapFirebase()` — 초기화 실패 시에도 앱은 계속 실행(디버그 로그만) |
+| `flutter/chusa1817/lib/core/firebase/firebase_bootstrap.dart` | `bootstrapFirebase()` — Core 초기화 후 **익명 로그인**; 실패 시에도 앱은 계속 실행 |
 | `flutter/chusa1817/lib/core/firebase/firestore_paths.dart` | 컬렉션·문서 ID 상수 (`config/content`, `hanja`, `words`, `strokes` 서브컬렉션명) |
 | `flutter/chusa1817/lib/core/firebase/firestore_mappers.dart` | Firestore `Map` → Drift `*Companion` 매핑 |
 | `flutter/chusa1817/lib/core/firebase/firestore_content_sync.dart` | `FirestoreContentSyncService` — 페이지 단위 조회 및 DB 반영 |
 | `flutter/chusa1817/lib/core/providers/app_providers.dart` | `appDatabaseProvider`, `firebaseFirestoreProvider`, `firestoreContentSyncProvider` |
-| `flutter/chusa1817/lib/features/landing/landing_screen.dart` | 「Firestore에서 콘텐츠 받기」 버튼으로 `syncAllContent()` 호출 |
+| `flutter/chusa1817/lib/core/firebase/initial_content_sync.dart` | 기동 직후 로컬 `hanja`가 비어 있을 때만 `syncAllContent()` 1회 |
 
 ### 3.2 Android
 
@@ -57,14 +60,24 @@ flowchart LR
 |------|------|
 | `flutter/chusa1817/android/settings.gradle.kts` | `com.google.gms.google-services` 플러그인 선언 (`apply false`) |
 | `flutter/chusa1817/android/app/build.gradle.kts` | `id("com.google.gms.google-services")` 적용 |
-| `flutter/chusa1817/android/app/google-services.json` | Firebase Android 앱 설정 (**현재는 더미 `chusa1817-dev`용**; 실제 프로젝트로 교체 필요) |
+| `flutter/chusa1817/android/app/google-services.json` | Firebase Android 앱 설정 (플레이스홀더; `flutterfire configure`로 실제 값 권장). **Firebase projectId는 `chusa-1817`**. |
 
 ### 3.3 iOS / macOS
 
 - Firebase 콘솔에서 받은 **`GoogleService-Info.plist`**를 Xcode `Runner` 타깃에 추가해야 한다.  
 - `firebase_options.dart`의 iOS/macOS 항목이 해당 번들 ID·프로젝트와 일치해야 한다.
 
-### 3.4 본 문서
+### 3.4 저장소 루트 (Firebase CLI / 규칙 / 업로드)
+
+| 경로 | 설명 |
+|------|------|
+| `firebase.json` | Firestore 규칙 파일 경로 지정 (`firebase deploy --only firestore:rules`) |
+| `firestore/firestore.rules` | 배포용 보안 규칙 (읽기: 인증 사용자, 쓰기: 클라이언트 금지) |
+| `scripts/setup_firebase_flutter.sh` | Firebase CLI·`flutterfire configure` 연동 안내 스크립트 (로컬에서 실행) |
+| `python/upload_to_firestore.py` | JSON 산출물 → Firestore 일괄 업로드 (Admin SDK) |
+| `python/requirements-firebase.txt` | 업로드 스크립트용 `firebase-admin` |
+
+### 3.5 본 문서
 
 - `firestore/firestore_connect.md` (이 파일)
 
@@ -73,10 +86,12 @@ flowchart LR
 ## 4. 앱 시작 시 동작
 
 1. `main()`에서 `WidgetsFlutterBinding.ensureInitialized()` 호출  
-2. `bootstrapFirebase()`에서 `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` 시도  
-3. 실패 시(미설정·테스트 환경 등): 예외를 삼키지 않고 **로그만 출력**하고 앱은 계속 실행  
+2. `bootstrapFirebase()`에서 `Firebase.initializeApp` 후 **`signInAnonymously()`** 로 익명 사용자 확보 (현재 `firestore.rules`가 `request.auth != null`을 요구)  
+3. 실패 시: **로그만 출력**하고 앱은 계속 실행  
 4. `runApp(ProviderScope(child: HanjaApp()))`  
-5. Firestore 동기화는 **사용자가 랜딩의 버튼을 눌렀을 때만** 실행되며, 이때 `Firebase.apps`가 비어 있으면 `FirestoreContentSyncService`에서 `StateError`로 안내한다.
+5. **콘텐츠 동기화**는 기본적으로 **앱 기동 직후·로컬 `hanja` 테이블이 비어 있을 때만** 1회 실행한다. (푸시 알림 후 재동기화·학습 결과 업로드는 별도 설계 예정.) 이때 Firebase 미초기화면 `syncAllContent()`가 실패하고 로그만 남긴다.
+
+**콘솔 설정**: Firebase Console → Authentication → Sign-in method → **익명(Anonymous)** 사용 설정.
 
 ---
 
@@ -192,13 +207,11 @@ Python `word_entities.json`과 맞춘다.
 
 ---
 
-## 8. UI 진입점
+## 8. Firestore 호출 시점 (제품 정책)
 
-- **랜딩 화면** 하단 「Firestore에서 콘텐츠 받기」  
-  - `ref.read(firestoreContentSyncProvider).syncAllContent()`  
-  - 진행/완료/실패를 `SnackBar`로 표시  
-
-운영 시에는 온보딩·설정·자동 동기화 등으로 옮기거나, `contentVersion` 비교 후 **필요할 때만** 호출하도록 확장할 수 있다.
+- **현재**: `InitialContentSync`가 첫 프레임 이후 로컬에 한자가 없으면 `syncAllContent()`를 **백그라운드로 1회** 호출한다. UI 버튼으로의 수동 동기화는 두지 않는다.  
+- **추후**: FCM 등 **푸시 수신 핸들러**에서 동일 `FirestoreContentSyncService.syncAllContent()`(또는 증분 API)를 호출하면 된다.  
+- **추후**: **교육 결과 업로드**는 Firestore 직접 쓰기보다 Cloud Functions·REST 등 **전용 쓰기 경로**를 두는 편이 안전하다.
 
 ---
 
@@ -220,35 +233,17 @@ Python `word_entities.json`과 맞춘다.
 
 ---
 
-## 11. 보안 규칙 예시 (참고용)
+## 11. 보안 규칙 (저장소 파일)
 
-실제 프로젝트의 인증 방식에 맞게 수정해야 한다. 익명 로그인만 쓰는 경우 예시는 다음과 같다.
+배포본은 **`firestore/firestore.rules`**에 두고, 저장소 루트에서 다음으로 반영한다.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /config/{docId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-    match /hanja/{hanjaId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-      match /strokes/{strokeId} {
-        allow read: if request.auth != null;
-        allow write: if false;
-      }
-    }
-    match /words/{wordId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-    }
-  }
-}
+```bash
+firebase login
+firebase use chusa-1817   # Firebase projectId (앱 디렉터리명 chusa1817과 별개)
+firebase deploy --only firestore:rules --project chusa-1817
 ```
 
-쓰기는 관리자 SDK(Cloud Functions, 로컬 스크립트 등)로만 수행하는 구성을 권장한다.
+규칙 요지: 인증된 사용자(`request.auth != null`)만 `config` / `hanja` / `hanja/{id}/strokes` / `words` **읽기**; 클라이언트 **쓰기 불가**. 데이터 적재는 Admin SDK(`python/upload_to_firestore.py` 등)로 수행.
 
 ---
 
@@ -290,7 +285,39 @@ service cloud.firestore {
 - Firebase Core / Cloud Firestore 의존성 추가  
 - `firebase_options`·Android `google-services`·부트스트랩  
 - Firestore 경로 상수, 맵퍼, 전체 동기화 서비스  
-- Riverpod Provider 및 랜딩 화면 동기화 버튼  
+- Riverpod Provider 및 `InitialContentSync`(빈 로컬일 때만 초기 동기화)  
 - Drift `Query` 숨김 처리 및 위젯 테스트용 `ProviderScope`  
 
-이후 작업으로 **콘텐츠 버전 비교 후 선택적 동기화**, **Firebase Auth(익명/이메일)**, **획 대용량 시 Storage 연동** 등을 이어가면 된다.
+이후 작업으로 **콘텐츠 버전 비교 후 선택적 동기화**, **이메일 등 추가 로그인**, **획 대용량 시 Storage 연동** 등을 이어가면 된다.
+
+---
+
+## 16. Firebase 프로젝트 `chusa-1817` 연결 (로컬에서 할 일)
+
+CI/샌드박스에서는 Firebase CLI 로그인이 불가하므로, **본인 머신**에서 아래를 진행한다.
+
+### 16.1 한 번에 안내
+
+```bash
+./scripts/setup_firebase_flutter.sh
+```
+
+Firebase CLI 미설치 시 안내 메시지에 따라 `brew install firebase-cli` 또는 `npm i -g firebase-tools` 후 재실행.
+
+### 16.2 수동 요약
+
+1. `firebase login`  
+2. `firebase deploy --only firestore:rules --project chusa-1817` (저장소 루트, `firebase.json` 사용)  
+3. `dart pub global activate flutterfire_cli` 후 `PATH`에 `$HOME/.pub-cache/bin` 추가  
+4. `cd flutter/chusa1817` 후 `flutterfire configure --project=chusa-1817 --yes --platforms=android,ios ...` (스크립트와 동일 인자)  
+5. Authentication에서 **익명 로그인** 사용  
+6. 데이터 업로드:
+
+```bash
+cd python
+pip install -r requirements-firebase.txt
+export GOOGLE_APPLICATION_CREDENTIALS=/절대경로/서비스계정.json
+python upload_to_firestore.py --project-id chusa-1817
+```
+
+서비스 계정 JSON은 Git에 넣지 말 것 (`.gitignore`에 패턴 추가됨).

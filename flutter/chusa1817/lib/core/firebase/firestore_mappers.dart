@@ -149,6 +149,12 @@ abstract final class FirestoreStrokeMapper {
         final String a = (p[0] as num).toString();
         final String b = (p[1] as num).toString();
         pairs.add('$a,$b');
+      } else if (p is Map) {
+        final Object? x = p['x'];
+        final Object? y = p['y'];
+        if (x is num && y is num) {
+          pairs.add('${x.toString()},${y.toString()}');
+        }
       }
     }
     return pairs.join(';');

@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "chusa1817-dev",
-    "storage_bucket": "chusa1817-dev.appspot.com"
+    "project_number": "115363684571",
+    "project_id": "chusa-1817",
+    "storage_bucket": "chusa-1817.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:115363684571:android:d9c6925f0aa2f31c7bacfe",
         "android_client_info": {
           "package_name": "com.basis.hanja.chusa1817"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyReplaceWithFlutterFireConfigure"
+          "current_key": "AIzaSyCCUxymYw3IuDKlwbN_R-69yI3GpA_pYlw"
         }
       ],
       "services": {

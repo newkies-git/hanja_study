@@ -34,7 +34,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _onLoginPressed() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    context.go(AppRoutes.home);
+
+    if (_emailController.text == 'admin@test.com' && _passwordController.text == 'admin!1') {
+      isLoggedIn = true;
+      context.go(AppRoutes.home);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('아이디 또는 비밀번호가 올바르지 않습니다.'),
+          backgroundColor: HanjaColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -55,7 +67,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerLeft,
                     child: InkResponse(
                       radius: 24,
-                      onTap: () => context.pop(),
+                      onTap: () {
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go(AppRoutes.landing);
+                        }
+                      },
                       child: const Padding(
                         padding: EdgeInsets.all(8),
                         child: Icon(Icons.arrow_back, color: HanjaColors.onSurface),
@@ -122,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () => context.push(AppRoutes.resetPassword),
                             child: const Text('비밀번호를 잊으셨나요?'),
                           ),
                         ),
@@ -157,11 +175,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 color: HanjaColors.onSurfaceVariant,
                               ),
                               children: [
-                                TextSpan(
-                                  text: '회원가입',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: HanjaColors.primaryContainer,
-                                    fontWeight: FontWeight.w800,
+                                WidgetSpan(
+                                  child: GestureDetector(
+                                    onTap: () => context.push(AppRoutes.signUp),
+                                    child: Text(
+                                      '회원가입',
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        color: HanjaColors.primaryContainer,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],

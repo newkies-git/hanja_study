@@ -30,24 +30,25 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyDummyKeyReplaceWithFlutterFireConfigure',
     appId: '1:000000000000:web:0000000000000000000000',
     messagingSenderId: '000000000000',
-    projectId: 'chusa1817-dev',
-    storageBucket: 'chusa1817-dev.appspot.com',
+    projectId: 'chusa-1817',
+    storageBucket: 'chusa-1817.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyReplaceWithFlutterFireConfigure',
-    appId: '1:000000000000:android:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'chusa1817-dev',
-    storageBucket: 'chusa1817-dev.appspot.com',
+    apiKey: 'AIzaSyCCUxymYw3IuDKlwbN_R-69yI3GpA_pYlw',
+    appId: '1:115363684571:android:d9c6925f0aa2f31c7bacfe',
+    messagingSenderId: '115363684571',
+    projectId: 'chusa-1817',
+    storageBucket: 'chusa-1817.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDummyKeyReplaceWithFlutterFireConfigure',
-    appId: '1:000000000000:ios:0000000000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'chusa1817-dev',
-    storageBucket: 'chusa1817-dev.appspot.com',
+    apiKey: 'AIzaSyDhbe13PErgvk6cJnXhkDUOMJT-CHJSOzY',
+    appId: '1:115363684571:ios:0416765dc465518b7bacfe',
+    messagingSenderId: '115363684571',
+    projectId: 'chusa-1817',
+    storageBucket: 'chusa-1817.firebasestorage.app',
     iosBundleId: 'com.basis.hanja.chusa1817',
   );
+
 }
