@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanja Stroke Order Sample (價)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Inter:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Noto Serif KR', serif;
+            font-size: 2.5rem;
+            margin: 0 0 10px;
+            color: #f0f6fc;
+        }
+
+        .info { margin-bottom: 30px; font-size: 1.1rem; opacity: 0.8; }
+
+        .svg-container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            display: inline-block;
+        }
+
+        svg { width: 400px; height: 400px; display: block; }
+
+
+        .controls {
+            margin-top: 28px;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        button {
+            background: #58a6ff;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: opacity 0.15s;
+        }
+
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.25; cursor: default; }
+
+        #counter {
+            font-size: 1.15rem;
+            font-weight: 600;
+            min-width: 56px;
+            color: #f0f6fc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>價</h1>
+        <div class="info">값 가 | 15획 | 사람인변(亻)</div>
+
+        <div class="svg-container">
+            <svg id="stroke-svg"></svg>
+        </div>
+
+        <div class="controls">
+            <button id="btn-prev" onclick="prev()">◀ 이전</button>
+            <span id="counter">1 / 15</span>
+            <button id="btn-next" onclick="next()">다음 ▶</button>
+        </div>
+
+        <div style="margin-top: 36px; font-size: 0.8rem; opacity: 0.4;">stroke_050F9 · ←/→ 키보드 이동</div>
+    </div>
+
+    <script>
+        const STROKES = [
+            { d: "M227 845Q238 832 245 812Q253 794 190 639Q127 485 36 357L48 350Q116 410 176 520L218 604Q254 685 287 786Q304 803 326 801Q336 806 319 816L233 853L227 845Z" },
+            { d: "M176 520L176 67Q174 -81 169 -120Q221 -109 220 -74L218 21L218 604C218 634 176 550 176 520Z" },
+            { d: "M752 760L970 760Q987 759 989 763Q992 766 981 774L913 822L880 780L310 780L344 747Q362 761 389 760L534 760L572 760L714 760L752 760Z" },
+            { d: "M336 698Q362 667 360 650L360 519Q358 468 353 431Q404 440 402 475L402 492L402 508L402 646C402 659 402 659 399 662L348 709L336 698Z" },
+            { d: "M881 492L881 447Q928 450 928 483L923 585L923 628L941 637Q951 639 952 644Q954 648 947 654L899 701L862 662L752 662L714 662L572 662L534 662L399 662C369 662 372 646 402 646L534 646L572 646L714 646L752 646L881 646L881 508L881 492Z" },
+            { d: "M534 760L534 662L534 646L534 508C534 492 572 492 572 508L572 646L572 662L572 760C572 780 534 780 534 760Z" },
+            { d: "M752 662L752 760C752 780 714 780 714 760L714 662L714 646L714 508C714 492 752 492 752 508L752 646L752 662Z" },
+            { d: "M402 492L881 492C911 492 911 508 881 508L752 508L714 508L572 508L534 508L402 508C372 508 372 492 402 492Z" },
+            { d: "M400 418Q418 392 416 380L416 153Q414 44 409 6Q461 14 458 50L458 80L458 96L458 184L458 198L458 280L458 294L458 378L448 394L412 429L400 418Z" },
+            { d: "M833 80L833 26Q882 29 882 61L875 153L875 364L893 373Q903 375 904 380Q906 384 899 390L849 437L814 394L448 394C418 394 428 378 458 378L833 378L833 294L833 280L833 198L833 184L833 96L833 80Z" },
+            { d: "M833 294L458 294C428 294 428 280 458 280L833 280C863 280 863 294 833 294Z" },
+            { d: "M458 184L833 184C863 184 863 198 833 198L458 198C428 198 428 184 458 184Z" },
+            { d: "M458 80L833 80C863 80 863 96 833 96L458 96C428 96 428 80 458 80Z" },
+            { d: "M523 49Q530 40 525 30Q521 19 469 -13Q417 -48 289 -109L293 -123Q409 -87 475 -51Q541 -15 553 -11Q565 -7 597 -10Q604 -8 604 -5Q604 -1 597 2L531 54L523 49Z" },
+            { d: "M716 29Q814 -10 849 -37Q884 -64 911 -98Q938 -133 957 -113Q976 -94 947 -60Q889 6 723 44L716 29Z" },
+        ];
+
+        const NS = "http://www.w3.org/2000/svg";
+        let currentIdx = 0;
+        let animRaf = null;
+        let globalBBox;
+
+        function el(tag, attrs = {}) {
+            const e = document.createElementNS(NS, tag);
+            for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+            return e;
+        }
+
+        function pathBBox(d) {
+            const nums = d.split(/[MLQCZ\s,]+/).filter(p => p !== '' && !isNaN(+p)).map(Number);
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            for (let i = 0; i < nums.length; i += 2) {
+                if (!isNaN(nums[i]))   { minX = Math.min(minX, nums[i]);   maxX = Math.max(maxX, nums[i]); }
+                if (!isNaN(nums[i+1])) { minY = Math.min(minY, nums[i+1]); maxY = Math.max(maxY, nums[i+1]); }
+            }
+            return { minX, minY, maxX, maxY };
+        }
+
+        function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        }
+
+        function getStrokeVector(d) {
+            const nums = d.split(/[MLQCZ\s,]+/).filter(p => p !== '' && !isNaN(+p)).map(Number);
+            if (nums.length < 2) return { x1: 0, y1: 0, x2: 100, y2: 0 };
+            const x1 = nums[0];
+            const y1 = nums[1];
+            let maxSq = 0;
+            let x2 = x1, y2 = y1;
+            for (let i = 0; i < nums.length; i += 2) {
+                if (!isNaN(nums[i]) && !isNaN(nums[i+1])) {
+                    const nx = nums[i], ny = nums[i+1];
+                    const distSq = (nx - x1)**2 + (ny - y1)**2;
+                    if (distSq > maxSq) {
+                        maxSq = distSq;
+                        x2 = nx; y2 = ny;
+                    }
+                }
+            }
+            return { x1, y1, x2, y2 };
+        }
+
+        function render() {
+            cancelAnimationFrame(animRaf);
+
+            const svg = document.getElementById('stroke-svg');
+            svg.innerHTML = '';
+
+            document.getElementById('counter').textContent = `${currentIdx + 1} / ${STROKES.length}`;
+            document.getElementById('btn-prev').disabled = currentIdx === 0;
+            document.getElementById('btn-next').disabled = currentIdx === STROKES.length - 1;
+
+            const pad = 60;
+            const { minX, minY, maxX, maxY } = globalBBox;
+            svg.setAttribute('viewBox', `${minX - pad} ${-(maxY + pad)} ${maxX - minX + pad * 2} ${maxY - minY + pad * 2}`);
+
+            const defs = el('defs');
+            svg.appendChild(defs);
+
+            const root = el('g', { transform: 'scale(1,-1)' });
+            svg.appendChild(root);
+
+            const pathLayer = el('g');
+            root.appendChild(pathLayer);
+
+            // 이전 획들: 회색으로 완전히 표시
+            for (let i = 0; i < currentIdx; i++) {
+                pathLayer.appendChild(el('path', { d: STROKES[i].d, fill: '#bbb' }));
+            }
+
+            // 현재 획: 획의 시작점에서 끝점을 향해 그라디언트 채우기 애니메이션
+            const vec = getStrokeVector(STROKES[currentIdx].d);
+            const gradId = 'swipe-grad';
+
+            const grad = el('linearGradient', {
+                id: gradId,
+                x1: vec.x1, y1: vec.y1,
+                x2: vec.x2, y2: vec.y2,
+                gradientUnits: 'userSpaceOnUse'
+            });
+
+            const sColor = el('stop', { offset: '0',     'stop-color': '#58a6ff' });
+            const sEdge  = el('stop', { offset: '0',     'stop-color': '#58a6ff' });
+            const sClear = el('stop', { offset: '0.005', 'stop-color': 'rgba(88,166,255,0)' });
+            grad.appendChild(sColor);
+            grad.appendChild(sEdge);
+            grad.appendChild(sClear);
+            defs.appendChild(grad);
+
+            pathLayer.appendChild(el('path', { d: STROKES[currentIdx].d, fill: `url(#${gradId})` }));
+
+            // 애니메이션: 0 → 1 (시작점→끝점 방향으로 채우기)
+            const duration = 700;
+            const startTime = performance.now();
+
+            function animate(now) {
+                const p = Math.min((now - startTime) / duration, 1);
+                const e = easeInOut(p);
+                sEdge.setAttribute('offset', String(e));
+                sClear.setAttribute('offset', String(Math.min(e + 0.005, 1)));
+                if (p < 1) animRaf = requestAnimationFrame(animate);
+            }
+            animRaf = requestAnimationFrame(animate);
+        }
+
+        function next() { if (currentIdx < STROKES.length - 1) { currentIdx++; render(); } }
+        function prev() { if (currentIdx > 0) { currentIdx--; render(); } }
+
+        // 키보드 이동
+        document.addEventListener('keydown', e => {
+            if (e.key === 'ArrowRight') next();
+            if (e.key === 'ArrowLeft')  prev();
+        });
+
+        // 전체 bbox 미리 계산 후 렌더링
+        (function init() {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            STROKES.forEach(({ d }) => {
+                const b = pathBBox(d);
+                minX = Math.min(minX, b.minX); maxX = Math.max(maxX, b.maxX);
+                minY = Math.min(minY, b.minY); maxY = Math.max(maxY, b.maxY);
+            });
+            globalBBox = { minX, minY, maxX, maxY };
+            render();
+        })();
+    </script>
+</body>
+</html>
