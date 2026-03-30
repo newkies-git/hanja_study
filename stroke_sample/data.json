@@ -129,7 +129,7 @@
           0.6588,
           1.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "bottom_to_top"
       },
       {
         "order": 2,
@@ -240,7 +240,7 @@
           0.0915,
           0.8927
         ],
-        "direction": "top_to_bottom"
+        "direction": "bottom_to_top"
       },
       {
         "order": 3,
@@ -351,7 +351,7 @@
           0.642,
           0.0004
         ],
-        "direction": "top_to_bottom"
+        "direction": "right_to_left"
       },
       {
         "order": 4,
@@ -462,7 +462,7 @@
           0.0,
           0.986
         ],
-        "direction": "top_to_bottom"
+        "direction": "bottom_to_top"
       },
       {
         "order": 5,
@@ -573,7 +573,7 @@
           0.895,
           0.1717
         ],
-        "direction": "top_to_bottom"
+        "direction": "right_to_left"
       },
       {
         "order": 6,
@@ -684,7 +684,7 @@
           0.0,
           0.9457
         ],
-        "direction": "top_to_bottom"
+        "direction": "bottom_to_top"
       },
       {
         "order": 7,
@@ -795,7 +795,7 @@
           1.0,
           0.5961
         ],
-        "direction": "top_to_bottom"
+        "direction": "bottom_to_top"
       },
       {
         "order": 8,
@@ -906,7 +906,7 @@
           0.0152,
           0.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "left_to_right"
       },
       {
         "order": 9,
@@ -1017,7 +1017,7 @@
           0.0,
           1.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "bottom_to_top"
       },
       {
         "order": 10,
@@ -1128,7 +1128,7 @@
           0.8718,
           0.1283
         ],
-        "direction": "top_to_bottom"
+        "direction": "right_to_left"
       },
       {
         "order": 11,
@@ -1239,7 +1239,7 @@
           0.9582,
           1.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "right_to_left"
       },
       {
         "order": 12,
@@ -1350,7 +1350,7 @@
           0.0418,
           0.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "left_to_right"
       },
       {
         "order": 13,
@@ -1461,7 +1461,7 @@
           0.0432,
           0.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "left_to_right"
       },
       {
         "order": 14,
@@ -1572,7 +1572,7 @@
           0.7465,
           1.0
         ],
-        "direction": "top_to_bottom"
+        "direction": "right_to_left"
       },
       {
         "order": 15,
@@ -1683,7 +1683,7 @@
           0.0,
           0.9267
         ],
-        "direction": "top_to_bottom"
+        "direction": "left_to_right"
       }
     ],
     "svg_paths": [
