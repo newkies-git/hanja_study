@@ -24,3 +24,4 @@ flutter/**/*.iml
 # Admin frontend (Vite)
 admin/frontend/node_modules/
 admin/frontend/dist/
+admin/frontend/*.tsbuildinfo
