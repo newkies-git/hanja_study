@@ -1,0 +1,2 @@
+# Firestore 업로드 스크립트용 (기본 파이프라인과 분리)
+firebase-admin>=6.5.0

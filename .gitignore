@@ -14,5 +14,13 @@ flutter/**/build/
 flutter/**/.flutter-plugins-dependencies
 flutter/**/*.iml
 
+# Firebase 서비스 계정 키 (절대 커밋하지 말 것)
+**/serviceAccount*.json
+**/*-adminsdk-*.json
+
 # OS / editor
 .DS_Store
+
+# Admin frontend (Vite)
+admin/frontend/node_modules/
+admin/frontend/dist/
