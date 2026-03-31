@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { RouterLink } from "vue-router";
 import {
   collection,
   doc,
@@ -537,107 +538,185 @@ function restartWizard() {
 </script>
 
 <template>
-  <div class="max-w-5xl space-y-6">
-    <div>
-      <h1 class="font-display text-2xl font-semibold text-onSurface">
-        한자 마스터 등록
-      </h1>
-      <p class="mt-1 text-sm text-onSurface-variant">
-        <strong class="text-onSurface">hanja_basis</strong>는 CSV(첫 줄 헤더, 문서 ID=첫 열)입니다.
-        <strong class="text-onSurface">hanja_extend · hanja_stroke · hanja_word</strong>는
-        ETL 산출과 같이 <strong class="text-onSurface">JSON 배열</strong>이 표준 형식이며, 같은 스키마의 CSV도 업로드할 수 있습니다.
-        순서는 반드시 지킵니다. 동일 문서 ID는 병합(<code class="text-xs">merge</code>)됩니다.
-      </p>
+  <div class="space-y-6">
+    <!-- 히어로 -->
+    <section
+      class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
+    >
+      <div
+        class="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
+      />
+      <div
+        class="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+      >
+        <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <div
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-white shadow-md shadow-primary/20"
+            aria-hidden="true"
+          >
+            載
+          </div>
+          <div class="min-w-0 leading-tight">
+            <p
+              class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
+            >
+              Admin · Firestore import
+            </p>
+            <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
+              한자 마스터 등록
+            </h1>
+          </div>
+        </div>
+        <RouterLink
+          :to="{ name: 'basis' }"
+          class="btn-secondary inline-flex shrink-0 items-center justify-center px-3 py-1.5 text-xs sm:text-sm"
+        >
+          기준 데이터 목록
+        </RouterLink>
+      </div>
+    </section>
+
+    <div
+      class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
+    >
+      <strong class="font-medium text-onSurface">hanja_basis</strong>는 CSV(첫 줄 헤더, 문서 ID=첫 열).
+      <strong class="font-medium text-onSurface">hanja_extend · hanja_stroke · hanja_word</strong>는
+      ETL과 동일한 <strong class="font-medium text-onSurface">JSON 배열</strong>이 표준이며 CSV도 호환됩니다.
+      순서를 지키고, 동일 문서 ID는 <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">merge</code>됩니다.
     </div>
 
-    <!-- 순서 표시 -->
-    <ol class="flex flex-wrap gap-2 text-sm sm:gap-3">
-      <li
-        v-for="(s, i) in UPLOAD_STEPS"
-        :key="s.collection"
-        class="flex items-center gap-2 rounded-xl border px-3 py-2"
-        :class="{
-          'border-primary bg-primary/5 text-onSurface': i === currentStepIndex,
-          'border-outline-variant bg-surface-low text-onSurface-variant':
-            i > currentStepIndex,
-          'border-green-600/40 bg-green-50/50 text-green-950': i < currentStepIndex,
-        }"
+    <!-- 단계 -->
+    <div
+      class="rounded-xl border border-outline-variant/70 bg-surface-lowest px-3 py-2.5 shadow-float sm:px-4"
+    >
+      <p
+        class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
       >
-        <span class="font-display font-semibold">{{ s.title }}</span>
-        <span class="hidden text-onSurface-variant sm:inline">· {{ s.description }}</span>
-        <span v-if="i < currentStepIndex" class="text-green-700" aria-hidden="true">✓</span>
-      </li>
-    </ol>
+        업로드 단계 (고정 순서)
+      </p>
+      <ol
+        class="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] sm:gap-2.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant/60"
+      >
+        <li
+          v-for="(s, i) in UPLOAD_STEPS"
+          :key="s.collection"
+          class="flex min-w-[11rem] shrink-0 flex-col gap-1 rounded-xl border px-3 py-2 text-sm shadow-sm transition sm:min-w-0 sm:flex-1 sm:flex-row sm:items-center sm:gap-2"
+          :class="{
+            'border-primary/50 bg-primary/[0.08] text-onSurface ring-1 ring-primary/20':
+              i === currentStepIndex,
+            'border-outline-variant/80 bg-surface-low text-onSurface-variant':
+              i > currentStepIndex,
+            'border-green-600/35 bg-green-50/80 text-green-950 ring-1 ring-green-600/15':
+              i < currentStepIndex,
+          }"
+        >
+          <span class="font-display font-semibold leading-tight">{{ s.title }}</span>
+          <span class="text-[11px] leading-snug text-onSurface-variant sm:text-xs">
+            {{ s.description }}
+          </span>
+          <span
+            v-if="i < currentStepIndex"
+            class="ml-auto text-base font-semibold text-green-700 sm:ml-0"
+            aria-hidden="true"
+          >✓</span>
+        </li>
+      </ol>
+    </div>
 
-    <div class="card-surface space-y-4">
-      <div v-if="!auth.isAdmin" class="text-sm text-amber-800">
-        admin 클레임이 없으면 쓰기가 거절됩니다.
+    <div
+      class="space-y-5 rounded-2xl border border-outline-variant/70 bg-surface-lowest p-5 shadow-float sm:p-6"
+    >
+      <div
+        v-if="!auth.isAdmin"
+        class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
+      >
+        <span class="font-medium">admin</span> 클레임이 없으면 Firestore 쓰기가 거절됩니다.
       </div>
 
       <!-- 전체 완료 -->
       <div
         v-if="currentStepIndex >= UPLOAD_STEPS.length"
-        class="space-y-4 rounded-xl bg-green-50/90 p-5 text-green-950"
+        class="space-y-4 rounded-2xl border border-green-200/90 bg-gradient-to-br from-green-50/95 to-green-50/60 p-5 text-green-950 shadow-sm"
       >
-        <p class="font-display font-semibold">
+        <p class="font-display text-base font-semibold">
           네 단계 모두 반영되었습니다.
         </p>
         <p class="text-sm text-green-900/90">
           hanja_basis → hanja_extend → hanja_stroke → hanja_word 순서로 업로드가 완료되었습니다.
         </p>
-        <ul class="list-disc space-y-1 pl-5 text-sm">
+        <ul class="list-disc space-y-1.5 pl-5 text-sm text-green-900/95">
           <li v-for="(c, i) in sessionCompleted" :key="i">
             <strong>{{ c.collection }}</strong> — {{ c.fileName }} ({{ c.importedRows }}건)
           </li>
         </ul>
-        <button type="button" class="btn-primary" @click="restartWizard">
+        <button
+          type="button"
+          class="btn-primary shadow-md shadow-primary/15"
+          @click="restartWizard"
+        >
           처음부터 다시 등록
         </button>
       </div>
 
       <!-- 현재 단계 업로드 -->
       <template v-else-if="currentStep">
-        <div class="rounded-lg bg-surface-low px-4 py-3">
-          <p class="font-display text-sm font-semibold text-onSurface">
-            현재 단계: {{ currentStep.title }}
-          </p>
-          <p class="mt-0.5 text-xs text-onSurface-variant">
-            Firestore 컬렉션 <code class="text-onSurface">{{ currentStep.collection }}</code>
-            <span v-if="allowsJson"> · JSON 배열 또는 CSV</span>
-          </p>
+        <div
+          class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.06] via-surface-lowest to-surface-low px-4 py-3 ring-1 ring-black/[0.02]"
+        >
+          <div
+            class="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-primary/[0.08] blur-2xl"
+          />
+          <div class="relative">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-primary/90">
+              현재 단계
+            </p>
+            <p class="font-display text-sm font-semibold text-onSurface">
+              {{ currentStep.title }}
+            </p>
+            <p class="mt-1 text-xs text-onSurface-variant">
+              컬렉션
+              <code
+                class="rounded-md bg-white/70 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm"
+              >{{ currentStep.collection }}</code>
+              <span v-if="allowsJson"> · JSON 배열 또는 CSV</span>
+            </p>
+          </div>
         </div>
 
         <div>
           <label
-            class="mb-2 block text-xs font-medium text-onSurface-variant"
+            class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
             :for="fileInputId"
           >
-            <template v-if="allowsJson">파일 (JSON 또는 CSV) — {{ currentStep.collection }}</template>
-            <template v-else>CSV 파일 — {{ currentStep.collection }}</template>
+            <template v-if="allowsJson">파일 (JSON 또는 CSV)</template>
+            <template v-else>CSV 파일</template>
+            <span class="font-normal normal-case tracking-normal text-onSurface-variant">
+              — {{ currentStep.collection }}
+            </span>
           </label>
           <input
             :id="fileInputId"
             type="file"
             :accept="allowsJson ? '.csv,.json,text/csv,application/json' : '.csv,text/csv'"
-            class="block w-full text-sm text-onSurface-variant file:mr-4 file:rounded-md file:border-0 file:bg-surface-low file:px-4 file:py-2 file:text-sm file:font-medium file:text-onSurface hover:file:bg-surface-bright"
+            class="block w-full text-sm text-onSurface-variant file:mr-4 file:rounded-lg file:border-0 file:bg-surface-low file:px-4 file:py-2 file:text-sm file:font-medium file:text-onSurface file:shadow-sm hover:file:bg-surface-bright"
             @change="onFileChange"
           />
         </div>
 
         <div
           v-if="uploadPreview"
-          class="space-y-4 rounded-xl bg-surface-low p-4 sm:p-5"
+          class="space-y-4 rounded-2xl border border-outline-variant/70 bg-surface-low/80 p-4 shadow-inner sm:p-5"
         >
           <h2 class="font-display text-sm font-semibold text-onSurface">
             파일 정보
           </h2>
           <p
             v-if="uploadPreview.kind === 'json'"
-            class="text-xs text-primary"
+            class="text-xs font-medium text-primary"
           >
             JSON 형식 · 객체 배열 (문서 수 {{ previewDocCount }}건)
           </p>
-          <dl class="grid gap-2 text-sm sm:grid-cols-2">
+          <dl class="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt class="text-onSurface-variant">파일 이름</dt>
               <dd class="mt-0.5 font-medium text-onSurface">
@@ -678,9 +757,9 @@ function restartWizard() {
               <li
                 v-for="(h, i) in normalizedHeaders"
                 :key="i"
-                class="rounded-full bg-surface-lowest px-3 py-1 text-xs text-onSurface"
+                class="rounded-full border border-outline-variant/50 bg-surface-lowest px-3 py-1 text-xs text-onSurface shadow-sm"
                 :class="{
-                  'ring-2 ring-primary/30':
+                  'border-primary/35 ring-1 ring-primary/25':
                     uploadPreview.kind === 'json'
                       ? (h === 'id' || h === 'stroke_data_id' || h === 'word_id')
                       : i === 0,
@@ -706,51 +785,57 @@ function restartWizard() {
             <p class="text-xs font-medium text-onSurface-variant">
               미리보기 (상위 {{ previewDataRows.length }}건, 한자 열은 크게)
             </p>
-            <div class="mt-2 overflow-x-auto rounded-lg bg-surface-lowest shadow-float">
-              <table class="w-full min-w-[480px] border-collapse text-left text-sm">
-                <thead>
-                  <tr class="bg-surface-low">
-                    <th
-                      v-for="(h, ci) in normalizedHeaders"
-                      :key="ci"
-                      class="max-w-[10rem] truncate px-3 py-2 text-xs font-medium uppercase tracking-wide text-onSurface-variant"
-                      :title="h"
+            <div
+              class="mt-2 overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-lowest shadow-[0_8px_28px_rgba(25,28,30,0.05)] ring-1 ring-black/[0.02]"
+            >
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[480px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr
+                      class="border-b border-outline-variant/80 bg-surface-low/95 text-xs font-semibold uppercase tracking-wide text-onSurface-variant backdrop-blur-sm"
                     >
-                      {{ h }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(cells, ri) in previewDataRows"
-                    :key="ri"
-                    class="border-t border-outline-variant"
-                  >
-                    <td
-                      v-for="(cell, ci) in cells"
-                      :key="ci"
-                      class="max-w-[12rem] truncate px-3 py-2 text-onSurface"
-                      :class="
-                        ci === 0 ||
-                        (uploadPreview.kind === 'json' &&
-                          (normalizedHeaders[ci] === 'char' ||
-                            normalizedHeaders[ci] === 'hanja'))
-                          ? 'font-display text-lg leading-tight'
-                          : ''
-                      "
-                      :title="cell"
+                      <th
+                        v-for="(h, ci) in normalizedHeaders"
+                        :key="ci"
+                        class="max-w-[10rem] truncate px-3 py-2.5"
+                        :title="h"
+                      >
+                        {{ h }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-outline-variant/60">
+                    <tr
+                      v-for="(cells, ri) in previewDataRows"
+                      :key="ri"
+                      class="bg-surface-lowest transition-colors hover:bg-primary/[0.03]"
                     >
-                      {{ cell || "—" }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+                      <td
+                        v-for="(cell, ci) in cells"
+                        :key="ci"
+                        class="max-w-[12rem] truncate px-3 py-2.5 text-onSurface"
+                        :class="
+                          ci === 0 ||
+                          (uploadPreview.kind === 'json' &&
+                            (normalizedHeaders[ci] === 'char' ||
+                              normalizedHeaders[ci] === 'hanja'))
+                            ? 'font-display text-lg leading-tight'
+                            : ''
+                        "
+                        :title="cell"
+                      >
+                        {{ cell || "—" }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           <p
             v-else-if="uploadPreview.kind === 'csv'"
-            class="text-sm text-amber-800"
+            class="rounded-lg border border-amber-200/90 bg-amber-50/90 px-3 py-2 text-sm text-amber-950"
           >
             헤더만 있고 데이터 행이 없습니다.
           </p>
@@ -758,20 +843,25 @@ function restartWizard() {
 
         <button
           type="button"
-          class="btn-primary"
+          class="btn-primary shadow-md shadow-primary/15"
           :disabled="!canUpload"
           @click="onUpload"
         >
           {{ busy ? "업로드 중…" : `${currentStep.collection}에 반영` }}
         </button>
 
-        <p v-if="message" class="text-sm text-primary">{{ message }}</p>
+        <p
+          v-if="message"
+          class="rounded-lg border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm font-medium text-primary"
+        >
+          {{ message }}
+        </p>
         <div
           v-if="uploadError?.kind === 'permission'"
-          class="rounded-xl bg-red-50/90 p-4 text-sm text-red-950 shadow-float"
+          class="rounded-xl border border-red-200/90 bg-red-50/90 p-4 text-sm text-red-950 shadow-sm"
           role="alert"
         >
-          <p class="font-display font-semibold">Firestore가 쓰기를 거절했습니다</p>
+          <p class="font-display font-semibold text-red-950">Firestore가 쓰기를 거절했습니다</p>
           <p class="mt-1 text-red-900/90">
             아래 순서를 확인하세요.
           </p>
@@ -783,49 +873,65 @@ function restartWizard() {
         </div>
         <p
           v-else-if="uploadError?.kind === 'plain'"
-          class="text-sm text-red-600"
+          class="rounded-xl border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-900"
         >
           {{ uploadError.message }}
         </p>
-        <p v-if="lastImported && !uploadError" class="text-xs text-onSurface-variant">
-          다음 단계 파일을 선택하거나, 기준 데이터 화면에서 새로고침해 확인하세요.
+        <p
+          v-if="lastImported && !uploadError"
+          class="text-xs text-onSurface-variant"
+        >
+          다음 단계 파일을 선택하거나,
+          <RouterLink
+            :to="{ name: 'basis' }"
+            class="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary"
+          >기준 데이터</RouterLink>
+          화면에서 새로고침해 확인하세요.
         </p>
       </template>
     </div>
 
     <div
       v-if="lastUploadSummary"
-      class="card-surface space-y-3"
+      class="space-y-4 rounded-2xl border border-outline-variant/70 bg-surface-lowest p-5 shadow-float sm:p-6"
     >
       <h2 class="font-display text-sm font-semibold text-onSurface">
         마지막 업로드 요약
       </h2>
-      <dl class="grid gap-2 text-sm sm:grid-cols-2">
+      <dl class="grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt class="text-onSurface-variant">형식</dt>
-          <dd class="mt-0.5 font-medium">{{ lastUploadSummary.format.toUpperCase() }}</dd>
+          <dt class="text-xs text-onSurface-variant">형식</dt>
+          <dd class="mt-0.5 font-medium text-onSurface">
+            {{ lastUploadSummary.format.toUpperCase() }}
+          </dd>
         </div>
         <div>
-          <dt class="text-onSurface-variant">컬렉션</dt>
-          <dd class="mt-0.5 font-medium">{{ lastUploadSummary.collection }}</dd>
+          <dt class="text-xs text-onSurface-variant">컬렉션</dt>
+          <dd class="mt-0.5 font-mono text-sm font-medium text-primary">
+            {{ lastUploadSummary.collection }}
+          </dd>
         </div>
         <div>
-          <dt class="text-onSurface-variant">파일</dt>
-          <dd class="mt-0.5 font-medium">{{ lastUploadSummary.fileName }}</dd>
+          <dt class="text-xs text-onSurface-variant">파일</dt>
+          <dd class="mt-0.5 font-medium text-onSurface">
+            {{ lastUploadSummary.fileName }}
+          </dd>
         </div>
         <div>
-          <dt class="text-onSurface-variant">반영</dt>
-          <dd class="mt-0.5 font-medium">
+          <dt class="text-xs text-onSurface-variant">반영</dt>
+          <dd class="mt-0.5 font-medium tabular-nums text-onSurface">
             {{ lastUploadSummary.importedRows }} / {{ lastUploadSummary.dataRowCount }}
           </dd>
         </div>
         <div class="sm:col-span-2">
-          <dt class="text-onSurface-variant">필드 ({{ lastUploadSummary.columnCount }}개)</dt>
-          <dd class="mt-1 flex flex-wrap gap-2">
+          <dt class="text-xs text-onSurface-variant">
+            필드 ({{ lastUploadSummary.columnCount }}개)
+          </dt>
+          <dd class="mt-2 flex flex-wrap gap-2">
             <span
               v-for="(h, i) in lastUploadSummary.headers"
               :key="i"
-              class="rounded-full bg-surface-low px-2.5 py-0.5 text-xs"
+              class="rounded-full border border-outline-variant/50 bg-surface-low px-2.5 py-0.5 text-xs text-onSurface shadow-sm"
             >
               {{ h }}
             </span>

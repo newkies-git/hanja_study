@@ -600,6 +600,12 @@ function clearFilters() {
 
 const canClearFilters = computed(() => filterActive.value);
 
+const selectedCount = computed(() => selectedIds.value.size);
+
+const basisTotalLabel = computed(() =>
+  allDocs.value.length.toLocaleString("ko-KR"),
+);
+
 onMounted(() => {
   void loadAll();
   updateHeaderCheckboxIndeterminate();
@@ -608,51 +614,108 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="font-display text-2xl font-semibold text-onSurface">
-          기준 데이터
-        </h1>
+    <!-- 히어로 (컴팩트) -->
+    <section
+      class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
+    >
+      <div
+        class="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
+      />
+      <div
+        class="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+      >
+        <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <div
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-md shadow-primary/20"
+            aria-hidden="true"
+          >
+            基
+          </div>
+          <div class="min-w-0 leading-tight">
+            <p
+              class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
+            >
+              Firestore · hanja_basis
+            </p>
+            <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
+              기준 데이터
+            </h1>
+          </div>
+        </div>
+        <div
+          class="flex flex-wrap items-center gap-1.5 sm:justify-end sm:gap-2"
+        >
+          <span
+            class="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/90 px-2 py-0.5 text-[11px] font-medium text-onSurface shadow-sm backdrop-blur-sm"
+          >
+            <span class="text-onSurface-variant">전체</span>
+            <span class="tabular-nums text-primary">{{ basisTotalLabel }}</span>
+            <span class="text-onSurface-variant">건</span>
+          </span>
+          <span
+            v-if="!loading && allDocs.length && filterActive"
+            class="inline-flex items-center rounded-full border border-outline-variant/70 bg-surface-lowest/90 px-2 py-0.5 text-[11px] font-medium text-onSurface backdrop-blur-sm"
+          >
+            필터 결과
+            <span class="ml-0.5 tabular-nums text-primary">{{ totalCount.toLocaleString("ko-KR") }}</span>
+            건
+          </span>
+          <span
+            v-if="selectedCount > 0"
+            class="inline-flex items-center rounded-full border border-primary/25 bg-primary/[0.1] px-2 py-0.5 text-[11px] font-semibold text-primary"
+          >
+            {{ selectedCount.toLocaleString("ko-KR") }}건 선택
+          </span>
+          <button
+            type="button"
+            class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
+            :disabled="!canUseSelectionActions"
+            title="한 행만 선택해야 합니다"
+            @click="openExtendLookupModal"
+          >
+            조회
+          </button>
+          <button
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
+            :disabled="!canUseSelectionActions"
+            title="한 행만 선택해야 합니다"
+            @click="openStrokeOrderModal"
+          >
+            획순
+          </button>
+          <button
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
+            :disabled="loading"
+            @click="refresh"
+          >
+            새로고침
+          </button>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          class="btn-primary text-sm"
-          :disabled="!canUseSelectionActions"
-          title="한 행만 선택해야 합니다"
-          @click="openExtendLookupModal"
-        >
-          조회
-        </button>
-        <button
-          type="button"
-          class="btn-secondary text-sm"
-          :disabled="!canUseSelectionActions"
-          title="한 행만 선택해야 합니다"
-          @click="openStrokeOrderModal"
-        >
-          획순
-        </button>
-        <button
-          type="button"
-          class="btn-secondary text-sm"
-          :disabled="loading"
-          @click="refresh"
-        >
-          새로고침
-        </button>
-      </div>
-    </div>
+    </section>
 
-    <div class="space-y-4 rounded-xl bg-surface-low p-4">
-      <div class="flex flex-wrap items-end gap-4">
-        <div class="min-w-[5.5rem]">
-          <label class="mb-1 block text-xs font-medium text-onSurface-variant"
+    <!-- 필터 (한 줄) -->
+    <div
+      class="rounded-xl border border-outline-variant/70 bg-surface-lowest px-3 py-2.5 shadow-float sm:px-4"
+    >
+      <div
+        class="flex flex-nowrap items-end gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] sm:gap-2.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant/60"
+      >
+        <h2
+          class="shrink-0 self-center pr-1 text-sm font-semibold leading-none text-onSurface"
+        >
+          검색 및 목록
+        </h2>
+        <div class="flex w-[5.25rem] shrink-0 flex-col">
+          <label
+            class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant"
             >페이지당</label
           >
           <select
             v-model="pageSize"
-            class="input-minimal w-full cursor-pointer py-2"
+            class="input-minimal w-full cursor-pointer py-1.5 text-sm"
           >
             <option
               v-for="n in PAGE_SIZE_OPTIONS"
@@ -663,213 +726,255 @@ onMounted(() => {
             </option>
           </select>
         </div>
-        <div class="min-w-[8rem]">
-          <label class="mb-1 block text-xs font-medium text-onSurface-variant"
+        <div class="flex w-[4.75rem] shrink-0 flex-col">
+          <label
+            class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant"
             >구분</label
           >
           <select
             v-model="filter구분"
-            class="input-minimal w-full cursor-pointer py-2"
+            class="input-minimal w-full cursor-pointer py-1.5 text-sm"
           >
             <option value="">전체</option>
             <option value="중">중</option>
             <option value="고">고</option>
           </select>
         </div>
+        <div class="flex min-w-[6.25rem] flex-1 flex-col">
+          <label
+            class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant"
+            >한자</label
+          >
+          <input
+            v-model="search한자"
+            type="search"
+            class="input-minimal min-w-0 w-full py-1.5 text-sm"
+            placeholder="부분 일치"
+            autocomplete="off"
+          />
+        </div>
+        <div class="flex min-w-[6.25rem] flex-1 flex-col">
+          <label
+            class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant"
+            >음</label
+          >
+          <input
+            v-model="search음"
+            type="search"
+            class="input-minimal min-w-0 w-full py-1.5 text-sm"
+            placeholder="부분 일치"
+            autocomplete="off"
+          />
+        </div>
+        <div class="flex min-w-[6.25rem] flex-1 flex-col">
+          <label
+            class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant"
+            >훈</label
+          >
+          <input
+            v-model="search훈"
+            type="search"
+            class="input-minimal min-w-0 w-full py-1.5 text-sm"
+            placeholder="부분 일치"
+            autocomplete="off"
+          />
+        </div>
         <button
           type="button"
-          class="btn-secondary text-sm self-end"
+          class="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:text-sm"
           :disabled="!canClearFilters"
           @click="clearFilters"
         >
           필터 초기화
         </button>
       </div>
-
-      <div class="grid max-w-3xl gap-3 sm:grid-cols-3">
-        <div>
-          <label class="mb-1 block text-xs font-medium text-onSurface-variant"
-            >한자</label
-          >
-          <input
-            v-model="search한자"
-            type="search"
-            class="input-minimal py-2"
-            placeholder="부분 일치"
-            autocomplete="off"
-          />
-        </div>
-        <div>
-          <label class="mb-1 block text-xs font-medium text-onSurface-variant"
-            >음</label
-          >
-          <input
-            v-model="search음"
-            type="search"
-            class="input-minimal py-2"
-            placeholder="부분 일치"
-            autocomplete="off"
-          />
-        </div>
-        <div>
-          <label class="mb-1 block text-xs font-medium text-onSurface-variant"
-            >훈</label
-          >
-          <input
-            v-model="search훈"
-            type="search"
-            class="input-minimal py-2"
-            placeholder="부분 일치"
-            autocomplete="off"
-          />
-        </div>
-      </div>
-    </div>
-
-    <p v-if="filterWarning" class="text-sm text-amber-800">{{ filterWarning }}</p>
-    <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
-    <p v-else-if="loading" class="text-onSurface-variant">불러오는 중…</p>
-    <p
-      v-else-if="!loading && !allDocs.length"
-      class="text-onSurface-variant"
-    >
-      문서가 없습니다. CSV 업로드로 채울 수 있습니다.
-    </p>
-    <p
-      v-else-if="!loading && allDocs.length && !totalCount"
-      class="text-onSurface-variant"
-    >
-      필터와 일치하는 행이 없습니다. 조건을 바꿔 보세요.
-    </p>
-
-    <template v-if="rows.length">
-    <p class="text-xs leading-relaxed text-onSurface-variant">
-      한 행을 선택한 뒤 <strong class="font-medium text-onSurface">조회</strong>는
-      Firestore <code class="rounded bg-surface-low px-1">hanja_extend</code> 필드를,
-      <strong class="font-medium text-onSurface">획순</strong>은
-      <code class="rounded bg-surface-low px-1">hanja_extend</code> /
-      <code class="rounded bg-surface-low px-1">hanja_stroke</code> /
-      레거시 <code class="rounded bg-surface-low px-1">hanja</code> 순으로 획 좌표를 불러와 SVG로 표시합니다.
-    </p>
-
-    <div class="overflow-x-auto rounded-xl bg-surface-lowest shadow-float">
-      <table class="w-full min-w-[760px] border-collapse text-left text-sm">
-        <thead>
-          <tr class="bg-surface-low text-xs text-onSurface-variant">
-            <th class="w-10 px-2 py-3">
-              <input
-                ref="headerCheckboxRef"
-                type="checkbox"
-                class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                :checked="allVisibleSelected"
-                aria-label="현재 페이지 전체 선택"
-                @change="
-                  toggleAllVisible(
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </th>
-            <th
-              v-for="col in COLUMN_ORDER"
-              :key="col"
-              class="px-4 py-3 font-medium"
-            >
-              {{ col === "id" ? "ID" : col }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(row, i) in rows"
-            :key="ids[i] ?? i"
-            class="border-t border-outline-variant bg-surface-lowest"
-          >
-            <td class="px-2 py-3">
-              <input
-                type="checkbox"
-                class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                :checked="selectedIds.has(ids[i]!)"
-                :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
-                @change="
-                  toggleRow(
-                    ids[i]!,
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
-              />
-            </td>
-            <td
-              v-for="col in COLUMN_ORDER"
-              :key="col"
-              class="max-w-[14rem] truncate px-4 py-3 text-onSurface"
-              :class="[
-                col === '한자' ? 'font-display text-lg leading-tight' : '',
-                col === 'id' ? 'font-mono text-xs text-primary' : '',
-              ]"
-              :title="
-                col === 'id'
-                  ? basisDisplayId(ids[i]!, row)
-                  : String(row[col] ?? '')
-              "
-            >
-              <template v-if="col === 'id'">
-                {{ basisDisplayId(ids[i]!, row) }}
-              </template>
-              <template v-else>
-                {{ row[col] ?? "—" }}
-              </template>
-            </td>
-          </tr>
-        </tbody>
-      </table>
     </div>
 
     <div
-      class="mt-4 flex flex-col gap-3 border-t border-outline-variant pt-4 sm:flex-row sm:items-center sm:justify-between"
+      v-if="filterWarning"
+      class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
     >
-      <p class="text-xs text-onSurface-variant">
-        {{ rangeStart }}–{{ rangeEnd }} / {{ totalCount }}건
-      </p>
-      <div class="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          class="btn-secondary px-3 py-1.5 text-sm"
-          :disabled="loading || currentPage <= 0"
-          @click="prevPage"
-        >
-          이전
-        </button>
-        <template v-for="(item, idx) in paginationItems" :key="'p-' + idx">
-          <span
-            v-if="item === 'ellipsis'"
-            class="px-1 text-onSurface-variant"
-          >…</span>
-          <button
-            v-else
-            type="button"
-            class="min-w-[2.25rem] rounded-md px-2 py-1.5 text-sm transition"
-            :class="
-              item === currentPage + 1
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-surface-low text-onSurface hover:bg-surface-bright'
-            "
-            :disabled="loading"
-            @click="goToPage(item - 1)"
-          >
-            {{ item }}
-          </button>
-        </template>
-        <button
-          type="button"
-          class="btn-secondary px-3 py-1.5 text-sm"
-          :disabled="loading || currentPage >= totalPages - 1"
-          @click="nextPage"
-        >
-          다음
-        </button>
-      </div>
+      {{ filterWarning }}
     </div>
+    <div
+      v-if="error"
+      class="rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-900 shadow-sm"
+    >
+      {{ error }}
+    </div>
+    <div
+      v-else-if="loading"
+      class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-outline-variant/80 bg-surface-low/50 py-16"
+    >
+      <div class="flex gap-1.5" aria-hidden="true">
+        <span class="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.2s]" />
+        <span class="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.1s]" />
+        <span class="h-2 w-2 animate-bounce rounded-full bg-primary" />
+      </div>
+      <p class="text-sm font-medium text-onSurface-variant">hanja_basis 불러오는 중…</p>
+    </div>
+    <div
+      v-else-if="!loading && !allDocs.length"
+      class="rounded-2xl border border-dashed border-outline-variant bg-surface-low/40 px-6 py-14 text-center"
+    >
+      <p class="text-sm font-medium text-onSurface">
+        아직 문서가 없습니다
+      </p>
+      <p class="mt-2 text-sm text-onSurface-variant">
+        한자 마스터 등록에서 <code class="rounded bg-surface-low px-1.5 py-0.5 font-mono text-xs">hanja_basis</code> CSV를 업로드하세요.
+      </p>
+    </div>
+    <div
+      v-else-if="!loading && allDocs.length && !totalCount"
+      class="rounded-2xl border border-dashed border-outline-variant bg-surface-low/40 px-6 py-14 text-center"
+    >
+      <p class="text-sm font-medium text-onSurface">
+        필터와 일치하는 행이 없습니다
+      </p>
+      <p class="mt-2 text-sm text-onSurface-variant">
+        검색어나 구분 조건을 바꾸거나 필터 초기화를 눌러 보세요.
+      </p>
+    </div>
+
+    <template v-if="rows.length">
+      <div
+        class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3.5 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
+      >
+        한 행만 선택한 뒤 <strong class="font-medium text-onSurface">조회</strong>는
+        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>,
+        <strong class="font-medium text-onSurface">획순</strong>은
+        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>
+        →
+        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_stroke</code>
+        → 레거시
+        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja</code>
+        순으로 획 데이터를 불러옵니다.
+      </div>
+
+      <div
+        class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-lowest shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02]"
+      >
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[760px] border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-outline-variant/80 bg-surface-low/95 text-xs font-semibold uppercase tracking-wide text-onSurface-variant backdrop-blur-sm">
+                <th class="w-12 px-3 py-3.5 pl-4">
+                  <input
+                    ref="headerCheckboxRef"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                    :checked="allVisibleSelected"
+                    aria-label="현재 페이지 전체 선택"
+                    @change="
+                      toggleAllVisible(
+                        ($event.target as HTMLInputElement).checked,
+                      )
+                    "
+                  />
+                </th>
+                <th
+                  v-for="col in COLUMN_ORDER"
+                  :key="col"
+                  class="px-4 py-3.5"
+                >
+                  {{ col === "id" ? "ID" : col }}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/60">
+              <tr
+                v-for="(row, i) in rows"
+                :key="ids[i] ?? i"
+                class="bg-surface-lowest transition-colors hover:bg-primary/[0.04]"
+              >
+                <td class="px-3 py-3 pl-4">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                    :checked="selectedIds.has(ids[i]!)"
+                    :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
+                    @change="
+                      toggleRow(
+                        ids[i]!,
+                        ($event.target as HTMLInputElement).checked,
+                      )
+                    "
+                  />
+                </td>
+                <td
+                  v-for="col in COLUMN_ORDER"
+                  :key="col"
+                  class="max-w-[14rem] truncate px-4 py-3 text-onSurface"
+                  :class="[
+                    col === '한자' ? 'font-display text-lg leading-tight' : '',
+                    col === 'id' ? 'font-mono text-xs font-medium text-primary' : '',
+                  ]"
+                  :title="
+                    col === 'id'
+                      ? basisDisplayId(ids[i]!, row)
+                      : String(row[col] ?? '')
+                  "
+                >
+                  <template v-if="col === 'id'">
+                    {{ basisDisplayId(ids[i]!, row) }}
+                  </template>
+                  <template v-else>
+                    {{ row[col] ?? "—" }}
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div
+        class="flex flex-col gap-3 rounded-xl border border-outline-variant/60 bg-surface-low/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+      >
+        <p class="text-xs text-onSurface-variant">
+          <span class="font-medium text-onSurface tabular-nums">{{ rangeStart }}–{{ rangeEnd }}</span>
+          <span class="mx-1 text-onSurface-variant/70">/</span>
+          <span class="tabular-nums">{{ totalCount.toLocaleString("ko-KR") }}</span>건
+        </p>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <button
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-sm"
+            :disabled="loading || currentPage <= 0"
+            @click="prevPage"
+          >
+            이전
+          </button>
+          <template v-for="(item, idx) in paginationItems" :key="'p-' + idx">
+            <span
+              v-if="item === 'ellipsis'"
+              class="px-1 text-onSurface-variant"
+            >…</span>
+            <button
+              v-else
+              type="button"
+              class="min-w-[2.25rem] rounded-lg px-2 py-1.5 text-sm font-medium transition"
+              :class="
+                item === currentPage + 1
+                  ? 'bg-primary text-white shadow-md shadow-primary/20'
+                  : 'bg-surface-lowest text-onSurface ring-1 ring-outline-variant/50 hover:bg-surface-bright'
+              "
+              :disabled="loading"
+              @click="goToPage(item - 1)"
+            >
+              {{ item }}
+            </button>
+          </template>
+          <button
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-sm"
+            :disabled="loading || currentPage >= totalPages - 1"
+            @click="nextPage"
+          >
+            다음
+          </button>
+        </div>
+      </div>
     </template>
 
     <!-- hanja_extend 조회 모달 -->
@@ -1013,47 +1118,78 @@ onMounted(() => {
     <Teleport to="body">
       <div
         v-if="strokeModalOpen"
-        class="fixed inset-0 z-[60] flex items-center justify-center bg-onSurface/40 p-4 backdrop-blur-sm"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-onSurface/45 p-4 backdrop-blur-[2px]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="basis-stroke-modal-title"
         @click.self="closeStrokeModal"
       >
         <div
-          class="flex max-h-[min(92vh,56rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-lowest shadow-float"
+          class="flex max-h-[min(92vh,56rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant/90 bg-surface-lowest shadow-[0_24px_80px_rgba(25,28,30,0.14)] ring-1 ring-black/[0.03]"
         >
           <div
-            class="flex shrink-0 items-center justify-between border-b border-outline-variant px-5 py-4"
+            class="relative shrink-0 overflow-hidden border-b border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-5 pb-5 pt-5"
           >
-            <h2
-              id="basis-stroke-modal-title"
-              class="text-lg font-semibold text-onSurface"
-            >
-              획순
-            </h2>
-            <button
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-sm text-onSurface-variant hover:bg-surface-low"
-              @click="closeStrokeModal"
-            >
-              닫기
-            </button>
+            <div
+              class="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-primary/[0.12] blur-2xl"
+            />
+            <div class="relative flex items-start justify-between gap-4">
+              <div class="min-w-0 flex items-start gap-3">
+                <div
+                  class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-white shadow-md shadow-primary/25"
+                  aria-hidden="true"
+                >
+                  {{ strokeModalTitle && strokeModalTitle.length <= 2 ? strokeModalTitle : "획" }}
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/90">
+                    Stroke order
+                  </p>
+                  <h2
+                    id="basis-stroke-modal-title"
+                    class="font-display text-xl font-semibold tracking-tight text-onSurface"
+                  >
+                    획순
+                  </h2>
+                  <p class="mt-0.5 truncate text-xs text-onSurface-variant">
+                    {{ strokeModalSubtitle || "—" }}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn-secondary shrink-0 px-3 py-2 text-sm"
+                @click="closeStrokeModal"
+              >
+                닫기
+              </button>
+            </div>
           </div>
           <div
-            class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6"
+            class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface px-4 py-4 sm:px-5 sm:py-5"
           >
-            <p
+            <div
               v-if="strokeLoading"
-              class="py-8 text-center text-sm text-onSurface-variant"
+              class="flex flex-col items-center justify-center gap-4 py-14 text-sm text-onSurface-variant"
+              role="status"
+              aria-live="polite"
             >
+              <span class="flex gap-1.5" aria-hidden="true">
+                <span class="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.2s]" />
+                <span class="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.1s]" />
+                <span class="h-2 w-2 animate-bounce rounded-full bg-primary" />
+              </span>
               획 데이터를 불러오는 중…
-            </p>
-            <p
+            </div>
+            <div
               v-else-if="strokeError"
-              class="py-4 text-center text-sm text-red-600"
+              class="rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3.5 text-sm text-red-900 shadow-sm"
             >
-              {{ strokeError }}
-            </p>
+              <p class="font-semibold text-red-950">획순 로드 실패</p>
+              <p class="mt-1 leading-relaxed text-red-800/95">
+                {{ strokeError }}
+              </p>
+            </div>
             <div v-else class="w-full min-w-0">
               <StrokeOrderViewer
                 :strokes="strokeShapes"
