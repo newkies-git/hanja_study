@@ -46,12 +46,25 @@ async function onSubmit() {
 
         <div
           v-if="!configured"
-          class="mt-6 rounded-lg bg-amber-50 p-4 text-sm text-amber-900"
+          class="mt-6 space-y-2 rounded-lg bg-amber-50 p-4 text-sm text-amber-900"
         >
           <p class="font-medium">Firebase 미설정</p>
-          <p class="mt-1 text-onSurface-variant">
-            <code class="text-xs text-onSurface">admin/frontend/.env</code>를 만들고
-            <code class="text-xs text-onSurface">.env.example</code> 값을 채우세요.
+          <p class="text-onSurface-variant">
+            <strong class="text-amber-950">로컬:</strong>
+            <code class="text-xs text-onSurface">admin/frontend/.env</code>를 두고
+            <code class="text-xs text-onSurface">.env.example</code>과 같은 키로
+            <code class="text-xs text-onSurface">VITE_FIREBASE_*</code>를 채운 뒤
+            <code class="text-xs text-onSurface">npm run dev</code>를 다시 실행하세요.
+          </p>
+          <p class="text-onSurface-variant">
+            <strong class="text-amber-950">Vercel 등 배포:</strong>
+            프로젝트 Settings → Environment Variables에 동일한
+            <code class="text-xs text-onSurface">VITE_FIREBASE_API_KEY</code>,
+            <code class="text-xs text-onSurface">VITE_FIREBASE_AUTH_DOMAIN</code>,
+            <code class="text-xs text-onSurface">VITE_FIREBASE_PROJECT_ID</code>
+            (및 선택 항목)을 넣고 재배포하세요. Root Directory가
+            <code class="text-xs text-onSurface">admin/frontend</code>가 아니거나 빌드에
+            <code class="text-xs text-onSurface">.env</code>가 안 실리면 여기서 채워야 합니다.
           </p>
         </div>
 

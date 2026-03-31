@@ -2,31 +2,39 @@ import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
-function readConfig() {
-  const {
-    VITE_FIREBASE_API_KEY,
-    VITE_FIREBASE_AUTH_DOMAIN,
-    VITE_FIREBASE_PROJECT_ID,
-    VITE_FIREBASE_STORAGE_BUCKET,
-    VITE_FIREBASE_MESSAGING_SENDER_ID,
-    VITE_FIREBASE_APP_ID,
-  } = import.meta.env;
-
+/** Vite env: 공백·따옴표로 인해 빈 값으로 오인되는 경우 방지 */
+function envStr(v: unknown): string {
+  if (v === undefined || v === null) return "";
+  let s = String(v).trim();
   if (
-    !VITE_FIREBASE_API_KEY ||
-    !VITE_FIREBASE_AUTH_DOMAIN ||
-    !VITE_FIREBASE_PROJECT_ID
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
   ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+function readConfig() {
+  const e = import.meta.env;
+  const apiKey = envStr(e.VITE_FIREBASE_API_KEY);
+  const authDomain = envStr(e.VITE_FIREBASE_AUTH_DOMAIN);
+  const projectId = envStr(e.VITE_FIREBASE_PROJECT_ID);
+  const storageBucket = envStr(e.VITE_FIREBASE_STORAGE_BUCKET);
+  const messagingSenderId = envStr(e.VITE_FIREBASE_MESSAGING_SENDER_ID);
+  const appId = envStr(e.VITE_FIREBASE_APP_ID);
+
+  if (!apiKey || !authDomain || !projectId) {
     return null;
   }
 
   return {
-    apiKey: VITE_FIREBASE_API_KEY,
-    authDomain: VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: VITE_FIREBASE_PROJECT_ID,
-    storageBucket: VITE_FIREBASE_STORAGE_BUCKET || undefined,
-    messagingSenderId: VITE_FIREBASE_MESSAGING_SENDER_ID || undefined,
-    appId: VITE_FIREBASE_APP_ID || undefined,
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket: storageBucket || undefined,
+    messagingSenderId: messagingSenderId || undefined,
+    appId: appId || undefined,
   };
 }
 
