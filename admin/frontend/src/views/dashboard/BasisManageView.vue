@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import {
   collection,
   doc,
@@ -32,8 +32,6 @@ const COLUMN_ORDER = [
   "훈음",
 ] as const;
 
-const FIRESTORE_BATCH_MAX = 400;
-
 type Row = Record<string, unknown>;
 
 const auth = useAuthStore();
@@ -55,9 +53,8 @@ const search한자 = ref("");
 const search음 = ref("");
 const search훈 = ref("");
 
-/** 체크박스 선택 (문서 ID = hanja_basis 키) */
-const selectedIds = ref<Set<string>>(new Set());
-const headerCheckboxRef = ref<HTMLInputElement | null>(null);
+/** 단일 선택 (문서 ID = hanja_basis 키) */
+const selectedBasisDocId = ref<string | null>(null);
 
 /** hanja_extend 조회 모달 */
 const extendModalOpen = ref(false);
@@ -100,6 +97,18 @@ function basisDisplayId(docId: string, row: Row): string {
   const cp = source.codePointAt(0);
   if (cp === undefined) return docId;
   return `H${cp.toString(16).toUpperCase()}`;
+}
+
+/** 타일 하단 캡션: 價 (값 가) 형태 */
+function basisTileFooterCaption(row: Row): string {
+  const hanja = String(row["한자"] ?? "").trim() || "—";
+  const hunEum = String(row["훈음"] ?? "").trim();
+  if (hunEum) return `${hanja} (${hunEum})`;
+  const hun = String(row["훈"] ?? "").trim();
+  const eum = String(row["음"] ?? "").trim();
+  const inner = [hun, eum].filter(Boolean).join(" ").trim();
+  if (inner) return `${hanja} (${inner})`;
+  return hanja;
 }
 
 function contains(hay: string, needle: string): boolean {
@@ -181,63 +190,23 @@ watch([filteredDocs, currentPage, pageSize], () => {
   syncSliceToRows();
 });
 
-const visibleSelectedCount = computed(() =>
-  ids.value.filter((id) => selectedIds.value.has(id)).length,
-);
-
-const allVisibleSelected = computed(
-  () =>
-    ids.value.length > 0 &&
-    visibleSelectedCount.value === ids.value.length,
-);
-
-function updateHeaderCheckboxIndeterminate() {
-  nextTick(() => {
-    const el = headerCheckboxRef.value;
-    if (!el) return;
-    const n = visibleSelectedCount.value;
-    const len = ids.value.length;
-    el.indeterminate = n > 0 && n < len;
-  });
+/** 카드 클릭: 한 번에 하나만 선택. 같은 카드 재클릭 시 해제. */
+function selectBasisCard(docId: string) {
+  if (selectedBasisDocId.value === docId) {
+    selectedBasisDocId.value = null;
+  } else {
+    selectedBasisDocId.value = docId;
+  }
 }
-
-watch([ids, selectedIds], updateHeaderCheckboxIndeterminate, { deep: true });
-
-function setSelected(mutate: (s: Set<string>) => void) {
-  const s = new Set(selectedIds.value);
-  mutate(s);
-  selectedIds.value = s;
-}
-
-function toggleRow(docId: string, checked: boolean) {
-  setSelected((s) => {
-    if (checked) s.add(docId);
-    else s.delete(docId);
-  });
-}
-
-function toggleAllVisible(checked: boolean) {
-  setSelected((s) => {
-    for (const id of ids.value) {
-      if (checked) s.add(id);
-      else s.delete(id);
-    }
-  });
-}
-
-const soleSelectedBasisDocId = computed((): string | null => {
-  if (selectedIds.value.size !== 1) return null;
-  return selectedIds.value.values().next().value ?? null;
-});
 
 const soleSelectedEntry = computed((): DocEntry | null => {
-  const id = soleSelectedBasisDocId.value;
+  const id = selectedBasisDocId.value;
   if (!id) return null;
   return allDocs.value.find((d) => d.id === id) ?? null;
 });
 
 const canUseSelectionActions = computed(
-  () => soleSelectedBasisDocId.value !== null && !loading.value,
+  () => selectedBasisDocId.value !== null && !loading.value,
 );
 
 /** Firestore `hanja_extend` 문서 ID (JSON `id` 및 표시용 H+16진과 동일) */
@@ -616,7 +585,9 @@ function clearFilters() {
 
 const canClearFilters = computed(() => filterActive.value);
 
-const selectedCount = computed(() => selectedIds.value.size);
+const selectedCount = computed(() =>
+  selectedBasisDocId.value ? 1 : 0,
+);
 
 const basisTotalLabel = computed(() =>
   allDocs.value.length.toLocaleString("ko-KR"),
@@ -751,7 +722,7 @@ async function saveBasisForm() {
     }
 
     closeBasisFormModal();
-    selectedIds.value = new Set([newId]);
+    selectedBasisDocId.value = newId;
     await loadAll();
   } catch (e) {
     basisFormError.value =
@@ -762,12 +733,11 @@ async function saveBasisForm() {
 }
 
 async function deleteSelectedBasis() {
-  if (!canMutateBasis.value || selectedIds.value.size === 0) return;
-  const idList = [...selectedIds.value];
-  const n = idList.length;
+  const toDelete = selectedBasisDocId.value;
+  if (!canMutateBasis.value || !toDelete) return;
   if (
     !confirm(
-      `선택한 ${n.toLocaleString("ko-KR")}건을 hanja_basis에서 삭제합니다. 되돌릴 수 없습니다. 계속할까요?`,
+      "선택한 1건을 hanja_basis에서 삭제합니다. 되돌릴 수 없습니다. 계속할까요?",
     )
   ) {
     return;
@@ -787,15 +757,10 @@ async function deleteSelectedBasis() {
     await user.getIdToken(true);
     const db = getFirestoreDb();
     const colRef = collection(db, "hanja_basis");
-    for (let i = 0; i < idList.length; i += FIRESTORE_BATCH_MAX) {
-      const batch = writeBatch(db);
-      const chunk = idList.slice(i, i + FIRESTORE_BATCH_MAX);
-      for (const id of chunk) {
-        batch.delete(doc(colRef, id));
-      }
-      await batch.commit();
-    }
-    selectedIds.value = new Set();
+    const batch = writeBatch(db);
+    batch.delete(doc(colRef, toDelete));
+    await batch.commit();
+    selectedBasisDocId.value = null;
     await loadAll();
   } catch (e) {
     error.value =
@@ -807,7 +772,6 @@ async function deleteSelectedBasis() {
 
 onMounted(() => {
   void loadAll();
-  updateHeaderCheckboxIndeterminate();
 });
 </script>
 
@@ -867,24 +831,6 @@ onMounted(() => {
           </span>
           <button
             type="button"
-            class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
-            :disabled="!canUseSelectionActions"
-            title="타일 한 개만 선택해야 합니다"
-            @click="openExtendLookupModal"
-          >
-            조회
-          </button>
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-            :disabled="!canUseSelectionActions"
-            title="타일 한 개만 선택해야 합니다"
-            @click="openStrokeOrderModal"
-          >
-            획순
-          </button>
-          <button
-            type="button"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
             :disabled="loading || !canMutateBasis"
             title="admin 클레임·로그인 필요"
@@ -896,7 +842,7 @@ onMounted(() => {
             type="button"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
             :disabled="!canMutateBasis || !canUseSelectionActions"
-            title="타일 한 개 선택 · admin 필요"
+            title="카드 한 개 선택 · admin 필요"
             @click="openBasisEditModal"
           >
             수정
@@ -1079,7 +1025,9 @@ onMounted(() => {
       <div
         class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3.5 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
       >
-        타일 <strong class="font-medium text-onSurface">한 개만</strong> 선택한 뒤 <strong class="font-medium text-onSurface">조회</strong>는
+        그리드 위 <strong class="font-medium text-onSurface">조회 · 획순</strong>은
+        <strong class="font-medium text-onSurface">카드를 눌러 한 개</strong>만 선택한 뒤 사용합니다.
+        <strong class="font-medium text-onSurface">조회</strong>는
         <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>,
         <strong class="font-medium text-onSurface">획순</strong>은
         <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>
@@ -1096,31 +1044,31 @@ onMounted(() => {
       </div>
 
       <div
-        class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-low/40 p-3 shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02] sm:p-4"
+        class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-low/50 p-3 shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02] sm:p-4"
       >
         <div
-          class="mb-3 flex flex-wrap items-center gap-3 border-b border-outline-variant/50 pb-3"
+          class="mb-3 flex flex-col gap-3 border-b border-outline-variant/50 pb-3 sm:flex-row sm:items-center sm:justify-end"
         >
-          <label
-            class="flex cursor-pointer items-center gap-2 text-xs font-medium text-onSurface-variant"
-          >
-            <input
-              ref="headerCheckboxRef"
-              type="checkbox"
-              class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-              :checked="allVisibleSelected"
-              aria-label="현재 페이지 타일 전체 선택"
-              @change="
-                toggleAllVisible(
-                  ($event.target as HTMLInputElement).checked,
-                )
-              "
-            />
-            <span>이 페이지 전체 선택</span>
-          </label>
-          <span class="text-[11px] text-onSurface-variant/80">
-            타일을 클릭해도 선택이 바뀝니다.
-          </span>
+          <div class="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <button
+              type="button"
+              class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
+              :disabled="!canUseSelectionActions"
+              title="카드 한 개 선택"
+              @click="openExtendLookupModal"
+            >
+              조회
+            </button>
+            <button
+              type="button"
+              class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
+              :disabled="!canUseSelectionActions"
+              title="카드 한 개 선택"
+              @click="openStrokeOrderModal"
+            >
+              획순
+            </button>
+          </div>
         </div>
         <div
           class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
@@ -1128,51 +1076,40 @@ onMounted(() => {
           <article
             v-for="(row, i) in rows"
             :key="ids[i] ?? i"
-            class="relative flex min-h-[10.5rem] cursor-pointer flex-col rounded-2xl border bg-surface-lowest p-3 pt-9 text-left shadow-sm transition-all duration-150 focus-within:ring-2 focus-within:ring-primary/30"
+            class="relative flex min-h-[10.5rem] cursor-pointer flex-col rounded-xl border p-3 pt-9 text-left shadow-sm transition-all duration-150"
             :class="
-              selectedIds.has(ids[i]!)
-                ? 'border-primary/45 bg-primary/[0.06] ring-2 ring-primary/25 shadow-md shadow-primary/10'
-                : 'border-outline-variant/70 hover:border-primary/30 hover:shadow-md hover:shadow-black/[0.04]'
+              selectedBasisDocId === ids[i]
+                ? 'border-primary bg-primary/[0.12] ring-2 ring-primary/35 shadow-md shadow-primary/15'
+                : 'border-outline-variant/80 bg-white focus-within:ring-2 focus-within:ring-primary/20 hover:border-outline-variant hover:shadow-md hover:shadow-black/[0.05]'
             "
             role="button"
             tabindex="0"
-            :aria-pressed="selectedIds.has(ids[i]!)"
-            :aria-label="`한자 ${String(row['한자'] ?? '') || basisDisplayId(ids[i]!, row)}`"
-            @click="
-              toggleRow(ids[i]!, !selectedIds.has(ids[i]!))
-            "
-            @keydown.enter.prevent="
-              toggleRow(ids[i]!, !selectedIds.has(ids[i]!))
-            "
-            @keydown.space.prevent="
-              toggleRow(ids[i]!, !selectedIds.has(ids[i]!))
-            "
+            :aria-pressed="selectedBasisDocId === ids[i]"
+            :aria-label="`${selectedBasisDocId === ids[i] ? '선택됨' : '선택'} · ${String(row['한자'] ?? '') || basisDisplayId(ids[i]!, row)}`"
+            @click="selectBasisCard(ids[i]!)"
+            @keydown.enter.prevent="selectBasisCard(ids[i]!)"
+            @keydown.space.prevent="selectBasisCard(ids[i]!)"
           >
             <div
-              class="absolute left-2.5 top-2.5 z-10"
-              @click.stop
+              class="pointer-events-none absolute left-2.5 top-2.5 z-10"
+              aria-hidden="true"
             >
               <input
                 type="checkbox"
-                class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                :checked="selectedIds.has(ids[i]!)"
-                :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
-                @change="
-                  toggleRow(
-                    ids[i]!,
-                    ($event.target as HTMLInputElement).checked,
-                  )
-                "
+                tabindex="-1"
+                class="h-4 w-4 cursor-default rounded border-outline-variant text-primary"
+                :checked="selectedBasisDocId === ids[i]"
               />
             </div>
             <div
               v-if="String(row['구분'] ?? '').trim()"
-              class="pointer-events-none absolute right-2.5 top-2.5 z-10"
+              class="pointer-events-none absolute right-2 top-2 z-10"
             >
               <span
-                class="inline-block max-w-[4.5rem] truncate rounded-full border border-outline-variant/60 bg-surface-low px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                class="flex h-7 w-7 items-center justify-center rounded-full border border-outline-variant/70 bg-surface-low text-[11px] font-bold text-onSurface shadow-sm"
+                :title="String(row['구분']).trim()"
               >
-                {{ String(row["구분"]).trim() }}
+                {{ String(row["구분"]).trim().charAt(0) }}
               </span>
             </div>
             <div
@@ -1212,16 +1149,15 @@ onMounted(() => {
                 >—</span>
               </p>
             </div>
-            <div class="mt-auto border-t border-outline-variant/40 pt-2 text-left">
+            <div class="mt-auto border-t border-outline-variant/50 pt-2 text-left">
               <p
-                v-if="String(row['전체'] ?? '').trim()"
-                class="mb-1 line-clamp-1 text-[10px] leading-tight text-onSurface-variant"
-                :title="String(row['전체'])"
+                class="line-clamp-2 text-[11px] leading-snug text-onSurface"
+                :title="basisTileFooterCaption(row)"
               >
-                {{ row["전체"] }}
+                {{ basisTileFooterCaption(row) }}
               </p>
               <p
-                class="font-mono text-[10px] font-medium text-primary"
+                class="mt-1 font-mono text-[11px] font-semibold text-primary"
                 :title="basisDisplayId(ids[i]!, row)"
               >
                 {{ basisDisplayId(ids[i]!, row) }}
