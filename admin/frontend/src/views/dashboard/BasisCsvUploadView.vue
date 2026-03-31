@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, nextTick, watch, onUnmounted } from "vue";
 import { RouterLink } from "vue-router";
 import {
   collection,
@@ -576,17 +576,76 @@ function restartWizard() {
   lastUploadSummary.value = null;
   lastImported.value = 0;
 }
+
+const BASIS_UPLOAD_HELP_TEXT =
+  "hanja_basis는 CSV(첫 줄 헤더). 문서 ID는 한자 열 첫 글자 기준 H+16진으로 저장되며, 필드 id도 같이 맞춥니다. 한자가 비어 있으면 id 또는 첫 열의 H… 형식을 사용합니다. hanja_extend · hanja_stroke · hanja_word는 ETL과 동일한 JSON 배열이 표준이며 CSV도 호환됩니다. 순서를 지키고, 동일 문서 ID는 merge됩니다.";
+
+const basisUploadHelpTriggerRef = ref<HTMLButtonElement | null>(null);
+const basisUploadHelpTooltipOpen = ref(false);
+const basisUploadHelpTooltipStyle = ref<Record<string, string>>({});
+
+let basisUploadHelpRemoveScrollListeners: (() => void) | null = null;
+
+function positionBasisUploadHelpTooltip() {
+  const el = basisUploadHelpTriggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const margin = 10;
+  const maxW = Math.min(400, window.innerWidth - margin * 2);
+  let left = r.left;
+  if (left + maxW > window.innerWidth - margin) {
+    left = Math.max(margin, window.innerWidth - margin - maxW);
+  }
+  if (left < margin) left = margin;
+  basisUploadHelpTooltipStyle.value = {
+    top: `${Math.round(r.bottom + margin)}px`,
+    left: `${Math.round(left)}px`,
+    maxWidth: `${maxW}px`,
+  };
+}
+
+function openBasisUploadHelpTooltip() {
+  positionBasisUploadHelpTooltip();
+  basisUploadHelpTooltipOpen.value = true;
+  void nextTick(() => positionBasisUploadHelpTooltip());
+}
+
+function closeBasisUploadHelpTooltip() {
+  basisUploadHelpTooltipOpen.value = false;
+}
+
+watch(basisUploadHelpTooltipOpen, (open) => {
+  basisUploadHelpRemoveScrollListeners?.();
+  basisUploadHelpRemoveScrollListeners = null;
+  if (!open) return;
+  const handler = () => positionBasisUploadHelpTooltip();
+  window.addEventListener("scroll", handler, true);
+  window.addEventListener("resize", handler);
+  basisUploadHelpRemoveScrollListeners = () => {
+    window.removeEventListener("scroll", handler, true);
+    window.removeEventListener("resize", handler);
+  };
+});
+
+onUnmounted(() => {
+  basisUploadHelpRemoveScrollListeners?.();
+});
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- 히어로 -->
+    <!-- 히어로 (툴팁이 잘리지 않도록 장식만 clip) -->
     <section
-      class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
+      class="relative overflow-visible rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
     >
       <div
-        class="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
-      />
+        class="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
+        aria-hidden="true"
+      >
+        <div
+          class="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
+        />
+      </div>
       <div
         class="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
       >
@@ -597,15 +656,36 @@ function restartWizard() {
           >
             載
           </div>
-          <div class="min-w-0 leading-tight">
-            <p
-              class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
-            >
-              Admin · Firestore import
-            </p>
-            <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
-              한자 마스터 등록
-            </h1>
+          <div class="flex min-w-0 items-start gap-2">
+            <div class="min-w-0 flex-1 leading-tight">
+              <p
+                class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
+              >
+                Admin · Firestore import
+              </p>
+              <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
+                한자 마스터 등록
+              </h1>
+            </div>
+            <div class="relative shrink-0 pt-0.5">
+              <button
+                ref="basisUploadHelpTriggerRef"
+                type="button"
+                class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
+                :aria-label="BASIS_UPLOAD_HELP_TEXT"
+                :aria-describedby="
+                  basisUploadHelpTooltipOpen
+                    ? 'basis-upload-help-tooltip-text'
+                    : undefined
+                "
+                @mouseenter="openBasisUploadHelpTooltip"
+                @mouseleave="closeBasisUploadHelpTooltip"
+                @focus="openBasisUploadHelpTooltip"
+                @blur="closeBasisUploadHelpTooltip"
+              >
+                !
+              </button>
+            </div>
           </div>
         </div>
         <RouterLink
@@ -616,18 +696,6 @@ function restartWizard() {
         </RouterLink>
       </div>
     </section>
-
-    <div
-      class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
-    >
-      <strong class="font-medium text-onSurface">hanja_basis</strong>는 CSV(첫 줄 헤더).
-      문서 ID는 <strong class="font-medium text-onSurface">한자</strong> 열 첫 글자 기준
-      <code class="rounded-md bg-white/80 px-1 py-0.5 font-mono text-[11px] text-primary">H</code>+16진으로 저장되며, 필드 <code class="rounded-md bg-white/80 px-1 py-0.5 font-mono text-[11px] text-primary">id</code>도 같이 맞춥니다.
-      한자가 비어 있으면 <code class="font-mono text-[11px] text-primary">id</code> 또는 첫 열의 <code class="font-mono text-[11px] text-primary">H…</code> 형식을 사용합니다.
-      <strong class="font-medium text-onSurface">hanja_extend · hanja_stroke · hanja_word</strong>는
-      ETL과 동일한 <strong class="font-medium text-onSurface">JSON 배열</strong>이 표준이며 CSV도 호환됩니다.
-      순서를 지키고, 동일 문서 ID는 <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">merge</code>됩니다.
-    </div>
 
     <!-- 단계 -->
     <div
@@ -983,5 +1051,17 @@ function restartWizard() {
         </div>
       </dl>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="basisUploadHelpTooltipOpen"
+        id="basis-upload-help-tooltip-text"
+        class="fixed z-[10050] rounded-xl border border-outline-variant/80 bg-surface-lowest p-3.5 text-left text-xs leading-relaxed text-onSurface shadow-[0_16px_48px_rgba(25,28,30,0.18)] ring-1 ring-black/[0.06]"
+        :style="basisUploadHelpTooltipStyle"
+        role="tooltip"
+      >
+        {{ BASIS_UPLOAD_HELP_TEXT }}
+      </div>
+    </Teleport>
   </div>
 </template>

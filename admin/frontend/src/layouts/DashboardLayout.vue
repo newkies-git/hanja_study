@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from "vue-router";
+import AppFooter from "@/components/app/AppFooter.vue";
 import AppHeader from "@/components/app/AppHeader.vue";
 import AppSidebar from "@/components/app/AppSidebar.vue";
 import { useAppOptionStore } from "@/stores/app-option";
@@ -18,6 +19,7 @@ const appOption = useAppOptionStore();
       <main class="flex-1 overflow-auto px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
         <RouterView />
       </main>
+      <AppFooter />
     </div>
     <button
       v-if="appOption.sidebarMobileOpen"

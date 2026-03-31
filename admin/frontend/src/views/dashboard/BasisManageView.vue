@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import {
   collection,
   doc,
@@ -770,6 +770,60 @@ async function deleteSelectedBasis() {
   }
 }
 
+const BASIS_MANAGE_HELP_TEXT =
+  "그리드 위 조회 · 획순은 카드를 눌러 한 개만 선택한 뒤 사용합니다. 조회는 hanja_extend, 획순은 hanja_extend → hanja_stroke → 레거시 hanja 순으로 획 데이터를 불러옵니다. 행 추가·수정·삭제는 Firestore hanja_basis 에 직접 반영됩니다.";
+
+const basisManageHelpTriggerRef = ref<HTMLButtonElement | null>(null);
+const basisManageHelpTooltipOpen = ref(false);
+const basisManageHelpTooltipStyle = ref<Record<string, string>>({});
+
+let basisManageHelpRemoveScrollListeners: (() => void) | null = null;
+
+function positionBasisManageHelpTooltip() {
+  const el = basisManageHelpTriggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const margin = 10;
+  const maxW = Math.min(400, window.innerWidth - margin * 2);
+  let left = r.left;
+  if (left + maxW > window.innerWidth - margin) {
+    left = Math.max(margin, window.innerWidth - margin - maxW);
+  }
+  if (left < margin) left = margin;
+  basisManageHelpTooltipStyle.value = {
+    top: `${Math.round(r.bottom + margin)}px`,
+    left: `${Math.round(left)}px`,
+    maxWidth: `${maxW}px`,
+  };
+}
+
+function openBasisManageHelpTooltip() {
+  positionBasisManageHelpTooltip();
+  basisManageHelpTooltipOpen.value = true;
+  void nextTick(() => positionBasisManageHelpTooltip());
+}
+
+function closeBasisManageHelpTooltip() {
+  basisManageHelpTooltipOpen.value = false;
+}
+
+watch(basisManageHelpTooltipOpen, (open) => {
+  basisManageHelpRemoveScrollListeners?.();
+  basisManageHelpRemoveScrollListeners = null;
+  if (!open) return;
+  const handler = () => positionBasisManageHelpTooltip();
+  window.addEventListener("scroll", handler, true);
+  window.addEventListener("resize", handler);
+  basisManageHelpRemoveScrollListeners = () => {
+    window.removeEventListener("scroll", handler, true);
+    window.removeEventListener("resize", handler);
+  };
+});
+
+onUnmounted(() => {
+  basisManageHelpRemoveScrollListeners?.();
+});
+
 onMounted(() => {
   void loadAll();
 });
@@ -777,13 +831,18 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <!-- 히어로 (컴팩트) -->
+    <!-- 히어로 (툴팁이 잘리지 않도록 장식만 clip) -->
     <section
-      class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
+      class="relative overflow-visible rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
     >
       <div
-        class="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
-      />
+        class="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
+        aria-hidden="true"
+      >
+        <div
+          class="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
+        />
+      </div>
       <div
         class="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
       >
@@ -794,15 +853,36 @@ onMounted(() => {
           >
             基
           </div>
-          <div class="min-w-0 leading-tight">
-            <p
-              class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
-            >
-              Firestore · hanja_basis
-            </p>
-            <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
-              기준 데이터
-            </h1>
+          <div class="flex min-w-0 items-start gap-2">
+            <div class="min-w-0 flex-1 leading-tight">
+              <p
+                class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
+              >
+                Firestore · hanja_basis
+              </p>
+              <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
+                기준 데이터
+              </h1>
+            </div>
+            <div class="relative shrink-0 pt-0.5">
+              <button
+                ref="basisManageHelpTriggerRef"
+                type="button"
+                class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
+                :aria-label="BASIS_MANAGE_HELP_TEXT"
+                :aria-describedby="
+                  basisManageHelpTooltipOpen
+                    ? 'basis-manage-help-tooltip-text'
+                    : undefined
+                "
+                @mouseenter="openBasisManageHelpTooltip"
+                @mouseleave="closeBasisManageHelpTooltip"
+                @focus="openBasisManageHelpTooltip"
+                @blur="closeBasisManageHelpTooltip"
+              >
+                !
+              </button>
+            </div>
           </div>
         </div>
         <div
@@ -1022,27 +1102,6 @@ onMounted(() => {
     </div>
 
     <template v-if="rows.length">
-      <div
-        class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3.5 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
-      >
-        그리드 위 <strong class="font-medium text-onSurface">조회 · 획순</strong>은
-        <strong class="font-medium text-onSurface">카드를 눌러 한 개</strong>만 선택한 뒤 사용합니다.
-        <strong class="font-medium text-onSurface">조회</strong>는
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>,
-        <strong class="font-medium text-onSurface">획순</strong>은
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>
-        →
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_stroke</code>
-        → 레거시
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja</code>
-        순으로 획 데이터를 불러옵니다.
-        <span v-if="canMutateBasis" class="text-onSurface-variant/90">
-          행 <strong class="font-medium text-onSurface">추가·수정·삭제</strong>는 Firestore
-          <code class="rounded-md bg-white/80 px-1 py-0.5 font-mono text-[10px] text-primary">hanja_basis</code>
-          에 직접 반영됩니다.
-        </span>
-      </div>
-
       <div
         class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-low/50 p-3 shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02] sm:p-4"
       >
@@ -1662,6 +1721,18 @@ onMounted(() => {
             </button>
           </div>
         </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="basisManageHelpTooltipOpen"
+        id="basis-manage-help-tooltip-text"
+        class="fixed z-[10050] rounded-xl border border-outline-variant/80 bg-surface-lowest p-3.5 text-left text-xs leading-relaxed text-onSurface shadow-[0_16px_48px_rgba(25,28,30,0.18)] ring-1 ring-black/[0.06]"
+        :style="basisManageHelpTooltipStyle"
+        role="tooltip"
+      >
+        {{ BASIS_MANAGE_HELP_TEXT }}
       </div>
     </Teleport>
   </div>
