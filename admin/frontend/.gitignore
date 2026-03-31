@@ -1,5 +1,5 @@
 node_modules
 dist
-.env
+# .env 는 저장소에 포함(Vercel). 로컬 덮어쓰기는 .env.local
 .env.local
 *.local
