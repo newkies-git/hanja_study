@@ -9,10 +9,14 @@ import {
   limit,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
+  writeBatch,
 } from "firebase/firestore";
 import StrokeOrderViewer from "@/components/dashboard/StrokeOrderViewer.vue";
 import type { StrokeShape } from "@/components/dashboard/StrokeOrderViewer.vue";
-import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
+import { getFirebaseAuth, getFirestoreDb, isFirebaseConfigured } from "@/firebase";
+import { useAuthStore } from "@/stores/auth";
 
 const FILTER_FETCH_CAP = 2500;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
@@ -28,7 +32,11 @@ const COLUMN_ORDER = [
   "훈음",
 ] as const;
 
+const FIRESTORE_BATCH_MAX = 400;
+
 type Row = Record<string, unknown>;
+
+const auth = useAuthStore();
 
 type DocEntry = { id: string; data: Row };
 
@@ -68,6 +76,14 @@ const strokeModalSubtitle = ref("");
 const strokeModalFootnote = ref<string | undefined>(undefined);
 /** stroke_sample 과 동일 렌더용 원본 path `d` 배열 (hanja_stroke.svg_paths) */
 const strokeModalSvgPaths = ref<string[]>([]);
+
+/** hanja_basis 추가·수정 모달 */
+const basisFormModalOpen = ref(false);
+const basisFormMode = ref<"add" | "edit">("add");
+const basisFormOriginalDocId = ref<string | null>(null);
+const basisForm = ref<Record<string, string>>({});
+const basisFormBusy = ref(false);
+const basisFormError = ref<string | null>(null);
 
 const filterActive = computed(() => {
   return (
@@ -606,6 +622,189 @@ const basisTotalLabel = computed(() =>
   allDocs.value.length.toLocaleString("ko-KR"),
 );
 
+const canMutateBasis = computed(
+  () =>
+    isFirebaseConfigured() &&
+    auth.isAuthenticated &&
+    auth.isAdmin,
+);
+
+function emptyBasisForm(): Record<string, string> {
+  const o: Record<string, string> = {};
+  for (const c of COLUMN_ORDER) o[c] = "";
+  return o;
+}
+
+function rowToFormStrings(data: Row): Record<string, string> {
+  const o = emptyBasisForm();
+  for (const c of COLUMN_ORDER) {
+    const v = data[c];
+    o[c] =
+      v === null || v === undefined
+        ? ""
+        : typeof v === "object"
+          ? JSON.stringify(v)
+          : String(v);
+  }
+  return o;
+}
+
+function safeDocIdLocal(raw: string, fallback: string): string {
+  const s = raw.replace(/\//g, "_").replace(/[\s#?[\]]/g, "_").slice(0, 500);
+  return s || fallback;
+}
+
+/** 업로드 규칙과 동일: 한자 우선 → H+16진, 없으면 id 열의 H… 또는 안전 문자열 */
+function basisDocIdFromForm(form: Record<string, string>): string | null {
+  const hanja = String(form["한자"] ?? "").trim();
+  if (hanja.length > 0) {
+    const cp = hanja.codePointAt(0);
+    if (cp !== undefined) {
+      return `H${cp.toString(16).toUpperCase()}`;
+    }
+  }
+  const idCol = String(form["id"] ?? "").trim();
+  const hex = /^H([0-9A-Fa-f]+)$/i.exec(idCol);
+  if (hex) return `H${hex[1]!.toUpperCase()}`;
+  if (idCol) {
+    const s = safeDocIdLocal(idCol, "");
+    return s || null;
+  }
+  return null;
+}
+
+const basisFormResolvedId = computed(
+  () => basisDocIdFromForm(basisForm.value) ?? "—",
+);
+
+function openBasisAddModal() {
+  basisFormMode.value = "add";
+  basisFormOriginalDocId.value = null;
+  basisForm.value = emptyBasisForm();
+  basisFormError.value = null;
+  basisFormModalOpen.value = true;
+}
+
+function openBasisEditModal() {
+  const ent = soleSelectedEntry.value;
+  if (!ent) return;
+  basisFormMode.value = "edit";
+  basisFormOriginalDocId.value = ent.id;
+  basisForm.value = rowToFormStrings(ent.data);
+  basisFormError.value = null;
+  basisFormModalOpen.value = true;
+}
+
+function closeBasisFormModal() {
+  basisFormModalOpen.value = false;
+  basisFormError.value = null;
+  basisFormBusy.value = false;
+}
+
+async function saveBasisForm() {
+  const newId = basisDocIdFromForm(basisForm.value);
+  if (!newId) {
+    basisFormError.value =
+      "문서 ID를 정할 수 없습니다. 한자를 입력하거나 id에 H+16진 형식을 넣으세요.";
+    return;
+  }
+  if (!isFirebaseConfigured()) {
+    basisFormError.value = "Firebase가 설정되지 않았습니다.";
+    return;
+  }
+  basisFormBusy.value = true;
+  basisFormError.value = null;
+  try {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      basisFormError.value = "로그인이 필요합니다.";
+      return;
+    }
+    await user.getIdToken(true);
+    const db = getFirestoreDb();
+    const colRef = collection(db, "hanja_basis");
+
+    const payload: Record<string, unknown> = {};
+    for (const c of COLUMN_ORDER) {
+      payload[c] = c === "id" ? newId : (basisForm.value[c] ?? "");
+    }
+    payload._importedAt = serverTimestamp();
+    if (basisFormMode.value === "edit" && basisFormOriginalDocId.value) {
+      const old = allDocs.value.find(
+        (d) => d.id === basisFormOriginalDocId.value,
+      );
+      if (old?.data._row != null) payload._row = old.data._row;
+    }
+
+    if (basisFormMode.value === "edit" && basisFormOriginalDocId.value) {
+      const oldId = basisFormOriginalDocId.value;
+      if (newId !== oldId) {
+        const batch = writeBatch(db);
+        batch.delete(doc(colRef, oldId));
+        batch.set(doc(colRef, newId), payload, { merge: true });
+        await batch.commit();
+      } else {
+        await setDoc(doc(colRef, oldId), payload, { merge: true });
+      }
+    } else {
+      await setDoc(doc(colRef, newId), payload, { merge: true });
+    }
+
+    closeBasisFormModal();
+    selectedIds.value = new Set([newId]);
+    await loadAll();
+  } catch (e) {
+    basisFormError.value =
+      e instanceof Error ? e.message : "저장에 실패했습니다.";
+  } finally {
+    basisFormBusy.value = false;
+  }
+}
+
+async function deleteSelectedBasis() {
+  if (!canMutateBasis.value || selectedIds.value.size === 0) return;
+  const idList = [...selectedIds.value];
+  const n = idList.length;
+  if (
+    !confirm(
+      `선택한 ${n.toLocaleString("ko-KR")}건을 hanja_basis에서 삭제합니다. 되돌릴 수 없습니다. 계속할까요?`,
+    )
+  ) {
+    return;
+  }
+  if (!isFirebaseConfigured()) {
+    error.value = "Firebase가 설정되지 않았습니다.";
+    return;
+  }
+  loading.value = true;
+  error.value = null;
+  try {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      error.value = "로그인이 필요합니다.";
+      return;
+    }
+    await user.getIdToken(true);
+    const db = getFirestoreDb();
+    const colRef = collection(db, "hanja_basis");
+    for (let i = 0; i < idList.length; i += FIRESTORE_BATCH_MAX) {
+      const batch = writeBatch(db);
+      const chunk = idList.slice(i, i + FIRESTORE_BATCH_MAX);
+      for (const id of chunk) {
+        batch.delete(doc(colRef, id));
+      }
+      await batch.commit();
+    }
+    selectedIds.value = new Set();
+    await loadAll();
+  } catch (e) {
+    error.value =
+      e instanceof Error ? e.message : "삭제에 실패했습니다.";
+  } finally {
+    loading.value = false;
+  }
+}
+
 onMounted(() => {
   void loadAll();
   updateHeaderCheckboxIndeterminate();
@@ -683,6 +882,33 @@ onMounted(() => {
             @click="openStrokeOrderModal"
           >
             획순
+          </button>
+          <button
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
+            :disabled="loading || !canMutateBasis"
+            title="admin 클레임·로그인 필요"
+            @click="openBasisAddModal"
+          >
+            추가
+          </button>
+          <button
+            type="button"
+            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
+            :disabled="!canMutateBasis || !canUseSelectionActions"
+            title="한 행만 선택 · admin 필요"
+            @click="openBasisEditModal"
+          >
+            수정
+          </button>
+          <button
+            type="button"
+            class="rounded-md border border-red-300/90 bg-surface-low px-3 py-1.5 text-xs font-medium text-red-800 transition hover:bg-red-50/80 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+            :disabled="loading || !canMutateBasis || selectedCount === 0"
+            title="선택한 행 삭제 · admin 필요"
+            @click="deleteSelectedBasis"
+          >
+            삭제
           </button>
           <button
             type="button"
@@ -791,6 +1017,19 @@ onMounted(() => {
     </div>
 
     <div
+      v-if="
+        isFirebaseConfigured() &&
+          auth.ready &&
+          auth.isAuthenticated &&
+          !auth.isAdmin
+      "
+      class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-2.5 text-xs text-amber-950 shadow-sm"
+    >
+      <strong class="font-medium">admin</strong> 클레임이 있어야
+      <strong class="font-medium">추가·수정·삭제</strong>가 가능합니다. 설정 → 인증에서 토큰을 갱신하세요.
+    </div>
+
+    <div
       v-if="filterWarning"
       class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
     >
@@ -849,6 +1088,11 @@ onMounted(() => {
         → 레거시
         <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja</code>
         순으로 획 데이터를 불러옵니다.
+        <span v-if="canMutateBasis" class="text-onSurface-variant/90">
+          행 <strong class="font-medium text-onSurface">추가·수정·삭제</strong>는 Firestore
+          <code class="rounded-md bg-white/80 px-1 py-0.5 font-mono text-[10px] text-primary">hanja_basis</code>
+          에 직접 반영됩니다.
+        </span>
       </div>
 
       <div
@@ -1199,6 +1443,120 @@ onMounted(() => {
                 :footnote="strokeModalFootnote"
               />
             </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- hanja_basis 추가·수정 -->
+    <Teleport to="body">
+      <div
+        v-if="basisFormModalOpen"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-onSurface/45 p-4 backdrop-blur-[2px]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="basis-form-modal-title"
+        @click.self="closeBasisFormModal"
+      >
+        <div
+          class="flex max-h-[min(90vh,44rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-outline-variant/90 bg-surface-lowest shadow-[0_24px_80px_rgba(25,28,30,0.14)] ring-1 ring-black/[0.03]"
+        >
+          <div
+            class="relative shrink-0 overflow-hidden border-b border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-5 pb-4 pt-4"
+          >
+            <div
+              class="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-primary/[0.1] blur-2xl"
+            />
+            <div class="relative flex items-start justify-between gap-3">
+              <div>
+                <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary/90">
+                  Firestore · hanja_basis
+                </p>
+                <h2
+                  id="basis-form-modal-title"
+                  class="font-display text-lg font-semibold tracking-tight text-onSurface"
+                >
+                  {{ basisFormMode === "add" ? "항목 추가" : "항목 수정" }}
+                </h2>
+                <p class="mt-1 font-mono text-xs text-primary">
+                  문서 ID: {{ basisFormResolvedId }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn-secondary shrink-0 px-3 py-2 text-sm"
+                :disabled="basisFormBusy"
+                @click="closeBasisFormModal"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div
+              v-if="basisFormError"
+              class="mb-4 rounded-xl border border-red-200/90 bg-red-50/90 px-3 py-2.5 text-sm text-red-900"
+            >
+              {{ basisFormError }}
+            </div>
+            <div class="space-y-3">
+              <div
+                v-for="col in COLUMN_ORDER"
+                :key="col"
+              >
+                <label
+                  class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  :for="'basis-form-' + col"
+                >
+                  {{ col === "id" ? "id (한자 없을 때 H+16진 등)" : col }}
+                </label>
+                <select
+                  v-if="col === '구분'"
+                  :id="'basis-form-' + col"
+                  v-model="basisForm[col]"
+                  class="input-minimal w-full cursor-pointer py-2 text-sm"
+                >
+                  <option value="">(비움)</option>
+                  <option value="중">중</option>
+                  <option value="고">고</option>
+                </select>
+                <input
+                  v-else
+                  :id="'basis-form-' + col"
+                  v-model="basisForm[col]"
+                  type="text"
+                  class="input-minimal py-2 text-sm"
+                  :class="col === '한자' ? 'font-display text-lg' : ''"
+                  :placeholder="col === 'id' ? '비우면 한자로부터 자동' : ''"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
+            <p class="mt-3 text-[11px] leading-relaxed text-onSurface-variant">
+              한자가 있으면 문서 ID는 항상 그 글자의
+              <code class="rounded bg-surface-low px-1 font-mono text-[10px]">H</code>+코드포인트입니다.
+              수정 시 한자를 바꿔 ID가 달라지면 기존 문서는 삭제되고 새 ID로 저장됩니다.
+            </p>
+          </div>
+          <div
+            class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-outline-variant/70 bg-surface-low/50 px-5 py-3"
+          >
+            <button
+              type="button"
+              class="btn-secondary px-4 py-2 text-sm"
+              :disabled="basisFormBusy"
+              @click="closeBasisFormModal"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              class="btn-primary px-4 py-2 text-sm shadow-md shadow-primary/15"
+              :disabled="basisFormBusy"
+              @click="saveBasisForm"
+            >
+              {{ basisFormBusy ? "저장 중…" : "저장" }}
+            </button>
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ const UPLOAD_STEPS = [
   {
     collection: "hanja_basis",
     title: "1. hanja_basis",
-    description: "기준 한자 마스터",
+    description: "기준 한자 마스터 · 문서 ID=H+코드포인트(한자 기준)",
   },
   {
     collection: "hanja_extend",
@@ -188,6 +188,38 @@ function parseCsv(text: string): string[][] {
 function safeDocId(raw: string, fallback: string): string {
   const s = raw.replace(/\//g, "_").replace(/[\s#?[\]]/g, "_").slice(0, 500);
   return s || fallback;
+}
+
+/**
+ * `hanja_basis` Firestore 문서 ID: `한자` 첫 글자의 유니코드 → `H`+대문자 16진.
+ * 한자가 없으면 `id` 열 또는 첫 열이 `H[0-9A-F]+` 형태면 그대로 정규화, 아니면 첫 열을 safeDocId로.
+ */
+function normalizeHanjaBasisDocId(
+  headers: string[],
+  cells: string[],
+  rowIndex: number,
+): string {
+  const cellFor = (name: string): string => {
+    const i = headers.indexOf(name);
+    return i >= 0 ? String(cells[i] ?? "").trim() : "";
+  };
+  const hanja = cellFor("한자");
+  if (hanja.length > 0) {
+    const cp = hanja.codePointAt(0);
+    if (cp !== undefined) {
+      return `H${cp.toString(16).toUpperCase()}`;
+    }
+  }
+  const tryHex = (s: string): string | null => {
+    const m = /^H([0-9A-Fa-f]+)$/.exec(s.trim());
+    return m ? `H${m[1]!.toUpperCase()}` : null;
+  };
+  const fromIdCol = tryHex(cellFor("id"));
+  if (fromIdCol) return fromIdCol;
+  const firstCol = String(cells[0] ?? "").trim();
+  const fromFirst = tryHex(firstCol);
+  if (fromFirst) return fromFirst;
+  return safeDocId(firstCol, `row_${rowIndex}_${Date.now()}`);
 }
 
 function docIdFromJsonItem(coll: string, item: Record<string, unknown>): string {
@@ -428,6 +460,13 @@ async function onUpload() {
         const slice = rows.slice(start, start + chunk);
         slice.forEach((cells, j) => {
           const rowIndex = start + j;
+          const primary =
+            collName === "hanja_basis"
+              ? normalizeHanjaBasisDocId(headers, cells, rowIndex)
+              : safeDocId(
+                  cells[0] ?? "",
+                  `row_${rowIndex}_${Date.now()}`,
+                );
           const data: Record<string, unknown> = {
             _row: rowIndex,
             _importedAt: serverTimestamp(),
@@ -435,10 +474,9 @@ async function onUpload() {
           headers.forEach((h, k) => {
             data[h] = cells[k] ?? "";
           });
-          const primary = safeDocId(
-            cells[0] ?? "",
-            `row_${rowIndex}_${Date.now()}`,
-          );
+          if (collName === "hanja_basis") {
+            data.id = primary;
+          }
           const ref = doc(collection(db, collName), primary);
           batch.set(ref, data, { merge: true });
         });
@@ -456,7 +494,10 @@ async function onUpload() {
         columnCount: headers.length,
         importedRows: total,
       };
-      message.value = `${total}행을 ${collName}에 반영했습니다. (문서 ID: 첫 번째 열)`;
+      message.value =
+        collName === "hanja_basis"
+          ? `${total}행을 ${collName}에 반영했습니다. (문서 ID: 한자 기준 H+16진, 필드 id 동기화)`
+          : `${total}행을 ${collName}에 반영했습니다. (문서 ID: 첫 번째 열)`;
     } else {
       const items = preview.items;
       const headers = normalizedHeaders.value;
@@ -579,7 +620,10 @@ function restartWizard() {
     <div
       class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
     >
-      <strong class="font-medium text-onSurface">hanja_basis</strong>는 CSV(첫 줄 헤더, 문서 ID=첫 열).
+      <strong class="font-medium text-onSurface">hanja_basis</strong>는 CSV(첫 줄 헤더).
+      문서 ID는 <strong class="font-medium text-onSurface">한자</strong> 열 첫 글자 기준
+      <code class="rounded-md bg-white/80 px-1 py-0.5 font-mono text-[11px] text-primary">H</code>+16진으로 저장되며, 필드 <code class="rounded-md bg-white/80 px-1 py-0.5 font-mono text-[11px] text-primary">id</code>도 같이 맞춥니다.
+      한자가 비어 있으면 <code class="font-mono text-[11px] text-primary">id</code> 또는 첫 열의 <code class="font-mono text-[11px] text-primary">H…</code> 형식을 사용합니다.
       <strong class="font-medium text-onSurface">hanja_extend · hanja_stroke · hanja_word</strong>는
       ETL과 동일한 <strong class="font-medium text-onSurface">JSON 배열</strong>이 표준이며 CSV도 호환됩니다.
       순서를 지키고, 동일 문서 ID는 <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">merge</code>됩니다.

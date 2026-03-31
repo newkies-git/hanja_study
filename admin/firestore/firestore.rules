@@ -38,7 +38,7 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 원본 CSV(HANJA_1817.csv) 업로드/관리용 컬렉션
+    // 기준 한자 마스터(관리 웹 CSV). 권장 문서 ID: 한자 첫 글자 코드포인트를 H+대문자16진(예: H4E00). 업로드 시 자동 정규화.
     match /hanja_basis/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();

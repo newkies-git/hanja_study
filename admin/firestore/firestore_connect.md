@@ -299,7 +299,7 @@ firebase deploy --only firestore:rules --project chusa-1817
 
 ### 관리 웹「한자 마스터 등록」(순서: `hanja_basis` → `hanja_extend` → `hanja_stroke` → `hanja_word`)
 
-- **형식**: `hanja_basis`(1단계)만 **CSV**(헤더+행, 문서 ID=첫 열). **`hanja_extend` · `hanja_stroke` · `hanja_word`(2~4단계)는 원천 데이터 형식이 JSON**(객체의 배열, ETL `output/*.json`과 동일). 관리 웹에서는 해당 JSON을 그대로 올리거나, 동일 필드 구조의 CSV로도 업로드할 수 있다.
+- **형식**: `hanja_basis`(1단계)만 **CSV**(헤더+행). **문서 ID**는 관리 웹 업로드 시 **`한자` 열 첫 글자의 유니코드를 `H`+대문자 16진**(예: `一` → `H4E00`)으로 정규화해 저장하며, 문서 필드 `id`도 동일 값으로 맞춘다. `한자`가 비어 있으면 CSV의 `id` 열 또는 첫 열이 `H[0-9A-F]+` 형태일 때 그 값을 쓰고, 그렇지 않으면 첫 열을 Firestore 안전 ID로 쓴다. **`hanja_extend` · `hanja_stroke` · `hanja_word`(2~4단계)는 원천 데이터 형식이 JSON**(객체의 배열, ETL `output/*.json`과 동일). 관리 웹에서는 해당 JSON을 그대로 올리거나, 동일 필드 구조의 CSV로도 업로드할 수 있다.
 - JSON 업로드 시 문서 ID: `hanja_extend`→`id`, `hanja_stroke`→`stroke_data_id`, `hanja_word`→`word_id`. `hanja_stroke`의 `strokes[].points`는 Firestore 제약에 맞게 `[[x,y],…]`→`[{x,y},…]`로 변환된다.
 
 | 로컬 파일(예) | 대상 Firestore 컬렉션 | 비고 |
