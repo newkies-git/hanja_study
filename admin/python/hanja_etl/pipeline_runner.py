@@ -79,16 +79,21 @@ class PipelineRunner:
         headless: bool = True,
         throttle_ms: int = 1200,
         limit: int | None = None,
+        hanja_range: tuple[int, int] | None = None,
         split_files: int | None = None,
         chunk_index: int | None = None,
     ) -> None:
         """
         CSV에서 한자를 읽어 네이버 한자사전에서 엔티티를 수집한다.
+        `hanja_range`가 있으면 고유 순서 기준 1부터 번호로 [시작, 끝] 양 끝 포함 슬라이스 후 `limit` 적용.
         `split_files`>=2이면 한자 목록을 그만큼 나눠 `*.partNNN.json`으로 저장한다.
         `chunk_index`를 주면 해당 파트만 처리(멀티 프로세스용).
         """
         source = CsvHanjaCharacterSource(csv_path)
         characters = source.load_unique_hanja_in_order()
+        if hanja_range is not None:
+            start_1, end_1 = hanja_range
+            characters = characters[start_1 - 1 : end_1]
         if limit is not None:
             characters = characters[:limit]
 

@@ -46,6 +46,30 @@ def _prompt_csv_path() -> Path:
     return Path(raw).expanduser().resolve()
 
 
+def _parse_hanja_range(spec: str) -> tuple[int, int]:
+    """1-based inclusive START:END."""
+    parts = spec.strip().split(":", 1)
+    if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
+        print(
+            "--hanja-range 는 START:END 형식(1부터, 양 끝 포함)이어야 합니다.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    try:
+        start = int(parts[0].strip())
+        end = int(parts[1].strip())
+    except ValueError:
+        print("--hanja-range 의 시작·끝은 정수여야 합니다.", file=sys.stderr)
+        sys.exit(1)
+    if start < 1 or end < 1:
+        print("--hanja-range: 시작·끝은 1 이상이어야 합니다.", file=sys.stderr)
+        sys.exit(1)
+    if start > end:
+        print("--hanja-range: 시작이 끝보다 클 수 없습니다.", file=sys.stderr)
+        sys.exit(1)
+    return start, end
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="CSV 한자 → 네이버 한자사전 스크래핑 (--csv 미지정 시 경로를 프롬프트로 입력)"
@@ -60,7 +84,14 @@ def _parse_args() -> argparse.Namespace:
         "--limit",
         type=int,
         default=None,
-        help="앞에서부터 N글자만 처리 (디버그용)",
+        help="앞에서부터 N글자만 처리 (--hanja-range 적용 후)",
+    )
+    parser.add_argument(
+        "--hanja-range",
+        type=str,
+        default=None,
+        metavar="START:END",
+        help="CSV 고유 한자 순서 1번부터 번호, 양 끝 포함(예: 1:10). 미지정이면 전체",
     )
     parser.add_argument(
         "--no-headless",
@@ -122,11 +153,16 @@ def main() -> None:
         print(f"파일을 찾을 수 없습니다: {csv_path}", file=sys.stderr)
         sys.exit(1)
 
+    hanja_range = None
+    if args.hanja_range is not None:
+        hanja_range = _parse_hanja_range(args.hanja_range)
+
     runner = PipelineRunner(output_dir=out)
     runner.run_from_csv(
         csv_path=csv_path,
         headless=not args.no_headless,
         limit=args.limit,
+        hanja_range=hanja_range,
         split_files=args.split_files,
         chunk_index=args.chunk_index,
     )

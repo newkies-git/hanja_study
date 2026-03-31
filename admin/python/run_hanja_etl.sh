@@ -6,14 +6,16 @@
 #   SPLIT_FILES  분할 개수 N (2 이상일 때만 --split-files)
 #
 # 짧은 인자(명령줄, 환경 변수보다 우선):
-#   -<파일>.csv   → input/ 아래 해당 CSV (예: -hanja_basis.csv)
-#   -<숫자>       → SPLIT_FILES (예: -4 → --split-files 4)
+#   --<파일>.csv  또는 -<파일>.csv  → input/ 아래 해당 CSV
+#   --<숫자>      또는 -<숫자>      → SPLIT_FILES (예: --50)
+#   --시작:끝     (예: --1:10)      → 고유 한자 순서 1번부터 양 끝 포함. 생략 시 전체
 #
 # 나머지 인자는 hanja_etl.py 로 그대로 전달 (--limit, --output-dir 등).
 #
 # 예:
-#   ./run_hanja_etl.sh -hanja_basis.csv -4
-#   SPLIT_FILES=8 ./run_hanja_etl.sh --output-dir ./out
+#   ./run_hanja_etl.sh --hanja_basis.csv --50 --1:10
+#   ./run_hanja_etl.sh -hanja_basis.csv -50
+#   ./run_hanja_etl.sh --hanja_basis.csv --50 --10:9   → 시작>끝 이면 Python에서 오류
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,9 +37,16 @@ source "$ACTIVATE"
 
 CSV_SHORT=""
 SPLIT_SHORT=""
+RANGE_SPEC=""
 PASSTHRU=()
 for a in "$@"; do
-  if [[ "$a" == -* && "$a" == *.csv ]]; then
+  if [[ "$a" =~ ^--[0-9]+:[0-9]+$ ]]; then
+    RANGE_SPEC="${a#--}"
+  elif [[ "$a" == --*.csv ]]; then
+    CSV_SHORT="${a#--}"
+  elif [[ "$a" =~ ^--[0-9]+$ ]]; then
+    SPLIT_SHORT="${a#--}"
+  elif [[ "$a" == -* && "$a" == *.csv ]]; then
     CSV_SHORT="${a#-}"
   elif [[ "$a" =~ ^-[0-9]+$ ]]; then
     SPLIT_SHORT="${a#-}"
@@ -72,6 +81,9 @@ ETL_ARGS=(--csv "$CSV")
 if [[ -n "$SPLIT_USE" ]]; then
   ETL_ARGS+=(--split-files "$SPLIT_USE")
 fi
+if [[ -n "$RANGE_SPEC" ]]; then
+  ETL_ARGS+=(--hanja-range "$RANGE_SPEC")
+fi
 if [[ ${#PASSTHRU[@]} -gt 0 ]]; then
   ETL_ARGS+=("${PASSTHRU[@]}")
 fi
@@ -92,6 +104,7 @@ fi
 
 echo "CSV=$CSV"
 echo "SPLIT_FILES=${SPLIT_USE:-(미사용)}"
+echo "HANJA_RANGE=${RANGE_SPEC:-(전체)}"
 if ((${#PASSTHRU[@]})); then
   echo "추가 인자: ${PASSTHRU[*]}"
 else
