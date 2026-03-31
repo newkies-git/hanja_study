@@ -3,6 +3,7 @@ import {
   computed,
   nextTick,
   onMounted,
+  onUnmounted,
   ref,
   watch,
 } from "vue";
@@ -16,10 +17,10 @@ import {
   limit,
   orderBy,
   query,
+  setDoc,
 } from "firebase/firestore";
-import StrokeOrderViewer from "@/components/dashboard/StrokeOrderViewer.vue";
-import type { StrokeShape } from "@/components/dashboard/StrokeOrderViewer.vue";
-import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
+import { getFirebaseAuth, getFirestoreDb, isFirebaseConfigured } from "@/firebase";
+import { useAuthStore } from "@/stores/auth";
 
 const FILTER_FETCH_CAP = 2500;
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
@@ -29,6 +30,8 @@ const BASIS_CSV_DOWNLOAD_COLUMNS = ["id", "한자", "음"] as const;
 
 type Row = Record<string, unknown>;
 type DocEntry = { id: string; data: Row };
+
+const auth = useAuthStore();
 
 const allDocs = ref<DocEntry[]>([]);
 const rows = ref<Row[]>([]);
@@ -46,14 +49,20 @@ const search한자 = ref("");
 const search음 = ref("");
 const search훈 = ref("");
 
-/** 선택된 문서 ID (현재 페이지·전체 목록 공통) */
-const selectedIds = ref<Set<string>>(new Set());
+/** 행 클릭으로 한 건만 선택 (JSON·획 미리보기·획순 DATA) */
+const selectedEtlDocId = ref<string | null>(null);
 /** 행별 비고 (클라이언트만; 추후 서버 연동 시 교체) */
 const remarksByDocId = ref<Record<string, string>>({});
 /** ETL 성공한 문서 ID (클라이언트 세션; Firestore `etl`과 함께 Yes 판단) */
 const etlSucceededIds = ref<Set<string>>(new Set());
 
-const headerCheckboxRef = ref<HTMLInputElement | null>(null);
+function selectEtlRow(docId: string) {
+  if (selectedEtlDocId.value === docId) {
+    selectedEtlDocId.value = null;
+  } else {
+    selectedEtlDocId.value = docId;
+  }
+}
 
 function rowIndicatesEtlSuccess(row: Row): boolean {
   const raw = row["etl"];
@@ -163,52 +172,6 @@ watch([filteredDocs, currentPage, pageSize], () => {
   syncSliceToRows();
 });
 
-const visibleSelectedCount = computed(() =>
-  ids.value.filter((id) => selectedIds.value.has(id)).length,
-);
-
-const allVisibleSelected = computed(
-  () =>
-    ids.value.length > 0 &&
-    visibleSelectedCount.value === ids.value.length,
-);
-
-function updateHeaderCheckboxIndeterminate() {
-  nextTick(() => {
-    const el = headerCheckboxRef.value;
-    if (!el) return;
-    const n = visibleSelectedCount.value;
-    const len = ids.value.length;
-    el.indeterminate = n > 0 && n < len;
-  });
-}
-
-watch([ids, selectedIds], updateHeaderCheckboxIndeterminate, {
-  deep: true,
-});
-
-function setSelected(mutate: (s: Set<string>) => void) {
-  const s = new Set(selectedIds.value);
-  mutate(s);
-  selectedIds.value = s;
-}
-
-function toggleRow(docId: string, checked: boolean) {
-  setSelected((s) => {
-    if (checked) s.add(docId);
-    else s.delete(docId);
-  });
-}
-
-function toggleAllVisible(checked: boolean) {
-  setSelected((s) => {
-    for (const id of ids.value) {
-      if (checked) s.add(id);
-      else s.delete(id);
-    }
-  });
-}
-
 function remarkFor(docId: string): string {
   return remarksByDocId.value[docId] ?? "";
 }
@@ -218,19 +181,6 @@ function setRemark(docId: string, value: string) {
     ...remarksByDocId.value,
     [docId]: value,
   };
-}
-
-/** 필터 결과 전체 행 선택 / 전체 해제 */
-function selectAllFiltered() {
-  const s = new Set(selectedIds.value);
-  for (const { id } of filteredDocs.value) {
-    s.add(id);
-  }
-  selectedIds.value = s;
-}
-
-function clearAllSelection() {
-  selectedIds.value = new Set();
 }
 
 /** 파이프라인 CSV 복사 안내 */
@@ -253,25 +203,24 @@ function csvEscapeCell(raw: string): string {
 
 function buildEtlCsvSnippet(): string {
   const lines: string[] = [ETL_CSV_HEADERS.join(",")];
-  for (const docId of selectedIds.value) {
-    const entry = allDocs.value.find((d) => d.id === docId);
-    if (!entry) continue;
-    const r = entry.data;
-    const row = ETL_CSV_HEADERS.map((h) =>
-      csvEscapeCell(String(r[h] ?? "")),
-    );
-    lines.push(row.join(","));
-  }
+  const docId = selectedEtlDocId.value;
+  if (!docId) return lines.join("\n");
+  const entry = allDocs.value.find((d) => d.id === docId);
+  if (!entry) return lines.join("\n");
+  const r = entry.data;
+  const row = ETL_CSV_HEADERS.map((h) =>
+    csvEscapeCell(String(r[h] ?? "")),
+  );
+  lines.push(row.join(","));
   return lines.join("\n");
 }
 
 async function runEtlOnSelection() {
-  if (selectedIds.value.size === 0) return;
+  if (!selectedEtlDocId.value) return;
   etlActionMessage.value = null;
-  let exported = 0;
-  for (const docId of selectedIds.value) {
-    if (allDocs.value.some((d) => d.id === docId)) exported += 1;
-  }
+  const exported = allDocs.value.some((d) => d.id === selectedEtlDocId.value)
+    ? 1
+    : 0;
   const text = buildEtlCsvSnippet();
   try {
     await navigator.clipboard.writeText(text);
@@ -298,44 +247,8 @@ function leadingHanjaChar(row: Row): string {
   return cp === undefined ? "" : String.fromCodePoint(cp);
 }
 
-function parseStrokePoints(raw: unknown): [number, number][] {
-  if (!Array.isArray(raw)) return [];
-  const out: [number, number][] = [];
-  for (const p of raw) {
-    if (Array.isArray(p) && p.length >= 2) {
-      const x = Number(p[0]);
-      const y = Number(p[1]);
-      if (Number.isFinite(x) && Number.isFinite(y)) out.push([x, y]);
-    } else if (p && typeof p === "object" && "x" in p && "y" in p) {
-      const x = Number((p as { x: unknown }).x);
-      const y = Number((p as { y: unknown }).y);
-      if (Number.isFinite(x) && Number.isFinite(y)) out.push([x, y]);
-    }
-  }
-  return out;
-}
-
-function normalizeStrokesFromFirestore(raw: unknown): StrokeShape[] {
-  if (!Array.isArray(raw)) return [];
-  const list: StrokeShape[] = [];
-  for (const s of raw) {
-    if (!s || typeof s !== "object") continue;
-    const order = Number((s as { order?: unknown }).order);
-    const pts = parseStrokePoints((s as { points?: unknown }).points);
-    if (pts.length < 2) continue;
-    list.push({
-      order: Number.isFinite(order) ? order : list.length + 1,
-      points: pts,
-    });
-  }
-  return list.sort((a, b) => a.order - b.order);
-}
-
-/** 선택 집합에서 첫 문서(삽입 순) — 획 미리보기 대상 */
-const strokePreviewDocId = computed(() => {
-  const it = selectedIds.value.values().next();
-  return it.done ? null : it.value;
-});
+/** 선택된 한 행 — JSON 편집 대상 */
+const strokePreviewDocId = computed(() => selectedEtlDocId.value);
 
 const strokePreviewRow = computed(() => {
   const id = strokePreviewDocId.value;
@@ -344,15 +257,123 @@ const strokePreviewRow = computed(() => {
 });
 
 const strokeLoading = ref(false);
-const strokeError = ref<string | null>(null);
-const strokeShapes = ref<StrokeShape[]>([]);
-const strokeSvgPaths = ref<string[]>([]);
-const strokeMeta = ref<{
-  hanjaDocId: string;
-  strokeDataId?: string;
-  totalStrokes?: number;
-  charDoc?: string;
-} | null>(null);
+
+/** 우측 패널: 편집 대상 `hanja_stroke` 문서 ID (없으면 저장 불가) */
+const strokeFirestoreDocId = ref<string | null>(null);
+const strokeJsonEditorText = ref("");
+const strokeJsonBaseline = ref("");
+const strokeJsonSaveError = ref<string | null>(null);
+const strokeJsonSaving = ref(false);
+
+const strokeJsonDirty = computed(
+  () => strokeJsonEditorText.value !== strokeJsonBaseline.value,
+);
+
+/** 편집 중 JSON의 svg_paths 가 없거나 빈 배열·공백 문자열만이면 true */
+function svgPathsEmptyInStrokeJsonText(raw: string): boolean {
+  const t = raw.trim();
+  if (!t) return true;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(t);
+  } catch {
+    return false;
+  }
+  if (
+    parsed === null ||
+    typeof parsed !== "object" ||
+    Array.isArray(parsed)
+  ) {
+    return false;
+  }
+  const sp = (parsed as Record<string, unknown>).svg_paths;
+  if (sp === undefined || sp === null) return true;
+  if (!Array.isArray(sp)) return true;
+  if (sp.length === 0) return true;
+  const hasPath = sp.some(
+    (x) => typeof x === "string" && x.trim().length > 0,
+  );
+  return !hasPath;
+}
+
+const strokeJsonSvgPathsEmpty = computed(() => {
+  if (!selectedEtlDocId.value || !strokeFirestoreDocId.value) return false;
+  return svgPathsEmptyInStrokeJsonText(strokeJsonEditorText.value);
+});
+
+const canMutateStrokeDoc = computed(
+  () =>
+    isFirebaseConfigured() &&
+    auth.isAuthenticated &&
+    auth.isAdmin &&
+    strokeFirestoreDocId.value !== null,
+);
+
+function docDataToJsonText(data: Record<string, unknown>): string {
+  return JSON.stringify(
+    data,
+    (_key, val) => {
+      if (
+        val &&
+        typeof val === "object" &&
+        "toDate" in val &&
+        typeof (val as { toDate: () => Date }).toDate === "function"
+      ) {
+        try {
+          return (val as { toDate: () => Date }).toDate().toISOString();
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    },
+    2,
+  );
+}
+
+function revertStrokeJsonEditor() {
+  strokeJsonEditorText.value = strokeJsonBaseline.value;
+  strokeJsonSaveError.value = null;
+}
+
+async function saveHanjaStrokeJson() {
+  const docId = strokeFirestoreDocId.value;
+  if (!docId || !canMutateStrokeDoc.value) return;
+  strokeJsonSaveError.value = null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(strokeJsonEditorText.value);
+  } catch (e) {
+    strokeJsonSaveError.value =
+      e instanceof Error ? e.message : "JSON 형식이 올바르지 않습니다.";
+    return;
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    strokeJsonSaveError.value = "최상위는 JSON 객체여야 합니다.";
+    return;
+  }
+  if (!isFirebaseConfigured()) return;
+  strokeJsonSaving.value = true;
+  try {
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      strokeJsonSaveError.value = "로그인이 필요합니다.";
+      return;
+    }
+    await user.getIdToken(true);
+    const db = getFirestoreDb();
+    await setDoc(doc(db, "hanja_stroke", docId), parsed as Record<string, unknown>, {
+      merge: true,
+    });
+    strokeJsonBaseline.value = strokeJsonEditorText.value;
+    await loadStrokesFromFirestore();
+  } catch (e) {
+    strokeJsonSaveError.value =
+      e instanceof Error ? e.message : "저장에 실패했습니다.";
+  } finally {
+    strokeJsonSaving.value = false;
+  }
+}
 
 let strokeLoadToken = 0;
 
@@ -362,10 +383,10 @@ async function loadStrokesFromFirestore() {
   const row = strokePreviewRow.value;
 
   if (!row || !isFirebaseConfigured()) {
-    strokeShapes.value = [];
-    strokeSvgPaths.value = [];
-    strokeError.value = null;
-    strokeMeta.value = null;
+    strokeFirestoreDocId.value = null;
+    strokeJsonEditorText.value = "";
+    strokeJsonBaseline.value = "";
+    strokeJsonSaveError.value = null;
     strokeLoading.value = false;
     return;
   }
@@ -373,16 +394,15 @@ async function loadStrokesFromFirestore() {
   const hanjaId = hanjaCollectionDocId(row);
   if (!hanjaId) {
     if (token !== strokeLoadToken) return;
-    strokeShapes.value = [];
-    strokeSvgPaths.value = [];
-    strokeError.value = "한자 필드에서 글자를 읽을 수 없습니다.";
-    strokeMeta.value = null;
+    strokeFirestoreDocId.value = null;
+    strokeJsonEditorText.value = "";
+    strokeJsonBaseline.value = "";
+    strokeJsonSaveError.value = null;
     strokeLoading.value = false;
     return;
   }
 
   strokeLoading.value = true;
-  strokeError.value = null;
 
   try {
     const db = getFirestoreDb();
@@ -413,7 +433,7 @@ async function loadStrokesFromFirestore() {
       const d = hanjaSnap.data() as Record<string, unknown>;
       charDoc = String(d.char ?? d.character ?? "");
       if (typeof d.stroke_data_id === "string") {
-        strokeDataId = d.stroke_data_id;
+        strokeDataId = d.stroke_data_id.trim() || undefined;
       }
       if (typeof d.total_strokes === "number") {
         totalStrokes = d.total_strokes;
@@ -424,44 +444,64 @@ async function loadStrokesFromFirestore() {
       svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(d));
     }
 
-    if (
-      (!Array.isArray(strokesRaw) || strokesRaw.length === 0) &&
-      strokeDataId
-    ) {
+    let strokeSnapData: Record<string, unknown> | null = null;
+    if (strokeDataId) {
       const stSnap = await getDoc(doc(db, "hanja_stroke", strokeDataId));
       if (stSnap.exists()) {
-        const sd = stSnap.data() as Record<string, unknown>;
-        strokesRaw = sd.strokes;
-        if (!charDoc) charDoc = String(sd.char ?? "");
-        if (totalStrokes === undefined && typeof sd.total_strokes === "number") {
-          totalStrokes = sd.total_strokes;
-        }
-        svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(sd));
+        strokeSnapData = stSnap.data() as Record<string, unknown>;
+      }
+    }
+
+    if (strokeSnapData) {
+      svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(strokeSnapData));
+    }
+
+    if (
+      (!Array.isArray(strokesRaw) || strokesRaw.length === 0) &&
+      strokeSnapData
+    ) {
+      const sd = strokeSnapData;
+      strokesRaw = sd.strokes;
+      if (!charDoc) charDoc = String(sd.char ?? "");
+      if (totalStrokes === undefined && typeof sd.total_strokes === "number") {
+        totalStrokes = sd.total_strokes;
       }
     }
 
     if (token !== strokeLoadToken) return;
 
-    const shapes = normalizeStrokesFromFirestore(strokesRaw);
-    strokeShapes.value = shapes;
-    strokeSvgPaths.value = svgPathsBest;
-    strokeMeta.value = {
-      hanjaDocId: hanjaId,
-      strokeDataId,
-      totalStrokes,
-      charDoc: charDoc || leadingHanjaChar(row),
-    };
+    strokeJsonSaveError.value = null;
 
-    if (shapes.length === 0 && svgPathsBest.length === 0) {
-      strokeError.value = `Firestore에 획 배열·svg_paths가 없습니다. (hanja/${hanjaId} 또는 hanja_stroke/${strokeDataId ?? "—"})`;
+    if (strokeSnapData && strokeDataId) {
+      strokeFirestoreDocId.value = strokeDataId;
+      const jsonText = docDataToJsonText(strokeSnapData);
+      strokeJsonEditorText.value = jsonText;
+      strokeJsonBaseline.value = jsonText;
+    } else if (strokeDataId) {
+      strokeFirestoreDocId.value = strokeDataId;
+      const seed: Record<string, unknown> = {
+        char: charDoc || leadingHanjaChar(row),
+        total_strokes: totalStrokes,
+        strokes: Array.isArray(strokesRaw) ? strokesRaw : [],
+        svg_paths: svgPathsBest,
+      };
+      const text = JSON.stringify(seed, null, 2);
+      strokeJsonEditorText.value = text;
+      strokeJsonBaseline.value = text;
+    } else {
+      strokeFirestoreDocId.value = null;
+      strokeJsonEditorText.value = "";
+      strokeJsonBaseline.value = "";
     }
   } catch (e) {
     if (token !== strokeLoadToken) return;
-    strokeShapes.value = [];
-    strokeSvgPaths.value = [];
-    strokeMeta.value = null;
-    strokeError.value =
-      e instanceof Error ? e.message : "획 데이터를 불러오지 못했습니다.";
+    strokeFirestoreDocId.value = null;
+    strokeJsonEditorText.value = "";
+    strokeJsonBaseline.value = "";
+    console.error(
+      "[ETL] hanja_stroke 로드 실패",
+      e instanceof Error ? e.message : e,
+    );
   } finally {
     if (token === strokeLoadToken) strokeLoading.value = false;
   }
@@ -469,33 +509,6 @@ async function loadStrokesFromFirestore() {
 
 watch([strokePreviewDocId, allDocs], () => {
   void loadStrokesFromFirestore();
-});
-
-const strokePanelSubtitle = computed(() => {
-  const row = strokePreviewRow.value;
-  if (!row) return "—";
-  const read = String(row["음"] ?? "").trim();
-  const mean = String(row["훈"] ?? "").trim();
-  const n =
-    strokeMeta.value?.totalStrokes ?? strokeShapes.value.length;
-  const label =
-    mean && read ? `${mean} ${read}` : mean || read || "";
-  const parts = [label, n ? `${n}획` : ""].filter(Boolean);
-  return parts.join(" · ") || "—";
-});
-
-const strokePanelFootnote = computed(() => {
-  const m = strokeMeta.value;
-  if (!m) return undefined;
-  return m.strokeDataId ?? m.hanjaDocId;
-});
-
-const strokePanelTitle = computed(() => {
-  const row = strokePreviewRow.value;
-  const fromFs = strokeMeta.value?.charDoc?.trim();
-  if (fromFs) return fromFs;
-  if (row) return leadingHanjaChar(row) || "—";
-  return "—";
 });
 
 async function loadAll() {
@@ -639,27 +652,83 @@ function clearFilters() {
 
 const canClearFilters = computed(() => filterActive.value);
 
-const selectedCount = computed(() => selectedIds.value.size);
+const selectedCount = computed(() => (selectedEtlDocId.value ? 1 : 0));
 
 const basisTotalLabel = computed(() =>
   allDocs.value.length.toLocaleString("ko-KR"),
 );
 
+/** 헤더 ! 도움말 — main overflow 때문에 body 고정 레이어로 표시 */
+const etlHelpTriggerRef = ref<HTMLButtonElement | null>(null);
+const etlHelpTooltipOpen = ref(false);
+const etlHelpTooltipStyle = ref<Record<string, string>>({});
+
+let etlHelpRemoveScrollListeners: (() => void) | null = null;
+
+function positionEtlHelpTooltip() {
+  const el = etlHelpTriggerRef.value;
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  const margin = 10;
+  const maxW = Math.min(352, window.innerWidth - margin * 2);
+  let left = r.left;
+  if (left + maxW > window.innerWidth - margin) {
+    left = Math.max(margin, window.innerWidth - margin - maxW);
+  }
+  if (left < margin) left = margin;
+  etlHelpTooltipStyle.value = {
+    top: `${Math.round(r.bottom + margin)}px`,
+    left: `${Math.round(left)}px`,
+    maxWidth: `${maxW}px`,
+  };
+}
+
+function openEtlHelpTooltip() {
+  positionEtlHelpTooltip();
+  etlHelpTooltipOpen.value = true;
+  void nextTick(() => positionEtlHelpTooltip());
+}
+
+function closeEtlHelpTooltip() {
+  etlHelpTooltipOpen.value = false;
+}
+
+watch(etlHelpTooltipOpen, (open) => {
+  etlHelpRemoveScrollListeners?.();
+  etlHelpRemoveScrollListeners = null;
+  if (!open) return;
+  const handler = () => positionEtlHelpTooltip();
+  window.addEventListener("scroll", handler, true);
+  window.addEventListener("resize", handler);
+  etlHelpRemoveScrollListeners = () => {
+    window.removeEventListener("scroll", handler, true);
+    window.removeEventListener("resize", handler);
+  };
+});
+
+onUnmounted(() => {
+  etlHelpRemoveScrollListeners?.();
+});
+
 onMounted(() => {
   void loadAll();
-  updateHeaderCheckboxIndeterminate();
 });
 </script>
 
 <template>
   <div class="space-y-6">
-    <!-- 히어로 -->
+    <!-- 히어로 (툴팁이 잘리지 않도록 본문은 overflow-visible, 장식만 clip) -->
     <section
-      class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
+      class="relative overflow-visible rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-3 py-2.5 shadow-float ring-1 ring-black/[0.03] sm:px-4 sm:py-3"
     >
       <div
-        class="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
-      />
+        class="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
+        aria-hidden="true"
+      >
+        <div
+          class="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/[0.09] blur-2xl"
+        />
+      </div>
       <div
         class="relative flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
       >
@@ -670,15 +739,34 @@ onMounted(() => {
           >
             擴
           </div>
-          <div class="min-w-0 leading-tight">
-            <p
-              class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
-            >
-              Firestore · hanja_basis · ETL
-            </p>
-            <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
-              ETL · 확장
-            </h1>
+          <div class="flex min-w-0 items-start gap-2">
+            <div class="min-w-0 flex-1 leading-tight">
+              <p
+                class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
+              >
+                Firestore · hanja_basis · ETL
+              </p>
+              <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
+                ETL · 확장
+              </h1>
+            </div>
+            <div class="relative shrink-0 pt-0.5">
+              <button
+                ref="etlHelpTriggerRef"
+                type="button"
+                class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
+                aria-label="획 데이터는 hanja 의 strokes 또는 hanja_stroke 에서 읽습니다. 목록에서 행을 눌러 한 건을 선택하면 우측 hanja_stroke JSON에 반영됩니다. 추가 수집은 admin/python/hanja_pipeline.py 를 사용합니다."
+                :aria-describedby="
+                  etlHelpTooltipOpen ? 'etl-help-tooltip-text' : undefined
+                "
+                @mouseenter="openEtlHelpTooltip"
+                @mouseleave="closeEtlHelpTooltip"
+                @focus="openEtlHelpTooltip"
+                @blur="closeEtlHelpTooltip"
+              >
+                !
+              </button>
+            </div>
           </div>
         </div>
         <div
@@ -883,52 +971,6 @@ onMounted(() => {
 
     <template v-if="rows.length">
       <div
-        class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3.5 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
-      >
-        획 데이터는
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja</code>
-        의
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">strokes</code>
-        또는
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_stroke</code>
-        에서 읽습니다. 여러 행을 선택하면
-        <strong class="font-medium text-onSurface">가장 먼저 선택한 행</strong> 기준으로 미리보기합니다. 추가 수집은
-        <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">admin/python/hanja_pipeline.py</code>
-        를 사용합니다.
-      </div>
-
-      <div
-        class="flex flex-col gap-2 rounded-xl border border-outline-variant/60 bg-surface-low/80 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4"
-      >
-        <div class="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-            :disabled="loading || !totalCount"
-            @click="selectAllFiltered"
-          >
-            전체선택
-          </button>
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-            :disabled="loading || selectedIds.size === 0"
-            @click="clearAllSelection"
-          >
-            전체해제
-          </button>
-        </div>
-        <button
-          type="button"
-          class="btn-primary px-4 py-1.5 text-sm shadow-md shadow-primary/15"
-          :disabled="loading || selectedIds.size === 0"
-          @click="runEtlOnSelection"
-        >
-          ETL 실행
-        </button>
-      </div>
-
-      <div
         v-if="etlActionMessage"
         class="rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-950 shadow-sm"
       >
@@ -936,213 +978,306 @@ onMounted(() => {
       </div>
 
       <div
-        class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-lowest shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02]"
+        class="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-5"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[56rem] border-collapse text-left text-sm">
-            <thead>
-              <tr
-                class="border-b border-outline-variant/80 bg-surface-low/95 text-xs font-semibold uppercase tracking-wide text-onSurface-variant backdrop-blur-sm"
-              >
-                <th class="w-12 px-3 py-3.5 pl-4">
-                  <input
-                    ref="headerCheckboxRef"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                    :checked="allVisibleSelected"
-                    aria-label="현재 페이지 전체 선택"
-                    @change="
-                      toggleAllVisible(
-                        ($event.target as HTMLInputElement).checked,
-                      )
-                    "
-                  />
-                </th>
-                <th class="px-4 py-3.5">ID</th>
-                <th class="px-4 py-3.5">음</th>
-                <th class="px-4 py-3.5">한자</th>
-                <th class="px-4 py-3.5">훈</th>
-                <th class="w-20 px-4 py-3.5">ETL</th>
-                <th class="min-w-[8rem] px-4 py-3.5">비고</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant/60">
-              <tr
-                v-for="(row, i) in rows"
-                :key="ids[i] ?? i"
-                class="bg-surface-lowest transition-colors hover:bg-primary/[0.04]"
-              >
-                <td class="px-3 py-3 pl-4">
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                    :checked="selectedIds.has(ids[i]!)"
-                    :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
-                    @change="
-                      toggleRow(
-                        ids[i]!,
-                        ($event.target as HTMLInputElement).checked,
-                      )
-                    "
-                  />
-                </td>
-                <td
-                  class="max-w-[6rem] truncate px-4 py-3 font-mono text-xs font-medium text-primary"
-                  :title="basisDisplayId(ids[i]!, row)"
-                >
-                  {{ basisDisplayId(ids[i]!, row) }}
-                </td>
-                <td class="max-w-[8rem] truncate px-4 py-3 text-onSurface">
-                  {{ row["음"] ?? "—" }}
-                </td>
-                <td
-                  class="max-w-[6rem] truncate px-4 py-3 font-display text-lg leading-tight text-onSurface"
-                  :title="String(row['한자'] ?? '')"
-                >
-                  {{ row["한자"] ?? "—" }}
-                </td>
-                <td class="max-w-[12rem] truncate px-4 py-3 text-onSurface">
-                  {{ row["훈"] ?? "—" }}
-                </td>
-                <td class="px-4 py-3">
-                  <span
-                    class="text-sm font-medium tabular-nums"
-                    :class="
-                      etlLabel(ids[i]!, row) === 'Yes'
-                        ? 'text-emerald-700'
-                        : 'text-onSurface-variant'
-                    "
-                  >
-                    {{ etlLabel(ids[i]!, row) }}
-                  </span>
-                </td>
-                <td class="px-3 py-2">
-                  <input
-                    type="text"
-                    class="input-minimal w-full min-w-[6rem] py-1.5 text-sm"
-                    placeholder="메모"
-                    :value="remarkFor(ids[i]!)"
-                    @input="
-                      setRemark(
-                        ids[i]!,
-                        ($event.target as HTMLInputElement).value,
-                      )
-                    "
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <section
-        class="mt-6 space-y-4 rounded-2xl border border-outline-variant/70 bg-surface-lowest p-4 shadow-float sm:p-5"
-      >
-        <div class="border-b border-outline-variant/50 pb-3">
-          <h2 class="text-sm font-semibold text-onSurface">
-            추출 획 미리보기
-          </h2>
-          <p class="mt-1 text-xs text-onSurface-variant">
-            선택한 행 기준으로 레거시·획 컬렉션을 조회합니다.
-          </p>
-        </div>
-        <p
-          v-if="selectedIds.size === 0"
-          class="rounded-xl border border-dashed border-outline-variant/80 bg-surface-low/50 px-4 py-8 text-center text-sm text-onSurface-variant"
+        <!-- 좌측 약 1/3: 목록 -->
+        <div
+          class="flex w-full min-w-0 flex-col gap-3 lg:w-1/3 lg:max-w-[min(100%,33.333333%)] lg:shrink-0"
         >
-          기준 행을 선택하면 해당 한자의 획이 여기에 표시됩니다.
-        </p>
-        <template v-else>
-          <p class="text-xs text-onSurface-variant">
-            문서
-            <code
-              class="rounded-md border border-outline-variant/50 bg-surface-low px-1.5 py-0.5 font-mono text-[11px] text-primary"
-            >{{ strokeMeta?.hanjaDocId ?? "…" }}</code>
-          </p>
           <div
-            v-if="strokeLoading"
-            class="flex flex-col items-center justify-center gap-3 py-10 text-sm text-onSurface-variant"
-            role="status"
-            aria-live="polite"
+            class="flex max-h-[min(72vh,52rem)] min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-lowest shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02]"
           >
-            <span class="flex gap-1.5" aria-hidden="true">
-              <span class="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.2s]" />
-              <span class="h-2 w-2 animate-bounce rounded-full bg-primary [animation-delay:-0.1s]" />
-              <span class="h-2 w-2 animate-bounce rounded-full bg-primary" />
-            </span>
-            획 데이터를 불러오는 중…
+            <div class="min-h-0 flex-1 overflow-auto">
+              <table class="w-full min-w-[22rem] table-fixed border-collapse text-left text-xs">
+                <thead>
+                  <tr
+                    class="sticky top-0 z-[1] border-b border-outline-variant/80 bg-surface-low/95 text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant backdrop-blur-sm"
+                  >
+                    <th class="w-[22%] px-2 py-2.5">ID</th>
+                    <th class="w-[14%] px-1 py-2.5">음</th>
+                    <th class="w-[12%] px-1 py-2.5 text-center">한자</th>
+                    <th class="w-[20%] px-1 py-2.5">훈</th>
+                    <th class="w-10 px-1 py-2.5 text-center">ETL</th>
+                    <th class="px-2 py-2.5">비고</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/60">
+                  <tr
+                    v-for="(row, i) in rows"
+                    :key="ids[i] ?? i"
+                    class="cursor-pointer bg-surface-lowest transition-colors hover:bg-primary/[0.04]"
+                    :class="
+                      selectedEtlDocId === ids[i]
+                        ? 'bg-primary/[0.1] ring-1 ring-inset ring-primary/25'
+                        : ''
+                    "
+                    role="button"
+                    tabindex="0"
+                    :aria-pressed="selectedEtlDocId === ids[i]"
+                    :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
+                    @click="selectEtlRow(ids[i]!)"
+                    @keydown.enter.prevent="selectEtlRow(ids[i]!)"
+                    @keydown.space.prevent="selectEtlRow(ids[i]!)"
+                  >
+                    <td
+                      class="truncate px-2 py-2 align-middle font-mono text-[10px] font-medium leading-tight text-primary"
+                      :title="basisDisplayId(ids[i]!, row)"
+                    >
+                      {{ basisDisplayId(ids[i]!, row) }}
+                    </td>
+                    <td
+                      class="truncate px-1 py-2 align-middle text-onSurface"
+                      :title="String(row['음'] ?? '')"
+                    >
+                      {{ row["음"] ?? "—" }}
+                    </td>
+                    <td
+                      class="truncate px-1 py-2 text-center font-display text-base leading-none text-onSurface"
+                      :title="String(row['한자'] ?? '')"
+                    >
+                      {{ row["한자"] ?? "—" }}
+                    </td>
+                    <td
+                      class="truncate px-1 py-2 align-middle text-onSurface"
+                      :title="String(row['훈'] ?? '')"
+                    >
+                      {{ row["훈"] ?? "—" }}
+                    </td>
+                    <td class="px-1 py-2 align-middle text-center">
+                      <span
+                        class="text-xs font-medium tabular-nums"
+                        :class="
+                          etlLabel(ids[i]!, row) === 'Yes'
+                            ? 'text-emerald-700'
+                            : 'text-onSurface-variant'
+                        "
+                      >
+                        {{ etlLabel(ids[i]!, row) }}
+                      </span>
+                    </td>
+                    <td
+                      class="px-1 py-1.5 align-middle"
+                      @click.stop
+                      @keydown.stop
+                    >
+                      <input
+                        type="text"
+                        class="input-minimal w-full py-1 text-[11px]"
+                        placeholder="메모"
+                        :value="remarkFor(ids[i]!)"
+                        @click.stop
+                        @input="
+                          setRemark(
+                            ids[i]!,
+                            ($event.target as HTMLInputElement).value,
+                          )
+                        "
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div
-            v-else-if="strokeError"
-            class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
-          >
-            {{ strokeError }}
-          </div>
-          <StrokeOrderViewer
-            v-else-if="strokeShapes.length || strokeSvgPaths.length"
-            :strokes="strokeShapes"
-            :svg-paths="strokeSvgPaths"
-            :title="strokePanelTitle"
-            :subtitle="strokePanelSubtitle"
-            :footnote="strokePanelFootnote"
-          />
-          <p
-            v-else
-            class="rounded-lg border border-outline-variant/60 bg-surface-low/60 px-4 py-6 text-center text-sm text-onSurface-variant"
-          >
-            이 한자에 대한 획 데이터가 없습니다.
-          </p>
-        </template>
-      </section>
 
-      <div
-        class="flex flex-col gap-3 rounded-xl border border-outline-variant/60 bg-surface-low/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
-      >
-        <p class="text-xs text-onSurface-variant">
-          <span class="font-medium text-onSurface tabular-nums">{{ rangeStart }}–{{ rangeEnd }}</span>
-          <span class="mx-1 text-onSurface-variant/70">/</span>
-          <span class="tabular-nums">{{ totalCount.toLocaleString("ko-KR") }}</span>건
-        </p>
-        <div class="flex flex-wrap items-center justify-end gap-2">
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-sm"
-            :disabled="loading || currentPage <= 0"
-            @click="prevPage"
+          <div
+            class="flex flex-col gap-3 rounded-xl border border-outline-variant/60 bg-surface-low/80 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-4"
           >
-            이전
-          </button>
-          <template v-for="(item, idx) in paginationItems" :key="'p-' + idx">
-            <span
-              v-if="item === 'ellipsis'"
-              class="px-1 text-onSurface-variant"
-            >…</span>
-            <button
-              v-else
-              type="button"
-              class="min-w-[2.25rem] rounded-lg px-2 py-1.5 text-sm font-medium transition"
-              :class="
-                item === currentPage + 1
-                  ? 'bg-primary text-white shadow-md shadow-primary/20'
-                  : 'bg-surface-lowest text-onSurface ring-1 ring-outline-variant/50 hover:bg-surface-bright'
-              "
-              :disabled="loading"
-              @click="goToPage(item - 1)"
+            <p class="text-[11px] text-onSurface-variant">
+              <span class="font-medium text-onSurface tabular-nums">{{ rangeStart }}–{{ rangeEnd }}</span>
+              <span class="mx-1 text-onSurface-variant/70">/</span>
+              <span class="tabular-nums">{{ totalCount.toLocaleString("ko-KR") }}</span>건
+            </p>
+            <div class="flex flex-wrap items-center justify-end gap-1.5">
+              <button
+                type="button"
+                class="btn-secondary px-2.5 py-1.5 text-xs"
+                :disabled="loading || currentPage <= 0"
+                @click="prevPage"
+              >
+                이전
+              </button>
+              <template v-for="(item, idx) in paginationItems" :key="'p-' + idx">
+                <span
+                  v-if="item === 'ellipsis'"
+                  class="px-0.5 text-onSurface-variant"
+                >…</span>
+                <button
+                  v-else
+                  type="button"
+                  class="min-w-[2rem] rounded-lg px-1.5 py-1.5 text-xs font-medium transition"
+                  :class="
+                    item === currentPage + 1
+                      ? 'bg-primary text-white shadow-md shadow-primary/20'
+                      : 'bg-surface-lowest text-onSurface ring-1 ring-outline-variant/50 hover:bg-surface-bright'
+                  "
+                  :disabled="loading"
+                  @click="goToPage(item - 1)"
+                >
+                  {{ item }}
+                </button>
+              </template>
+              <button
+                type="button"
+                class="btn-secondary px-2.5 py-1.5 text-xs"
+                :disabled="loading || currentPage >= totalPages - 1"
+                @click="nextPage"
+              >
+                다음
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 약 2/3: hanja_stroke JSON -->
+        <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div
+            class="flex min-h-[min(52vh,28rem)] flex-1 flex-col overflow-hidden rounded-2xl border bg-surface-lowest shadow-float transition-[border-color,box-shadow] duration-200"
+            :class="
+              strokeJsonSvgPathsEmpty
+                ? 'border-amber-500/90 shadow-[0_0_0_1px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/20'
+                : 'border-outline-variant/70 ring-1 ring-black/[0.02]'
+            "
+          >
+            <div
+              class="flex flex-wrap items-start justify-between gap-2 border-b border-outline-variant/50 bg-surface-low/90 px-3 py-2.5 sm:px-4"
             >
-              {{ item }}
-            </button>
-          </template>
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-sm"
-            :disabled="loading || currentPage >= totalPages - 1"
-            @click="nextPage"
-          >
-            다음
-          </button>
+              <div class="min-w-0 flex-1">
+                <h2 class="text-sm font-semibold text-onSurface">
+                  hanja_stroke · JSON
+                </h2>
+                <p class="mt-0.5 text-[11px] text-onSurface-variant">
+                  Firestore 문서를 직접 편집합니다. 저장 시 merge로 반영됩니다.
+                </p>
+              </div>
+              <div
+                class="flex shrink-0 flex-wrap items-center justify-end gap-2"
+              >
+                <code
+                  v-if="strokeFirestoreDocId"
+                  class="max-w-[min(100%,12rem)] truncate rounded-md border border-primary/20 bg-primary/[0.08] px-2 py-1 font-mono text-[11px] font-medium text-primary sm:max-w-xs"
+                  :title="strokeFirestoreDocId"
+                >{{ strokeFirestoreDocId }}</code>
+                <span
+                  v-else
+                  class="text-[11px] text-onSurface-variant"
+                >문서 ID 없음</span>
+                <button
+                  type="button"
+                  class="btn-primary px-3 py-1.5 text-xs shadow-md shadow-primary/15 sm:text-sm"
+                  :disabled="loading || !selectedEtlDocId"
+                  title="선택한 한 행 기준 CSV를 클립보드에 복사합니다."
+                  @click="runEtlOnSelection"
+                >
+                  획순 DATA
+                </button>
+              </div>
+            </div>
+
+            <div
+              v-if="
+                isFirebaseConfigured() &&
+                  auth.ready &&
+                  auth.isAuthenticated &&
+                  !auth.isAdmin
+              "
+              class="mx-3 mt-2 rounded-lg border border-amber-200/90 bg-amber-50/90 px-3 py-2 text-[11px] text-amber-950"
+            >
+              <strong class="font-medium">admin</strong> 클레임이 있어야 JSON을 저장할 수 있습니다.
+            </div>
+
+            <div class="relative min-h-0 flex-1 p-3 sm:p-4">
+              <p
+                v-if="!selectedEtlDocId"
+                class="rounded-xl border border-dashed border-outline-variant/80 bg-surface-low/50 px-4 py-10 text-center text-sm text-onSurface-variant"
+              >
+                행을 눌러 선택하면 연결된
+                <code class="rounded bg-white/80 px-1 font-mono text-xs text-primary">hanja_stroke</code>
+                데이터가 여기에 표시됩니다.
+              </p>
+              <template v-else>
+                <p
+                  v-if="!strokeFirestoreDocId"
+                  class="rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-3 text-xs leading-relaxed text-amber-950"
+                >
+                  레거시
+                  <code class="rounded bg-white/90 px-1 font-mono text-[10px]">hanja</code>
+                  문서에
+                  <code class="rounded bg-white/90 px-1 font-mono text-[10px]">stroke_data_id</code>
+                  가 없습니다. ID를 연결한 뒤 다시 선택하거나, 파이프라인으로 문서를 만든 후 사용하세요.
+                </p>
+                <textarea
+                  v-else
+                  v-model="strokeJsonEditorText"
+                  :readonly="strokeLoading || strokeJsonSaving"
+                  spellcheck="false"
+                  class="input-minimal h-full min-h-[16rem] w-full resize-y rounded-lg border border-outline-variant/70 bg-surface-low px-3 py-2.5 font-mono text-[11px] leading-relaxed text-onSurface shadow-inner focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
+                  aria-label="hanja_stroke JSON"
+                />
+                <div
+                  v-if="strokeJsonSaveError"
+                  class="mt-2 rounded-lg border border-red-200/90 bg-red-50/90 px-3 py-2 text-xs text-red-900"
+                >
+                  {{ strokeJsonSaveError }}
+                </div>
+                <div
+                  v-if="strokeFirestoreDocId"
+                  class="mt-3 flex flex-wrap items-center gap-2"
+                >
+                  <button
+                    type="button"
+                    class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
+                    :disabled="!strokeJsonDirty || strokeJsonSaving || strokeLoading"
+                    @click="revertStrokeJsonEditor"
+                  >
+                    되돌리기
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
+                    :disabled="
+                      !strokeJsonDirty ||
+                        !canMutateStrokeDoc ||
+                        strokeJsonSaving ||
+                        strokeLoading
+                    "
+                    title="admin · 로그인 필요"
+                    @click="saveHanjaStrokeJson"
+                  >
+                    {{ strokeJsonSaving ? "저장 중…" : "Firestore에 저장" }}
+                  </button>
+                  <span
+                    v-if="strokeJsonDirty"
+                    class="text-[11px] text-onSurface-variant"
+                  >저장되지 않은 변경 있음</span>
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
       </div>
     </template>
+
+    <Teleport to="body">
+      <div
+        v-if="etlHelpTooltipOpen"
+        id="etl-help-tooltip-text"
+        class="fixed z-[10050] rounded-xl border border-outline-variant/80 bg-surface-lowest p-3.5 text-left text-xs leading-relaxed text-onSurface shadow-[0_16px_48px_rgba(25,28,30,0.18)] ring-1 ring-black/[0.06]"
+        :style="etlHelpTooltipStyle"
+        role="tooltip"
+      >
+        획 데이터는
+        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">hanja</code>
+        의
+        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">strokes</code>
+        또는
+        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">hanja_stroke</code>
+        에서 읽습니다. 목록에서
+        <strong class="font-medium text-onSurface">행을 눌러 한 건</strong>을 선택하면 우측
+        <strong class="font-medium text-onSurface">hanja_stroke JSON</strong>에 반영됩니다. 추가 수집은
+        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">admin/python/hanja_pipeline.py</code>
+        를 사용합니다.
+      </div>
+    </Teleport>
   </div>
 </template>
