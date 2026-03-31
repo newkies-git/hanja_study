@@ -5,15 +5,24 @@ import { useAppOptionStore } from "@/stores/app-option";
 const appOption = useAppOptionStore();
 const route = useRoute();
 
-/** HUD `app-sidebar-menu` 패턴: 헤더 + 평면 링크 목록 */
 const menu = [
   { type: "header" as const, text: "메뉴" },
   { type: "link" as const, to: "/", label: "대시보드", icon: "◆" },
   { type: "link" as const, to: "/basis", label: "기준 데이터", icon: "▦" },
-  { type: "link" as const, to: "/basis/upload", label: "한자 마스터 등록", icon: "↑" },
+  {
+    type: "link" as const,
+    to: "/basis/upload",
+    label: "한자 마스터 등록",
+    icon: "↑",
+  },
   { type: "link" as const, to: "/etl", label: "ETL · 확장", icon: "⚙" },
   { type: "header" as const, text: "설정" },
-  { type: "link" as const, to: "/settings/auth", label: "인증 · 클레임", icon: "◇" },
+  {
+    type: "link" as const,
+    to: "/settings/auth",
+    label: "인증 · 클레임",
+    icon: "◇",
+  },
 ];
 
 function isActive(path: string) {
@@ -28,48 +37,99 @@ function onNavigate() {
 
 <template>
   <aside
-    class="fixed inset-y-0 left-0 z-50 w-64 bg-surface-low transition-transform duration-200 lg:translate-x-0"
+    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-outline-variant/80 bg-gradient-to-b from-surface-lowest via-surface-low to-surface-low/95 shadow-[4px_0_32px_rgba(25,28,30,0.05)] transition-[width,transform] duration-200 ease-out lg:translate-x-0"
     :class="[
       appOption.sidebarCollapsed ? 'lg:w-20' : 'lg:w-64',
-      appOption.sidebarMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+      appOption.sidebarMobileOpen
+        ? 'translate-x-0'
+        : '-translate-x-full lg:translate-x-0',
     ]"
   >
-    <div class="flex h-14 items-center px-4 sm:h-16" :class="{ 'lg:justify-center': appOption.sidebarCollapsed }">
-      <span class="font-display text-sm font-semibold text-onSurface-variant" :class="{ 'lg:hidden': appOption.sidebarCollapsed }">
-        Scholarly Curator
-      </span>
+    <!-- 브랜드 -->
+    <div
+      class="relative shrink-0 border-b border-outline-variant/60 bg-gradient-to-r from-primary/[0.07] to-transparent px-4 py-3.5 sm:py-4"
+      :class="{ 'lg:px-2 lg:py-3': appOption.sidebarCollapsed }"
+    >
+      <div
+        class="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-primary/[0.04] to-transparent"
+        aria-hidden="true"
+      />
+      <div
+        class="relative flex items-center gap-3"
+        :class="{ 'lg:justify-center': appOption.sidebarCollapsed }"
+      >
+        <div
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-white shadow-md shadow-primary/25"
+          aria-hidden="true"
+        >
+          漢
+        </div>
+        <div class="min-w-0 leading-tight" :class="{ 'lg:hidden': appOption.sidebarCollapsed }">
+          <p class="font-display text-sm font-semibold tracking-tight text-onSurface">
+            Scholarly Curator
+          </p>
+          <p class="text-[10px] font-medium uppercase tracking-[0.12em] text-primary/80">
+            HANJA Admin
+          </p>
+        </div>
+      </div>
     </div>
-    <nav class="space-y-1 px-3 pb-6">
+
+    <!-- 내비게이션 -->
+    <nav
+      class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2.5 py-4 [scrollbar-width:thin]"
+    >
       <template v-for="(item, i) in menu" :key="i">
         <p
           v-if="item.type === 'header'"
-          class="px-3 pb-2 pt-4 text-xs font-semibold uppercase tracking-wider text-onSurface-variant"
+          class="mb-1 mt-4 flex items-center gap-2 px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-onSurface-variant/90 first:mt-0"
           :class="{ 'lg:hidden': appOption.sidebarCollapsed }"
         >
+          <span
+            class="h-px w-2 shrink-0 rounded-full bg-primary/35"
+            aria-hidden="true"
+          />
           {{ item.text }}
         </p>
         <RouterLink
           v-else
           :to="item.to"
-          class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition"
+          class="group flex items-center gap-3 rounded-xl border border-transparent px-2.5 py-2 text-sm font-medium transition-all duration-150"
           :class="[
             isActive(item.to)
-              ? 'bg-surface-lowest text-primary shadow-float'
-              : 'text-onSurface hover:bg-surface-bright',
+              ? 'border-primary/15 bg-white text-primary shadow-sm shadow-primary/[0.08] ring-1 ring-primary/10'
+              : 'text-onSurface-variant hover:border-outline-variant/50 hover:bg-white/90 hover:text-onSurface hover:shadow-sm',
             appOption.sidebarCollapsed ? 'lg:justify-center lg:px-2' : '',
           ]"
+          :title="appOption.sidebarCollapsed ? item.label : undefined"
           @click="onNavigate"
         >
-          <span class="text-base opacity-70" aria-hidden="true">{{ item.icon }}</span>
-          <span :class="{ 'lg:sr-only': appOption.sidebarCollapsed }">{{ item.label }}</span>
+          <span
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base transition-colors"
+            :class="
+              isActive(item.to)
+                ? 'bg-primary/12 text-primary'
+                : 'bg-surface-lowest/80 text-onSurface-variant group-hover:bg-surface-bright group-hover:text-onSurface'
+            "
+            aria-hidden="true"
+          >{{ item.icon }}</span>
+          <span
+            class="truncate"
+            :class="{ 'lg:sr-only': appOption.sidebarCollapsed }"
+          >{{ item.label }}</span>
         </RouterLink>
       </template>
     </nav>
+
+    <!-- 하단 장식 (HUD식 얇은 구분) -->
     <div
-      class="absolute bottom-0 left-0 right-0 p-4 text-xs text-onSurface-variant"
-      :class="{ 'lg:hidden': appOption.sidebarCollapsed }"
+      class="shrink-0 border-t border-outline-variant/50 bg-surface-lowest/40 px-4 py-3"
+      :class="{ 'lg:px-2': appOption.sidebarCollapsed }"
     >
-      레이아웃 참고: <code class="rounded bg-surface-lowest px-1">ref_hud_vue_v6.0</code>
+      <div
+        class="mx-auto h-1 w-8 rounded-full bg-gradient-to-r from-transparent via-primary/25 to-transparent"
+        aria-hidden="true"
+      />
     </div>
   </aside>
 </template>
