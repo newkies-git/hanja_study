@@ -869,7 +869,7 @@ onMounted(() => {
             type="button"
             class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
             :disabled="!canUseSelectionActions"
-            title="한 행만 선택해야 합니다"
+            title="타일 한 개만 선택해야 합니다"
             @click="openExtendLookupModal"
           >
             조회
@@ -878,7 +878,7 @@ onMounted(() => {
             type="button"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
             :disabled="!canUseSelectionActions"
-            title="한 행만 선택해야 합니다"
+            title="타일 한 개만 선택해야 합니다"
             @click="openStrokeOrderModal"
           >
             획순
@@ -896,7 +896,7 @@ onMounted(() => {
             type="button"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
             :disabled="!canMutateBasis || !canUseSelectionActions"
-            title="한 행만 선택 · admin 필요"
+            title="타일 한 개 선택 · admin 필요"
             @click="openBasisEditModal"
           >
             수정
@@ -905,7 +905,7 @@ onMounted(() => {
             type="button"
             class="rounded-md border border-red-300/90 bg-surface-low px-3 py-1.5 text-xs font-medium text-red-800 transition hover:bg-red-50/80 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             :disabled="loading || !canMutateBasis || selectedCount === 0"
-            title="선택한 행 삭제 · admin 필요"
+            title="선택한 항목 삭제 · admin 필요"
             @click="deleteSelectedBasis"
           >
             삭제
@@ -1079,7 +1079,7 @@ onMounted(() => {
       <div
         class="rounded-xl border border-primary/15 bg-gradient-to-r from-primary/[0.05] to-transparent px-4 py-3.5 text-xs leading-relaxed text-onSurface-variant shadow-sm sm:px-5"
       >
-        한 행만 선택한 뒤 <strong class="font-medium text-onSurface">조회</strong>는
+        타일 <strong class="font-medium text-onSurface">한 개만</strong> 선택한 뒤 <strong class="font-medium text-onSurface">조회</strong>는
         <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>,
         <strong class="font-medium text-onSurface">획순</strong>은
         <code class="rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-primary shadow-sm">hanja_extend</code>
@@ -1096,79 +1096,138 @@ onMounted(() => {
       </div>
 
       <div
-        class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-lowest shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02]"
+        class="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-low/40 p-3 shadow-[0_12px_40px_rgba(25,28,30,0.06)] ring-1 ring-black/[0.02] sm:p-4"
       >
-        <div class="overflow-x-auto">
-          <table class="w-full min-w-[760px] border-collapse text-left text-sm">
-            <thead>
-              <tr class="border-b border-outline-variant/80 bg-surface-low/95 text-xs font-semibold uppercase tracking-wide text-onSurface-variant backdrop-blur-sm">
-                <th class="w-12 px-3 py-3.5 pl-4">
-                  <input
-                    ref="headerCheckboxRef"
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                    :checked="allVisibleSelected"
-                    aria-label="현재 페이지 전체 선택"
-                    @change="
-                      toggleAllVisible(
-                        ($event.target as HTMLInputElement).checked,
-                      )
-                    "
-                  />
-                </th>
-                <th
-                  v-for="col in COLUMN_ORDER"
-                  :key="col"
-                  class="px-4 py-3.5"
-                >
-                  {{ col === "id" ? "ID" : col }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-outline-variant/60">
-              <tr
-                v-for="(row, i) in rows"
-                :key="ids[i] ?? i"
-                class="bg-surface-lowest transition-colors hover:bg-primary/[0.04]"
+        <div
+          class="mb-3 flex flex-wrap items-center gap-3 border-b border-outline-variant/50 pb-3"
+        >
+          <label
+            class="flex cursor-pointer items-center gap-2 text-xs font-medium text-onSurface-variant"
+          >
+            <input
+              ref="headerCheckboxRef"
+              type="checkbox"
+              class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+              :checked="allVisibleSelected"
+              aria-label="현재 페이지 타일 전체 선택"
+              @change="
+                toggleAllVisible(
+                  ($event.target as HTMLInputElement).checked,
+                )
+              "
+            />
+            <span>이 페이지 전체 선택</span>
+          </label>
+          <span class="text-[11px] text-onSurface-variant/80">
+            타일을 클릭해도 선택이 바뀝니다.
+          </span>
+        </div>
+        <div
+          class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+        >
+          <article
+            v-for="(row, i) in rows"
+            :key="ids[i] ?? i"
+            class="relative flex min-h-[10.5rem] cursor-pointer flex-col rounded-2xl border bg-surface-lowest p-3 pt-9 text-left shadow-sm transition-all duration-150 focus-within:ring-2 focus-within:ring-primary/30"
+            :class="
+              selectedIds.has(ids[i]!)
+                ? 'border-primary/45 bg-primary/[0.06] ring-2 ring-primary/25 shadow-md shadow-primary/10'
+                : 'border-outline-variant/70 hover:border-primary/30 hover:shadow-md hover:shadow-black/[0.04]'
+            "
+            role="button"
+            tabindex="0"
+            :aria-pressed="selectedIds.has(ids[i]!)"
+            :aria-label="`한자 ${String(row['한자'] ?? '') || basisDisplayId(ids[i]!, row)}`"
+            @click="
+              toggleRow(ids[i]!, !selectedIds.has(ids[i]!))
+            "
+            @keydown.enter.prevent="
+              toggleRow(ids[i]!, !selectedIds.has(ids[i]!))
+            "
+            @keydown.space.prevent="
+              toggleRow(ids[i]!, !selectedIds.has(ids[i]!))
+            "
+          >
+            <div
+              class="absolute left-2.5 top-2.5 z-10"
+              @click.stop
+            >
+              <input
+                type="checkbox"
+                class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
+                :checked="selectedIds.has(ids[i]!)"
+                :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
+                @change="
+                  toggleRow(
+                    ids[i]!,
+                    ($event.target as HTMLInputElement).checked,
+                  )
+                "
+              />
+            </div>
+            <div
+              v-if="String(row['구분'] ?? '').trim()"
+              class="pointer-events-none absolute right-2.5 top-2.5 z-10"
+            >
+              <span
+                class="inline-block max-w-[4.5rem] truncate rounded-full border border-outline-variant/60 bg-surface-low px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
               >
-                <td class="px-3 py-3 pl-4">
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary"
-                    :checked="selectedIds.has(ids[i]!)"
-                    :aria-label="`선택 ${basisDisplayId(ids[i]!, row)}`"
-                    @change="
-                      toggleRow(
-                        ids[i]!,
-                        ($event.target as HTMLInputElement).checked,
-                      )
-                    "
-                  />
-                </td>
-                <td
-                  v-for="col in COLUMN_ORDER"
-                  :key="col"
-                  class="max-w-[14rem] truncate px-4 py-3 text-onSurface"
-                  :class="[
-                    col === '한자' ? 'font-display text-lg leading-tight' : '',
-                    col === 'id' ? 'font-mono text-xs font-medium text-primary' : '',
-                  ]"
-                  :title="
-                    col === 'id'
-                      ? basisDisplayId(ids[i]!, row)
-                      : String(row[col] ?? '')
+                {{ String(row["구분"]).trim() }}
+              </span>
+            </div>
+            <div
+              class="flex flex-1 flex-col items-center justify-center gap-1 px-1 text-center"
+            >
+              <p
+                class="font-display text-4xl font-semibold leading-none tracking-tight text-onSurface sm:text-[2.75rem]"
+                :title="String(row['한자'] ?? '')"
+              >
+                {{ row["한자"] ?? "—" }}
+              </p>
+              <p
+                v-if="String(row['훈음'] ?? '').trim()"
+                class="line-clamp-2 w-full text-xs leading-snug text-onSurface"
+                :title="String(row['훈음'])"
+              >
+                {{ row["훈음"] }}
+              </p>
+              <p
+                v-else
+                class="line-clamp-2 w-full text-xs leading-snug text-onSurface"
+              >
+                <span
+                  v-if="String(row['훈'] ?? '').trim()"
+                  class="block"
+                >{{ row["훈"] }}</span>
+                <span
+                  v-if="String(row['음'] ?? '').trim()"
+                  class="mt-0.5 block text-onSurface-variant"
+                >{{ row["음"] }}</span>
+                <span
+                  v-if="
+                    !String(row['훈'] ?? '').trim() &&
+                      !String(row['음'] ?? '').trim()
                   "
-                >
-                  <template v-if="col === 'id'">
-                    {{ basisDisplayId(ids[i]!, row) }}
-                  </template>
-                  <template v-else>
-                    {{ row[col] ?? "—" }}
-                  </template>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  class="text-onSurface-variant"
+                >—</span>
+              </p>
+            </div>
+            <div class="mt-auto border-t border-outline-variant/40 pt-2 text-left">
+              <p
+                v-if="String(row['전체'] ?? '').trim()"
+                class="mb-1 line-clamp-1 text-[10px] leading-tight text-onSurface-variant"
+                :title="String(row['전체'])"
+              >
+                {{ row["전체"] }}
+              </p>
+              <p
+                class="font-mono text-[10px] font-medium text-primary"
+                :title="basisDisplayId(ids[i]!, row)"
+              >
+                {{ basisDisplayId(ids[i]!, row) }}
+              </p>
+            </div>
+          </article>
         </div>
       </div>
 
@@ -1323,12 +1382,13 @@ onMounted(() => {
 
             <dl
               v-else-if="extendFieldRows.length"
-              class="grid gap-3"
+              class="grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
               <div
                 v-for="fr in extendFieldRows"
                 :key="fr.key"
                 class="group rounded-xl border border-outline-variant/70 bg-surface-lowest p-4 shadow-float transition hover:border-primary/30 hover:shadow-[0_8px_24px_rgba(0,74,198,0.06)]"
+                :class="fr.isCode ? 'sm:col-span-2' : ''"
               >
                 <dt
                   class="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-onSurface-variant"
@@ -1459,7 +1519,7 @@ onMounted(() => {
         @click.self="closeBasisFormModal"
       >
         <div
-          class="flex max-h-[min(90vh,44rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-outline-variant/90 bg-surface-lowest shadow-[0_24px_80px_rgba(25,28,30,0.14)] ring-1 ring-black/[0.03]"
+          class="flex max-h-[min(92vh,52rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant/90 bg-surface-lowest shadow-[0_24px_80px_rgba(25,28,30,0.14)] ring-1 ring-black/[0.03]"
         >
           <div
             class="relative shrink-0 overflow-hidden border-b border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-5 pb-4 pt-4"
@@ -1474,12 +1534,12 @@ onMounted(() => {
                 </p>
                 <h2
                   id="basis-form-modal-title"
-                  class="font-display text-lg font-semibold tracking-tight text-onSurface"
+                  class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl"
                 >
                   {{ basisFormMode === "add" ? "항목 추가" : "항목 수정" }}
                 </h2>
-                <p class="mt-1 font-mono text-xs text-primary">
-                  문서 ID: {{ basisFormResolvedId }}
+                <p class="mt-1 text-xs text-onSurface-variant">
+                  필드는 타일 그리드로 입력합니다. 문서 ID는 아래 타일에서 확인하세요.
                 </p>
               </div>
               <button
@@ -1492,51 +1552,158 @@ onMounted(() => {
               </button>
             </div>
           </div>
-          <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
             <div
               v-if="basisFormError"
-              class="mb-4 rounded-xl border border-red-200/90 bg-red-50/90 px-3 py-2.5 text-sm text-red-900"
+              class="mb-3 rounded-xl border border-red-200/90 bg-red-50/90 px-3 py-2.5 text-sm text-red-900 shadow-sm"
             >
               {{ basisFormError }}
             </div>
-            <div class="space-y-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <!-- 문서 ID -->
               <div
-                v-for="col in COLUMN_ORDER"
-                :key="col"
+                class="rounded-xl border border-primary/25 bg-gradient-to-br from-primary/[0.08] to-surface-lowest p-3 shadow-sm ring-1 ring-primary/10 sm:col-span-2"
+              >
+                <p
+                  class="text-[10px] font-semibold uppercase tracking-wide text-primary/90"
+                >
+                  저장 시 문서 ID
+                </p>
+                <p class="mt-1 break-all font-mono text-base font-semibold text-primary sm:text-lg">
+                  {{ basisFormResolvedId }}
+                </p>
+              </div>
+
+              <!-- 한자 (메인) -->
+              <div
+                class="rounded-2xl border-2 border-primary/20 bg-gradient-to-b from-primary/[0.07] to-surface-lowest p-4 shadow-sm sm:col-span-2"
               >
                 <label
-                  class="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
-                  :for="'basis-form-' + col"
-                >
-                  {{ col === "id" ? "id (한자 없을 때 H+16진 등)" : col }}
-                </label>
+                  class="mb-2 block text-center text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-한자"
+                >한자</label>
+                <input
+                  id="basis-form-한자"
+                  v-model="basisForm['한자']"
+                  type="text"
+                  class="input-minimal w-full border-0 bg-white/60 py-3 text-center text-4xl font-display font-semibold tracking-tight shadow-inner sm:text-5xl"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- 음 · 훈 -->
+              <div
+                class="rounded-xl border border-outline-variant/70 bg-surface-low/80 p-3 shadow-sm ring-1 ring-black/[0.02]"
+              >
+                <label
+                  class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-음"
+                >음</label>
+                <input
+                  id="basis-form-음"
+                  v-model="basisForm['음']"
+                  type="text"
+                  class="input-minimal py-2 text-sm"
+                  autocomplete="off"
+                />
+              </div>
+              <div
+                class="rounded-xl border border-outline-variant/70 bg-surface-low/80 p-3 shadow-sm ring-1 ring-black/[0.02]"
+              >
+                <label
+                  class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-훈"
+                >훈</label>
+                <input
+                  id="basis-form-훈"
+                  v-model="basisForm['훈']"
+                  type="text"
+                  class="input-minimal py-2 text-sm"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- 훈음 -->
+              <div
+                class="rounded-xl border border-outline-variant/70 bg-surface-low/80 p-3 shadow-sm ring-1 ring-black/[0.02] sm:col-span-2"
+              >
+                <label
+                  class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-훈음"
+                >훈음</label>
+                <input
+                  id="basis-form-훈음"
+                  v-model="basisForm['훈음']"
+                  type="text"
+                  class="input-minimal py-2 text-sm"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- 전체 -->
+              <div
+                class="rounded-xl border border-outline-variant/70 bg-surface-low/80 p-3 shadow-sm ring-1 ring-black/[0.02] sm:col-span-2"
+              >
+                <label
+                  class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-전체"
+                >전체</label>
+                <input
+                  id="basis-form-전체"
+                  v-model="basisForm['전체']"
+                  type="text"
+                  class="input-minimal py-2 text-sm"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- id · 구분 -->
+              <div
+                class="rounded-xl border border-outline-variant/70 bg-surface-low/80 p-3 shadow-sm ring-1 ring-black/[0.02]"
+              >
+                <label
+                  class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-id"
+                >id</label>
+                <p class="mb-1 text-[10px] leading-tight text-onSurface-variant">
+                  한자 없을 때 H+16진 등
+                </p>
+                <input
+                  id="basis-form-id"
+                  v-model="basisForm['id']"
+                  type="text"
+                  class="input-minimal py-2 font-mono text-xs"
+                  placeholder="비우면 한자로부터 자동"
+                  autocomplete="off"
+                />
+              </div>
+              <div
+                class="rounded-xl border border-outline-variant/70 bg-surface-low/80 p-3 shadow-sm ring-1 ring-black/[0.02]"
+              >
+                <label
+                  class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+                  for="basis-form-구분"
+                >구분</label>
                 <select
-                  v-if="col === '구분'"
-                  :id="'basis-form-' + col"
-                  v-model="basisForm[col]"
+                  id="basis-form-구분"
+                  v-model="basisForm['구분']"
                   class="input-minimal w-full cursor-pointer py-2 text-sm"
                 >
                   <option value="">(비움)</option>
                   <option value="중">중</option>
                   <option value="고">고</option>
                 </select>
-                <input
-                  v-else
-                  :id="'basis-form-' + col"
-                  v-model="basisForm[col]"
-                  type="text"
-                  class="input-minimal py-2 text-sm"
-                  :class="col === '한자' ? 'font-display text-lg' : ''"
-                  :placeholder="col === 'id' ? '비우면 한자로부터 자동' : ''"
-                  autocomplete="off"
-                />
+              </div>
+
+              <!-- 안내 -->
+              <div
+                class="rounded-xl border border-outline-variant/60 bg-surface-low/50 p-3 text-[11px] leading-relaxed text-onSurface-variant sm:col-span-2"
+              >
+                한자가 있으면 문서 ID는 그 글자의
+                <code class="rounded bg-white/80 px-1 font-mono text-[10px] text-primary">H</code>+코드포인트입니다.
+                수정 시 한자를 바꿔 ID가 바뀌면 기존 문서는 삭제되고 새 ID로 저장됩니다.
               </div>
             </div>
-            <p class="mt-3 text-[11px] leading-relaxed text-onSurface-variant">
-              한자가 있으면 문서 ID는 항상 그 글자의
-              <code class="rounded bg-surface-low px-1 font-mono text-[10px]">H</code>+코드포인트입니다.
-              수정 시 한자를 바꿔 ID가 달라지면 기존 문서는 삭제되고 새 ID로 저장됩니다.
-            </p>
           </div>
           <div
             class="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-outline-variant/70 bg-surface-low/50 px-5 py-3"
