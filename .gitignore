@@ -18,6 +18,9 @@ flutter/**/*.iml
 **/serviceAccount*.json
 **/*-adminsdk-*.json
 
+# Firebase CLI 로컬 캐시 (admin/firestore 등에서 deploy 시)
+.firebase/
+
 # OS / editor
 .DS_Store
 

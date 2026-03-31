@@ -1,45 +1,78 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import LoginView from '../views/LoginView.vue';
-import BasisManageView from '../views/dashboard/BasisManageView.vue';
-import BasisCsvUploadView from '../views/dashboard/BasisCsvUploadView.vue';
-import SettingsAuthView from '../views/dashboard/SettingsAuthView.vue';
-import ComingSoonView from '../views/dashboard/ComingSoonView.vue';
-import { auth } from '../firebase';
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
-      redirect: '/dashboard'
+      path: "/login",
+      name: "login",
+      component: () => import("@/views/LoginView.vue"),
+      meta: { public: true },
     },
     {
-      path: '/login',
-      name: 'login',
-      component: LoginView
-    },
-    {
-      path: '/dashboard',
-      redirect: '/dashboard/basis/manage',
+      path: "/",
+      component: () => import("@/layouts/DashboardLayout.vue"),
       meta: { requiresAuth: true },
+      children: [
+        {
+          path: "",
+          name: "dashboard",
+          component: () => import("@/views/dashboard/DashboardHomeView.vue"),
+        },
+        {
+          path: "basis",
+          name: "basis",
+          component: () => import("@/views/dashboard/BasisManageView.vue"),
+        },
+        {
+          path: "basis/upload",
+          name: "basis-upload",
+          component: () => import("@/views/dashboard/BasisCsvUploadView.vue"),
+        },
+        {
+          path: "etl",
+          name: "etl",
+          component: () => import("@/views/dashboard/EtlExtendView.vue"),
+        },
+        {
+          path: "settings/auth",
+          name: "settings-auth",
+          component: () => import("@/views/dashboard/SettingsAuthView.vue"),
+        },
+      ],
     },
-    { path: '/dashboard/basis/manage', component: BasisManageView, meta: { requiresAuth: true } },
-    { path: '/dashboard/basis/csv-upload', component: BasisCsvUploadView, meta: { requiresAuth: true } },
-    { path: '/dashboard/settings/authentication', component: SettingsAuthView, meta: { requiresAuth: true } },
-    { path: '/dashboard/etl-monitor', component: ComingSoonView, props: { title: 'ETL 상태 모니터링' }, meta: { requiresAuth: true } },
-    { path: '/dashboard/sync', component: ComingSoonView, props: { title: '동기화 관리' }, meta: { requiresAuth: true } }
-  ]
+    {
+      path: "/:pathMatch(.*)*",
+      name: "not-found",
+      component: () => import("@/views/NotFoundView.vue"),
+    },
+  ],
 });
 
-// Guard Setup
-router.beforeEach((to) => {
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  const currentUser = auth?.currentUser ?? null;
-  if (requiresAuth && !currentUser) {
-    return '/login';
+async function waitAuthReady() {
+  const auth = useAuthStore();
+  if (auth.ready) return;
+  await new Promise<void>((resolve) => {
+    const id = window.setInterval(() => {
+      if (auth.ready) {
+        window.clearInterval(id);
+        resolve();
+      }
+    }, 16);
+  });
+}
+
+router.beforeEach(async (to) => {
+  await waitAuthReady();
+  const auth = useAuthStore();
+  const isPublic = to.meta.public === true;
+
+  if (!isPublic && !auth.isAuthenticated) {
+    return { name: "login", query: { redirect: to.fullPath } };
   }
-  if (to.path === '/login' && currentUser) {
-    return '/dashboard';
+  if (to.name === "login" && auth.isAuthenticated) {
+    return { path: "/" };
   }
   return true;
 });

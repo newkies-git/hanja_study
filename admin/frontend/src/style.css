@@ -2,64 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-/* -------------------------------------------------------
- * HUD-like shell polish (hud_vue_v6.0 inspired)
- * - Keep Tailwind design tokens, add subtle grid + glow.
- * - Apply to .app / .app-header / .app-sidebar / .app-content
- * ----------------------------------------------------- */
-
 @layer base {
-  :root {
-    --hud-grid: rgba(255, 255, 255, 0.045);
-    --hud-glow: rgba(34, 211, 238, 0.25); /* cyan */
-    --hud-glow-2: rgba(168, 85, 247, 0.18); /* violet */
-    --hud-border: rgba(255, 255, 255, 0.08);
-  }
-
-  html,
   body {
-    height: 100%;
-  }
-
-  body {
-    background:
-      radial-gradient(1200px 600px at 15% -10%, var(--hud-glow), transparent 55%),
-      radial-gradient(900px 480px at 90% 0%, var(--hud-glow-2), transparent 60%),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.02), transparent 55%),
-      linear-gradient(var(--hud-grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--hud-grid) 1px, transparent 1px);
-    background-size: auto, auto, auto, 28px 28px, 28px 28px;
-    background-position: center, center, center, center, center;
+    @apply bg-surface font-sans text-onSurface;
   }
 }
 
 @layer components {
-  .app-header {
-    border-bottom: 1px solid var(--hud-border);
-    box-shadow:
-      0 18px 60px rgba(0, 0, 0, 0.35),
-      0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  .btn-primary {
+    @apply rounded-md px-4 py-2.5 font-medium text-white shadow-sm transition;
+    background: linear-gradient(180deg, #004ac6 0%, #2563eb 100%);
   }
-
-  .app-sidebar > div {
-    border: 1px solid var(--hud-border);
-    box-shadow:
-      0 24px 80px rgba(0, 0, 0, 0.45),
-      0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+  .btn-primary:hover {
+    @apply opacity-95;
   }
-
-  .app-content {
-    position: relative;
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
   }
-
-  .app-content::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(700px 260px at 30% 10%, rgba(34, 211, 238, 0.08), transparent 55%),
-      radial-gradient(700px 260px at 80% 20%, rgba(168, 85, 247, 0.06), transparent 60%);
-    opacity: 1;
+  .btn-secondary {
+    @apply rounded-md bg-surface-low px-4 py-2.5 font-medium text-onSurface transition hover:bg-surface-bright;
+  }
+  .input-minimal {
+    @apply w-full rounded-sm bg-surface-low px-3 py-2.5 text-onSurface outline-none ring-2 ring-transparent transition placeholder:text-onSurface-variant focus:ring-primary/40;
+  }
+  .card-surface {
+    @apply rounded-xl bg-surface-lowest p-6 shadow-float;
+  }
+  .glass-panel {
+    @apply rounded-xl border border-white/40 bg-white/70 shadow-float backdrop-blur-md;
   }
 }

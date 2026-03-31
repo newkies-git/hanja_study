@@ -1,12 +1,13 @@
 <script setup lang="ts">
-defineProps<{ title: string; description?: string }>();
+defineProps<{
+  title: string;
+  description: string;
+}>();
 </script>
 
 <template>
-  <div class="bg-surface-container-lowest rounded-3xl p-8 shadow-ambient">
-    <div class="text-[10px] font-bold text-on-surface-variant tracking-[0.25em] uppercase">Coming soon</div>
-    <div class="mt-2 text-xl font-headline font-extrabold tracking-tight text-on-surface">{{ title }}</div>
-    <p v-if="description" class="mt-3 text-sm text-on-surface-variant whitespace-pre-line">{{ description }}</p>
+  <div class="card-surface max-w-2xl">
+    <h1 class="font-display text-xl font-semibold text-onSurface">{{ title }}</h1>
+    <p class="mt-3 text-onSurface-variant">{{ description }}</p>
   </div>
 </template>
-
