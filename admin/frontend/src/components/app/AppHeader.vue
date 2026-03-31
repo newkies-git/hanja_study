@@ -13,7 +13,7 @@ async function signOut() {
 
 <template>
   <header
-    class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-outline-variant bg-surface-lowest/90 px-4 shadow-float backdrop-blur-md sm:h-16 sm:px-6 lg:px-8"
+    class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-outline-variant bg-surface-lowest/90 px-4 shadow-float backdrop-blur-md sm:h-16 sm:px-6 lg:px-8"
   >
     <button
       type="button"
