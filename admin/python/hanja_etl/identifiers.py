@@ -18,4 +18,4 @@ def make_stroke_entity_id(character: str) -> str:
 
 def make_word_entity_id(word: str, hanja: str, entry_type: str = "") -> str:
     base = f"{entry_type}|{word}|{hanja}"
-    return f"word_{abs(hash(base)) % 10_000_000}"
+    return f"W{abs(hash(base)) % 10_000_000}"

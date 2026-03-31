@@ -1,12 +1,11 @@
 import 'package:drift/drift.dart';
 
-/// 한자 기본 정보 테이블 (1,800자 콘텐츠).
+/// 한자 기본 정보 테이블.
 ///
-/// 초기값은 앱 번들 JSON → SQLite import로 주입.
-/// Phase 3에서 서버 동기화 시 [serverId], [syncStatus] 사용.
+/// Firestore `hanja_basis` + `hanja_extend` 동기화 결과를 담는다 (문서 `id` = PK).
 class HanjaTable extends Table {
   @override
-  String get tableName => 'hanja';
+  String get tableName => 'hanja_basis';
 
   // ── 식별자 ────────────────────────────────────────────────────────────────
   TextColumn get id => text()();                         // UUID
@@ -44,10 +43,37 @@ class HanjaStrokeTable extends Table {
   String get tableName => 'hanja_stroke';
 
   TextColumn get id => text()();
-  TextColumn get hanjaId => text().references(HanjaTable, #id)();
+  TextColumn get hanjaId => text()();
   IntColumn get strokeIndex => integer()();              // 0-based 획 순서
   TextColumn get normalizedPoints => text()();           // "x1,y1;x2,y2;..."
   TextColumn get direction => text().nullable()();       // 획 방향 힌트
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Firestore `hanja_extend` 문서 스냅샷 (원본 JSON 보존).
+class HanjaExtendTable extends Table {
+  @override
+  String get tableName => 'hanja_extend';
+
+  TextColumn get id => text()();
+  TextColumn get payloadJson => text()();
+  DateTimeColumn get syncedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Firestore `config/content` 로컬 캐시 (버전 비교용).
+class ContentConfigTable extends Table {
+  @override
+  String get tableName => 'content_config';
+
+  /// 고정 키 `content` (Firestore 경로 `config/content` 와 대응).
+  TextColumn get id => text()();
+  IntColumn get contentVersion => integer().nullable()();
+  DateTimeColumn get syncedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -59,7 +85,7 @@ class HanjaWordTable extends Table {
   String get tableName => 'hanja_word';
 
   TextColumn get id => text()();
-  TextColumn get hanjaId => text().references(HanjaTable, #id)();
+  TextColumn get hanjaId => text()();
   TextColumn get word => text()();                      // 단어 (佳人)
   TextColumn get reading => text()();                   // 독음 (가인)
   TextColumn get meaning => text()();                   // 의미 (아름다운 사람)
@@ -75,7 +101,7 @@ class HanjaIdiomTable extends Table {
   String get tableName => 'hanja_idiom';
 
   TextColumn get id => text()();
-  TextColumn get hanjaId => text().references(HanjaTable, #id)();
+  TextColumn get hanjaId => text()();
   TextColumn get idiom => text()();                     // 성어 (佳人薄命)
   TextColumn get reading => text()();
   TextColumn get meaning => text()();

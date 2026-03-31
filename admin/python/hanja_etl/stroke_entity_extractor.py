@@ -10,6 +10,8 @@ from hanja_etl.identifiers import make_stroke_entity_id
 from hanja_etl.models import StrokeEntity, StrokeStep
 from hanja_etl.naver_dictionary_browser_client import NaverHanjaDictionaryBrowserClient
 from hanja_etl.stroke_geometry import StrokeGeometryCalculator
+
+
 class StrokeEntityExtractor:
     def __init__(self, geometry: StrokeGeometryCalculator | None = None) -> None:
         self._geometry = geometry or StrokeGeometryCalculator()

@@ -43,6 +43,8 @@ class StrokeEntity(BaseModel):
 
 class WordEntity(BaseModel):
     word_id: str
+    # 스크래핑한 한자 1글자의 id (= hanja_entities.id · basis CSV id, H+16진)
+    hanja_id: str = ""
     word: str
     hanja: str
     meaning: str

@@ -12,7 +12,6 @@ NAVER_HANJA_SEARCH_URL_TEMPLATE = (
 )
 
 OUTPUT_DIR = PYTHON_ROOT / "output"
-DEFAULT_CSV_1817_PATH = PYTHON_ROOT / "HANJA_1817.csv"
 
 
 def ensure_output_dir() -> Path:

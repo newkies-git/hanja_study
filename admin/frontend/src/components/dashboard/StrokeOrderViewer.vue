@@ -6,7 +6,7 @@ export type StrokeShape = { order: number; points: StrokePoint[] };
 
 const props = defineProps<{
   strokes: StrokeShape[];
-  /** 있으면 stroke_sample/index.html 과 동일: 원본 SVG path `d`로 전역 좌표계에 렌더 */
+  /** 있으면 원본 SVG path `d`로 전역 좌표계에 렌더(네이버 획순 SVG와 동일 계열) */
   svgPaths?: string[];
   title: string;
   subtitle: string;
@@ -17,7 +17,7 @@ const strokeInfo = ref("");
 /** null이면 모든 획을 동일 강조, 아니면 해당 인덱스만 강조 */
 const focusedStrokeIndex = ref<number | null>(null);
 
-/** Naver `d` 문자열에서 숫자 토큰을 모아 bbox 근사 (stroke_sample 의 pathBBox 와 동일 계열) */
+/** Naver `d` 문자열에서 숫자 토큰을 모아 bbox 근사 */
 function pathBBoxFromD(d: string): {
   minX: number;
   minY: number;
@@ -55,7 +55,7 @@ const activeSvgPaths = computed(() => {
 
 const usePathMode = computed(() => activeSvgPaths.value.length > 0);
 
-/** stroke_sample: pad=60 (좌표 스케일 ~1000) */
+/** path 모드 viewBox 패딩(좌표 스케일 ~1000대 가정) */
 const pathLayout = computed(() => {
   const paths = activeSvgPaths.value;
   if (paths.length === 0) {
@@ -219,7 +219,7 @@ watch(
     <div
       class="mx-auto mt-4 w-full max-w-md rounded-lg border border-outline-variant bg-white p-4 shadow-inner"
     >
-      <!-- stroke_sample: 원본 path d + Y 반전 + fill 실루엣 -->
+      <!-- 원본 path d + Y 반전 + fill 실루엣 -->
       <svg
         v-if="usePathMode"
         class="mx-auto block h-[min(24rem,85vw)] w-[min(24rem,85vw)] max-w-full text-onSurface"

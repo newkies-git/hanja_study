@@ -71,7 +71,7 @@ const strokeShapes = ref<StrokeShape[]>([]);
 const strokeModalTitle = ref("");
 const strokeModalSubtitle = ref("");
 const strokeModalFootnote = ref<string | undefined>(undefined);
-/** stroke_sample 과 동일 렌더용 원본 path `d` 배열 (hanja_stroke.svg_paths) */
+/** 획순 모달: `hanja_stroke.svg_paths` 원본 path `d` 배열 */
 const strokeModalSvgPaths = ref<string[]>([]);
 
 /** hanja_basis 추가·수정 모달 */

@@ -9,10 +9,9 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 | 경로 | 역할 |
 |------|------|
 | `admin/firestore/` | **Firestore 규칙 배포용 Firebase CLI 루트** — `firebase.json`, `.firebaserc`, `firestore.rules`, `README.md`, `firestore_connect.md` |
-| `admin/scripts/setup_firebase_flutter.sh` | 로컬에서 Firebase CLI 로그인, **`admin/firestore`에서 규칙 배포**, `flutterfire configure` 안내·실행 |
+| `flutter/scripts/setup_firebase_flutter.sh` | 로컬에서 Firebase CLI 로그인, **`admin/firestore`에서 규칙 배포**, `flutterfire configure` 안내·실행 |
 | `admin/python/` | ETL(네이버 한자사전 스크래핑), JSON 산출물, Firestore 업로드·Auth 커스텀 클레임 스크립트 |
 | `admin/python/output/` | ETL 파이프라인 결과. **`hanja_extend`·`hanja_stroke`·`hanja_word`는 JSON(객체 배열)이 표준 형식**이며, `hanja_entities.json` / `stroke_entities.json` / `word_entities.json`이 각각 2~4단계 원천이다. `hanja_basis`는 CSV. 관리 웹「한자 마스터 등록」에서 순서대로 업로드(JSON 직접 또는 CSV). |
-| `admin/stroke_sample/` | 획 데이터 샘플(`index.html`, `data.json`) — 프로토타입·검증용 |
 | `ref_hud_vue_v6.0/` (저장소 루트) | HUD Vue 템플릿 참고 자료(문서·스타터) |
 | `admin/frontend/` | 관리 웹앱(Vite · Vue 3 · TypeScript · Tailwind). 레이아웃은 HUD와 유사하게 사이드바+헤더, 스타일은 `uiux/DESIGN-admin.md` 토큰 |
 
@@ -40,7 +39,7 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 - 한 번에 맞추려면 저장소 루트에서:
 
   ```bash
-  ./admin/scripts/setup_firebase_flutter.sh
+  ./flutter/scripts/setup_firebase_flutter.sh
   ```
 
   이 스크립트는 **`admin/firestore`에서 규칙을 배포**하고, **저장소 루트**의 `flutter/chusa1817`에 대해 `flutterfire configure`를 돌린다.
@@ -85,4 +84,4 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 ## 변경 이력 (경로 정리)
 
 - 예전에는 저장소 루트에 `firebase.json`, `firestore/`, `python/`, `scripts/`가 있었을 수 있다. 이후 **`admin/`** 아래로 모았다.
-- **Firestore CLI 설정**(`firebase.json`, `.firebaserc`)은 **`admin/firestore/`**에 둔다. `admin/scripts/setup_firebase_flutter.sh`는 **`admin/firestore`에서 `firebase deploy`**를 실행하고, Flutter 앱 경로는 **`../flutter/chusa1817`**(저장소 루트 기준)으로 잡는다.
+- **Firestore CLI 설정**(`firebase.json`, `.firebaserc`)은 **`admin/firestore/`**에 둔다. `flutter/scripts/setup_firebase_flutter.sh`는 **`admin/firestore`에서 `firebase deploy`**를 실행하고, Flutter 앱 경로는 **`flutter/chusa1817`**(저장소 루트 기준)으로 잡는다.

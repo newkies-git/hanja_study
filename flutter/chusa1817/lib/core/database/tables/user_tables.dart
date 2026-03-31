@@ -1,7 +1,5 @@
 import 'package:drift/drift.dart';
 
-import 'content_tables.dart';
-
 /// 한자별 사용자 학습 진도 테이블.
 ///
 /// 한 사용자가 한 한자에 대해 갖는 상태를 저장한다.
@@ -10,7 +8,7 @@ class UserProgressTable extends Table {
   String get tableName => 'user_progress';
 
   TextColumn get id => text()();
-  TextColumn get hanjaId => text().references(HanjaTable, #id)();
+  TextColumn get hanjaId => text()();
 
   // ── 학습 상태 ─────────────────────────────────────────────────────────────
   TextColumn get status => text().withDefault(const Constant('unseen'))();
@@ -80,7 +78,7 @@ class AnswerHistoryTable extends Table {
 
   TextColumn get id => text()();
   TextColumn get sessionId => text().references(StudySessionTable, #id)();
-  TextColumn get hanjaId => text().references(HanjaTable, #id)();
+  TextColumn get hanjaId => text()();
   DateTimeColumn get answeredAt => dateTime()();
   BoolColumn get isCorrect => boolean()();
   RealColumn get accuracyScore => real().withDefault(const Constant(0.0))();

@@ -17,22 +17,19 @@ part 'app_database.g.dart';
 /// - Phase 3에서 [SyncQueueTable]을 통해 서버와 동기화한다.
 ///
 /// **DB 스키마 버전 이력 (PRD6)**:
-/// - v1: 초기 스키마 — hanja, hanja_stroke, hanja_word, hanja_idiom,
-///         user_progress (SM-2 포함), study_session, answer_history,
-///         app_settings, sync_queue
-///         + 동기화 메타 필드(sync_status, server_id, sync_revision, created_at, updated_at)
-///         이미 포함 → 서버 동기화 확장을 위한 여지 확보
-/// - v2: (예정) 오답노트(wrong_notes) 테이블 추가
-/// - v3: (예정) 학습 통계(study_stats) 테이블 추가
-/// - v4: (예정) sync_status, row_version 강화 — 서버 동기화 본격화
+/// - v1: `hanja`, `hanja_stroke`, `hanja_word`, `hanja_idiom` + 사용자 테이블 (콘텐츠 FK)
+/// - v2: `hanja` → `hanja_basis` 이름 변경, `hanja_extend`·`content_config` 추가, 콘텐츠 FK 제거
+/// - v3+: (예정) 오답노트, 학습 통계, 동기화 메타 강화
 ///
 /// **중요**: migration은 "삭제-재생성" 방식을 절대 사용하지 않는다.
 /// 사용자의 학습 진도, 오답, 북마크는 핵심 자산이므로 파괴적 변경 금지.
 ///
 /// 코드 생성: `flutter pub run build_runner build --delete-conflicting-outputs`
 @DriftDatabase(tables: [
-  // 콘텐츠
+  // 콘텐츠 (Firestore: hanja_basis, hanja_extend, hanja_stroke, hanja_word, config/content)
   HanjaTable,
+  HanjaExtendTable,
+  ContentConfigTable,
   HanjaStrokeTable,
   HanjaWordTable,
   HanjaIdiomTable,
@@ -53,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -70,18 +67,26 @@ class AppDatabase extends _$AppDatabase {
         ///   모든 중간 단계가 순서대로 실행되어야 한다.
         /// - 기존 데이터를 삭제·재생성하지 말 것.
         onUpgrade: (m, from, to) async {
-          // v1 → v2: 오답노트 테이블 추가 (예정)
-          // if (from < 2) {
+          if (from < 2) {
+            await customStatement('PRAGMA foreign_keys = OFF');
+            await customStatement('ALTER TABLE hanja RENAME TO hanja_basis');
+            await m.createTable(hanjaExtendTable);
+            await m.createTable(contentConfigTable);
+            await customStatement('PRAGMA foreign_keys = ON');
+          }
+
+          // v2 → v3: 오답노트 테이블 추가 (예정)
+          // if (from < 3) {
           //   await m.createTable(wrongNotesTable);
           // }
 
-          // v2 → v3: 학습 통계 테이블 추가 (예정)
-          // if (from < 3) {
+          // v3 → v4: 학습 통계 테이블 추가 (예정)
+          // if (from < 4) {
           //   await m.createTable(studyStatsTable);
           // }
 
-          // v3 → v4: 서버 동기화 메타 필드 강화 (예정)
-          // if (from < 4) {
+          // v4 → v5: 서버 동기화 메타 필드 강화 (예정)
+          // if (from < 5) {
           //   await m.addColumn(userProgressTable, userProgressTable.serverId);
           //   await m.addColumn(studySessionTable, studySessionTable.rowVersion);
           // }

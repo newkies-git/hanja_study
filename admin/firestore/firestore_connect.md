@@ -75,7 +75,7 @@ flowchart LR
 | `admin/firestore/.firebaserc` | 기본 프로젝트 `chusa-1817` (`firebase use` 생략 가능) |
 | `admin/firestore/firestore.rules` | 배포용 보안 규칙 |
 | `admin/firestore/README.md` | 이 폴더 요약 |
-| `admin/scripts/setup_firebase_flutter.sh` | 로그인·**`admin/firestore`에서 규칙 배포**·`flutterfire configure` (저장소 루트에서 `./admin/scripts/...`) |
+| `flutter/scripts/setup_firebase_flutter.sh` | 로그인·**`admin/firestore`에서 규칙 배포**·`flutterfire configure` (저장소 루트에서 `./flutter/scripts/...`) |
 
 ### 3.5 `admin/python/` (Admin SDK 업로드 · 클레임)
 
@@ -361,7 +361,7 @@ CI/샌드박스에서는 Firebase CLI 로그인이 불가하므로, **본인 머
 저장소 루트에서:
 
 ```bash
-./admin/scripts/setup_firebase_flutter.sh
+./flutter/scripts/setup_firebase_flutter.sh
 ```
 
 Firebase CLI 미설치 시 안내 메시지에 따라 `brew install firebase-cli` 또는 `npm i -g firebase-tools` 후 재실행.

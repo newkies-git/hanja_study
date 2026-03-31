@@ -14,11 +14,13 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.admin == true ||
-        request.auth.token.admin == 'true'
+        request.auth.token.admin == 'true' ||
+        request.auth.token.admin == 1
       );
     }
 
-    match /config/{docId} {
+    // 앱·업로드 스크립트는 config/content 만 사용. 다른 문서가 필요하면 match 추가.
+    match /config/content {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }

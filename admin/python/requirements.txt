@@ -1,5 +1,7 @@
 beautifulsoup4
 lxml
+# playwright: PyPI 패키지와 브라우저 바이너리는 별도. venv에서 한 번 실행:
+#   python -m playwright install chromium
 playwright
 pydantic
 regex

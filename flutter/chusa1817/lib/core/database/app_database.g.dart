@@ -206,7 +206,7 @@ class $HanjaTableTable extends HanjaTable
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'hanja';
+  static const String $name = 'hanja_basis';
   @override
   VerificationContext validateIntegrity(
     Insertable<HanjaTableData> instance, {
@@ -913,6 +913,547 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
   }
 }
 
+class $HanjaExtendTableTable extends HanjaExtendTable
+    with TableInfo<$HanjaExtendTableTable, HanjaExtendTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HanjaExtendTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, payloadJson, syncedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hanja_extend';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HanjaExtendTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_payloadJsonMeta);
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  HanjaExtendTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HanjaExtendTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      )!,
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      )!,
+    );
+  }
+
+  @override
+  $HanjaExtendTableTable createAlias(String alias) {
+    return $HanjaExtendTableTable(attachedDatabase, alias);
+  }
+}
+
+class HanjaExtendTableData extends DataClass
+    implements Insertable<HanjaExtendTableData> {
+  final String id;
+  final String payloadJson;
+  final DateTime syncedAt;
+  const HanjaExtendTableData({
+    required this.id,
+    required this.payloadJson,
+    required this.syncedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['payload_json'] = Variable<String>(payloadJson);
+    map['synced_at'] = Variable<DateTime>(syncedAt);
+    return map;
+  }
+
+  HanjaExtendTableCompanion toCompanion(bool nullToAbsent) {
+    return HanjaExtendTableCompanion(
+      id: Value(id),
+      payloadJson: Value(payloadJson),
+      syncedAt: Value(syncedAt),
+    );
+  }
+
+  factory HanjaExtendTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HanjaExtendTableData(
+      id: serializer.fromJson<String>(json['id']),
+      payloadJson: serializer.fromJson<String>(json['payloadJson']),
+      syncedAt: serializer.fromJson<DateTime>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'payloadJson': serializer.toJson<String>(payloadJson),
+      'syncedAt': serializer.toJson<DateTime>(syncedAt),
+    };
+  }
+
+  HanjaExtendTableData copyWith({
+    String? id,
+    String? payloadJson,
+    DateTime? syncedAt,
+  }) => HanjaExtendTableData(
+    id: id ?? this.id,
+    payloadJson: payloadJson ?? this.payloadJson,
+    syncedAt: syncedAt ?? this.syncedAt,
+  );
+  HanjaExtendTableData copyWithCompanion(HanjaExtendTableCompanion data) {
+    return HanjaExtendTableData(
+      id: data.id.present ? data.id.value : this.id,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HanjaExtendTableData(')
+          ..write('id: $id, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, payloadJson, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HanjaExtendTableData &&
+          other.id == this.id &&
+          other.payloadJson == this.payloadJson &&
+          other.syncedAt == this.syncedAt);
+}
+
+class HanjaExtendTableCompanion extends UpdateCompanion<HanjaExtendTableData> {
+  final Value<String> id;
+  final Value<String> payloadJson;
+  final Value<DateTime> syncedAt;
+  final Value<int> rowid;
+  const HanjaExtendTableCompanion({
+    this.id = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HanjaExtendTableCompanion.insert({
+    required String id,
+    required String payloadJson,
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       payloadJson = Value(payloadJson);
+  static Insertable<HanjaExtendTableData> custom({
+    Expression<String>? id,
+    Expression<String>? payloadJson,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HanjaExtendTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? payloadJson,
+    Value<DateTime>? syncedAt,
+    Value<int>? rowid,
+  }) {
+    return HanjaExtendTableCompanion(
+      id: id ?? this.id,
+      payloadJson: payloadJson ?? this.payloadJson,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HanjaExtendTableCompanion(')
+          ..write('id: $id, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ContentConfigTableTable extends ContentConfigTable
+    with TableInfo<$ContentConfigTableTable, ContentConfigTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ContentConfigTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentVersionMeta = const VerificationMeta(
+    'contentVersion',
+  );
+  @override
+  late final GeneratedColumn<int> contentVersion = GeneratedColumn<int>(
+    'content_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, contentVersion, syncedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'content_config';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ContentConfigTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('content_version')) {
+      context.handle(
+        _contentVersionMeta,
+        contentVersion.isAcceptableOrUnknown(
+          data['content_version']!,
+          _contentVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ContentConfigTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ContentConfigTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      contentVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}content_version'],
+      ),
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ContentConfigTableTable createAlias(String alias) {
+    return $ContentConfigTableTable(attachedDatabase, alias);
+  }
+}
+
+class ContentConfigTableData extends DataClass
+    implements Insertable<ContentConfigTableData> {
+  /// 고정 키 `content` (Firestore 경로 `config/content` 와 대응).
+  final String id;
+  final int? contentVersion;
+  final DateTime syncedAt;
+  const ContentConfigTableData({
+    required this.id,
+    this.contentVersion,
+    required this.syncedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || contentVersion != null) {
+      map['content_version'] = Variable<int>(contentVersion);
+    }
+    map['synced_at'] = Variable<DateTime>(syncedAt);
+    return map;
+  }
+
+  ContentConfigTableCompanion toCompanion(bool nullToAbsent) {
+    return ContentConfigTableCompanion(
+      id: Value(id),
+      contentVersion: contentVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(contentVersion),
+      syncedAt: Value(syncedAt),
+    );
+  }
+
+  factory ContentConfigTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ContentConfigTableData(
+      id: serializer.fromJson<String>(json['id']),
+      contentVersion: serializer.fromJson<int?>(json['contentVersion']),
+      syncedAt: serializer.fromJson<DateTime>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'contentVersion': serializer.toJson<int?>(contentVersion),
+      'syncedAt': serializer.toJson<DateTime>(syncedAt),
+    };
+  }
+
+  ContentConfigTableData copyWith({
+    String? id,
+    Value<int?> contentVersion = const Value.absent(),
+    DateTime? syncedAt,
+  }) => ContentConfigTableData(
+    id: id ?? this.id,
+    contentVersion: contentVersion.present
+        ? contentVersion.value
+        : this.contentVersion,
+    syncedAt: syncedAt ?? this.syncedAt,
+  );
+  ContentConfigTableData copyWithCompanion(ContentConfigTableCompanion data) {
+    return ContentConfigTableData(
+      id: data.id.present ? data.id.value : this.id,
+      contentVersion: data.contentVersion.present
+          ? data.contentVersion.value
+          : this.contentVersion,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContentConfigTableData(')
+          ..write('id: $id, ')
+          ..write('contentVersion: $contentVersion, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, contentVersion, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ContentConfigTableData &&
+          other.id == this.id &&
+          other.contentVersion == this.contentVersion &&
+          other.syncedAt == this.syncedAt);
+}
+
+class ContentConfigTableCompanion
+    extends UpdateCompanion<ContentConfigTableData> {
+  final Value<String> id;
+  final Value<int?> contentVersion;
+  final Value<DateTime> syncedAt;
+  final Value<int> rowid;
+  const ContentConfigTableCompanion({
+    this.id = const Value.absent(),
+    this.contentVersion = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ContentConfigTableCompanion.insert({
+    required String id,
+    this.contentVersion = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<ContentConfigTableData> custom({
+    Expression<String>? id,
+    Expression<int>? contentVersion,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (contentVersion != null) 'content_version': contentVersion,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ContentConfigTableCompanion copyWith({
+    Value<String>? id,
+    Value<int?>? contentVersion,
+    Value<DateTime>? syncedAt,
+    Value<int>? rowid,
+  }) {
+    return ContentConfigTableCompanion(
+      id: id ?? this.id,
+      contentVersion: contentVersion ?? this.contentVersion,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (contentVersion.present) {
+      map['content_version'] = Variable<int>(contentVersion.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContentConfigTableCompanion(')
+          ..write('id: $id, ')
+          ..write('contentVersion: $contentVersion, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $HanjaStrokeTableTable extends HanjaStrokeTable
     with TableInfo<$HanjaStrokeTableTable, HanjaStrokeTableData> {
   @override
@@ -938,9 +1479,6 @@ class $HanjaStrokeTableTable extends HanjaStrokeTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES hanja (id)',
-    ),
   );
   static const VerificationMeta _strokeIndexMeta = const VerificationMeta(
     'strokeIndex',
@@ -1316,9 +1854,6 @@ class $HanjaWordTableTable extends HanjaWordTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES hanja (id)',
-    ),
   );
   static const VerificationMeta _wordMeta = const VerificationMeta('word');
   @override
@@ -1728,9 +2263,6 @@ class $HanjaIdiomTableTable extends HanjaIdiomTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES hanja (id)',
-    ),
   );
   static const VerificationMeta _idiomMeta = const VerificationMeta('idiom');
   @override
@@ -2138,9 +2670,6 @@ class $UserProgressTableTable extends UserProgressTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES hanja (id)',
-    ),
   );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
@@ -3663,9 +4192,6 @@ class $AnswerHistoryTableTable extends AnswerHistoryTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES hanja (id)',
-    ),
   );
   static const VerificationMeta _answeredAtMeta = const VerificationMeta(
     'answeredAt',
@@ -5033,6 +5559,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $HanjaTableTable hanjaTable = $HanjaTableTable(this);
+  late final $HanjaExtendTableTable hanjaExtendTable = $HanjaExtendTableTable(
+    this,
+  );
+  late final $ContentConfigTableTable contentConfigTable =
+      $ContentConfigTableTable(this);
   late final $HanjaStrokeTableTable hanjaStrokeTable = $HanjaStrokeTableTable(
     this,
   );
@@ -5056,6 +5587,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     hanjaTable,
+    hanjaExtendTable,
+    contentConfigTable,
     hanjaStrokeTable,
     hanjaWordTable,
     hanjaIdiomTable,
@@ -5107,132 +5640,6 @@ typedef $$HanjaTableTableUpdateCompanionBuilder =
       Value<int> syncRevision,
       Value<int> rowid,
     });
-
-final class $$HanjaTableTableReferences
-    extends BaseReferences<_$AppDatabase, $HanjaTableTable, HanjaTableData> {
-  $$HanjaTableTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$HanjaStrokeTableTable, List<HanjaStrokeTableData>>
-  _hanjaStrokeTableRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.hanjaStrokeTable,
-    aliasName: $_aliasNameGenerator(
-      db.hanjaTable.id,
-      db.hanjaStrokeTable.hanjaId,
-    ),
-  );
-
-  $$HanjaStrokeTableTableProcessedTableManager get hanjaStrokeTableRefs {
-    final manager = $$HanjaStrokeTableTableTableManager(
-      $_db,
-      $_db.hanjaStrokeTable,
-    ).filter((f) => f.hanjaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _hanjaStrokeTableRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$HanjaWordTableTable, List<HanjaWordTableData>>
-  _hanjaWordTableRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.hanjaWordTable,
-    aliasName: $_aliasNameGenerator(
-      db.hanjaTable.id,
-      db.hanjaWordTable.hanjaId,
-    ),
-  );
-
-  $$HanjaWordTableTableProcessedTableManager get hanjaWordTableRefs {
-    final manager = $$HanjaWordTableTableTableManager(
-      $_db,
-      $_db.hanjaWordTable,
-    ).filter((f) => f.hanjaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_hanjaWordTableRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$HanjaIdiomTableTable, List<HanjaIdiomTableData>>
-  _hanjaIdiomTableRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.hanjaIdiomTable,
-    aliasName: $_aliasNameGenerator(
-      db.hanjaTable.id,
-      db.hanjaIdiomTable.hanjaId,
-    ),
-  );
-
-  $$HanjaIdiomTableTableProcessedTableManager get hanjaIdiomTableRefs {
-    final manager = $$HanjaIdiomTableTableTableManager(
-      $_db,
-      $_db.hanjaIdiomTable,
-    ).filter((f) => f.hanjaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _hanjaIdiomTableRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<
-    $UserProgressTableTable,
-    List<UserProgressTableData>
-  >
-  _userProgressTableRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.userProgressTable,
-        aliasName: $_aliasNameGenerator(
-          db.hanjaTable.id,
-          db.userProgressTable.hanjaId,
-        ),
-      );
-
-  $$UserProgressTableTableProcessedTableManager get userProgressTableRefs {
-    final manager = $$UserProgressTableTableTableManager(
-      $_db,
-      $_db.userProgressTable,
-    ).filter((f) => f.hanjaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _userProgressTableRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<
-    $AnswerHistoryTableTable,
-    List<AnswerHistoryTableData>
-  >
-  _answerHistoryTableRefsTable(_$AppDatabase db) =>
-      MultiTypedResultKey.fromTable(
-        db.answerHistoryTable,
-        aliasName: $_aliasNameGenerator(
-          db.hanjaTable.id,
-          db.answerHistoryTable.hanjaId,
-        ),
-      );
-
-  $$AnswerHistoryTableTableProcessedTableManager get answerHistoryTableRefs {
-    final manager = $$AnswerHistoryTableTableTableManager(
-      $_db,
-      $_db.answerHistoryTable,
-    ).filter((f) => f.hanjaId.id.sqlEquals($_itemColumn<String>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _answerHistoryTableRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
 
 class $$HanjaTableTableFilterComposer
     extends Composer<_$AppDatabase, $HanjaTableTable> {
@@ -5322,131 +5729,6 @@ class $$HanjaTableTableFilterComposer
     column: $table.syncRevision,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> hanjaStrokeTableRefs(
-    Expression<bool> Function($$HanjaStrokeTableTableFilterComposer f) f,
-  ) {
-    final $$HanjaStrokeTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.hanjaStrokeTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaStrokeTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaStrokeTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> hanjaWordTableRefs(
-    Expression<bool> Function($$HanjaWordTableTableFilterComposer f) f,
-  ) {
-    final $$HanjaWordTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.hanjaWordTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaWordTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaWordTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> hanjaIdiomTableRefs(
-    Expression<bool> Function($$HanjaIdiomTableTableFilterComposer f) f,
-  ) {
-    final $$HanjaIdiomTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.hanjaIdiomTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaIdiomTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaIdiomTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> userProgressTableRefs(
-    Expression<bool> Function($$UserProgressTableTableFilterComposer f) f,
-  ) {
-    final $$UserProgressTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.userProgressTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$UserProgressTableTableFilterComposer(
-            $db: $db,
-            $table: $db.userProgressTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> answerHistoryTableRefs(
-    Expression<bool> Function($$AnswerHistoryTableTableFilterComposer f) f,
-  ) {
-    final $$AnswerHistoryTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.answerHistoryTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$AnswerHistoryTableTableFilterComposer(
-            $db: $db,
-            $table: $db.answerHistoryTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$HanjaTableTableOrderingComposer
@@ -5605,133 +5887,6 @@ class $$HanjaTableTableAnnotationComposer
     column: $table.syncRevision,
     builder: (column) => column,
   );
-
-  Expression<T> hanjaStrokeTableRefs<T extends Object>(
-    Expression<T> Function($$HanjaStrokeTableTableAnnotationComposer a) f,
-  ) {
-    final $$HanjaStrokeTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.hanjaStrokeTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaStrokeTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaStrokeTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> hanjaWordTableRefs<T extends Object>(
-    Expression<T> Function($$HanjaWordTableTableAnnotationComposer a) f,
-  ) {
-    final $$HanjaWordTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.hanjaWordTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaWordTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaWordTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> hanjaIdiomTableRefs<T extends Object>(
-    Expression<T> Function($$HanjaIdiomTableTableAnnotationComposer a) f,
-  ) {
-    final $$HanjaIdiomTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.hanjaIdiomTable,
-      getReferencedColumn: (t) => t.hanjaId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaIdiomTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaIdiomTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> userProgressTableRefs<T extends Object>(
-    Expression<T> Function($$UserProgressTableTableAnnotationComposer a) f,
-  ) {
-    final $$UserProgressTableTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.userProgressTable,
-          getReferencedColumn: (t) => t.hanjaId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$UserProgressTableTableAnnotationComposer(
-                $db: $db,
-                $table: $db.userProgressTable,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-
-  Expression<T> answerHistoryTableRefs<T extends Object>(
-    Expression<T> Function($$AnswerHistoryTableTableAnnotationComposer a) f,
-  ) {
-    final $$AnswerHistoryTableTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.answerHistoryTable,
-          getReferencedColumn: (t) => t.hanjaId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$AnswerHistoryTableTableAnnotationComposer(
-                $db: $db,
-                $table: $db.answerHistoryTable,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
 }
 
 class $$HanjaTableTableTableManager
@@ -5745,15 +5900,12 @@ class $$HanjaTableTableTableManager
           $$HanjaTableTableAnnotationComposer,
           $$HanjaTableTableCreateCompanionBuilder,
           $$HanjaTableTableUpdateCompanionBuilder,
-          (HanjaTableData, $$HanjaTableTableReferences),
+          (
+            HanjaTableData,
+            BaseReferences<_$AppDatabase, $HanjaTableTable, HanjaTableData>,
+          ),
           HanjaTableData,
-          PrefetchHooks Function({
-            bool hanjaStrokeTableRefs,
-            bool hanjaWordTableRefs,
-            bool hanjaIdiomTableRefs,
-            bool userProgressTableRefs,
-            bool answerHistoryTableRefs,
-          })
+          PrefetchHooks Function()
         > {
   $$HanjaTableTableTableManager(_$AppDatabase db, $HanjaTableTable table)
     : super(
@@ -5843,142 +5995,9 @@ class $$HanjaTableTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$HanjaTableTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback:
-              ({
-                hanjaStrokeTableRefs = false,
-                hanjaWordTableRefs = false,
-                hanjaIdiomTableRefs = false,
-                userProgressTableRefs = false,
-                answerHistoryTableRefs = false,
-              }) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (hanjaStrokeTableRefs) db.hanjaStrokeTable,
-                    if (hanjaWordTableRefs) db.hanjaWordTable,
-                    if (hanjaIdiomTableRefs) db.hanjaIdiomTable,
-                    if (userProgressTableRefs) db.userProgressTable,
-                    if (answerHistoryTableRefs) db.answerHistoryTable,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (hanjaStrokeTableRefs)
-                        await $_getPrefetchedData<
-                          HanjaTableData,
-                          $HanjaTableTable,
-                          HanjaStrokeTableData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$HanjaTableTableReferences
-                              ._hanjaStrokeTableRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$HanjaTableTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).hanjaStrokeTableRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.hanjaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (hanjaWordTableRefs)
-                        await $_getPrefetchedData<
-                          HanjaTableData,
-                          $HanjaTableTable,
-                          HanjaWordTableData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$HanjaTableTableReferences
-                              ._hanjaWordTableRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$HanjaTableTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).hanjaWordTableRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.hanjaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (hanjaIdiomTableRefs)
-                        await $_getPrefetchedData<
-                          HanjaTableData,
-                          $HanjaTableTable,
-                          HanjaIdiomTableData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$HanjaTableTableReferences
-                              ._hanjaIdiomTableRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$HanjaTableTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).hanjaIdiomTableRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.hanjaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (userProgressTableRefs)
-                        await $_getPrefetchedData<
-                          HanjaTableData,
-                          $HanjaTableTable,
-                          UserProgressTableData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$HanjaTableTableReferences
-                              ._userProgressTableRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$HanjaTableTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).userProgressTableRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.hanjaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (answerHistoryTableRefs)
-                        await $_getPrefetchedData<
-                          HanjaTableData,
-                          $HanjaTableTable,
-                          AnswerHistoryTableData
-                        >(
-                          currentTable: table,
-                          referencedTable: $$HanjaTableTableReferences
-                              ._answerHistoryTableRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$HanjaTableTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).answerHistoryTableRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.hanjaId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -5993,15 +6012,363 @@ typedef $$HanjaTableTableProcessedTableManager =
       $$HanjaTableTableAnnotationComposer,
       $$HanjaTableTableCreateCompanionBuilder,
       $$HanjaTableTableUpdateCompanionBuilder,
-      (HanjaTableData, $$HanjaTableTableReferences),
+      (
+        HanjaTableData,
+        BaseReferences<_$AppDatabase, $HanjaTableTable, HanjaTableData>,
+      ),
       HanjaTableData,
-      PrefetchHooks Function({
-        bool hanjaStrokeTableRefs,
-        bool hanjaWordTableRefs,
-        bool hanjaIdiomTableRefs,
-        bool userProgressTableRefs,
-        bool answerHistoryTableRefs,
-      })
+      PrefetchHooks Function()
+    >;
+typedef $$HanjaExtendTableTableCreateCompanionBuilder =
+    HanjaExtendTableCompanion Function({
+      required String id,
+      required String payloadJson,
+      Value<DateTime> syncedAt,
+      Value<int> rowid,
+    });
+typedef $$HanjaExtendTableTableUpdateCompanionBuilder =
+    HanjaExtendTableCompanion Function({
+      Value<String> id,
+      Value<String> payloadJson,
+      Value<DateTime> syncedAt,
+      Value<int> rowid,
+    });
+
+class $$HanjaExtendTableTableFilterComposer
+    extends Composer<_$AppDatabase, $HanjaExtendTableTable> {
+  $$HanjaExtendTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HanjaExtendTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $HanjaExtendTableTable> {
+  $$HanjaExtendTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HanjaExtendTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HanjaExtendTableTable> {
+  $$HanjaExtendTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$HanjaExtendTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HanjaExtendTableTable,
+          HanjaExtendTableData,
+          $$HanjaExtendTableTableFilterComposer,
+          $$HanjaExtendTableTableOrderingComposer,
+          $$HanjaExtendTableTableAnnotationComposer,
+          $$HanjaExtendTableTableCreateCompanionBuilder,
+          $$HanjaExtendTableTableUpdateCompanionBuilder,
+          (
+            HanjaExtendTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $HanjaExtendTableTable,
+              HanjaExtendTableData
+            >,
+          ),
+          HanjaExtendTableData,
+          PrefetchHooks Function()
+        > {
+  $$HanjaExtendTableTableTableManager(
+    _$AppDatabase db,
+    $HanjaExtendTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HanjaExtendTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$HanjaExtendTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$HanjaExtendTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> payloadJson = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HanjaExtendTableCompanion(
+                id: id,
+                payloadJson: payloadJson,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String payloadJson,
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HanjaExtendTableCompanion.insert(
+                id: id,
+                payloadJson: payloadJson,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HanjaExtendTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HanjaExtendTableTable,
+      HanjaExtendTableData,
+      $$HanjaExtendTableTableFilterComposer,
+      $$HanjaExtendTableTableOrderingComposer,
+      $$HanjaExtendTableTableAnnotationComposer,
+      $$HanjaExtendTableTableCreateCompanionBuilder,
+      $$HanjaExtendTableTableUpdateCompanionBuilder,
+      (
+        HanjaExtendTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $HanjaExtendTableTable,
+          HanjaExtendTableData
+        >,
+      ),
+      HanjaExtendTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$ContentConfigTableTableCreateCompanionBuilder =
+    ContentConfigTableCompanion Function({
+      required String id,
+      Value<int?> contentVersion,
+      Value<DateTime> syncedAt,
+      Value<int> rowid,
+    });
+typedef $$ContentConfigTableTableUpdateCompanionBuilder =
+    ContentConfigTableCompanion Function({
+      Value<String> id,
+      Value<int?> contentVersion,
+      Value<DateTime> syncedAt,
+      Value<int> rowid,
+    });
+
+class $$ContentConfigTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ContentConfigTableTable> {
+  $$ContentConfigTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get contentVersion => $composableBuilder(
+    column: $table.contentVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ContentConfigTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ContentConfigTableTable> {
+  $$ContentConfigTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get contentVersion => $composableBuilder(
+    column: $table.contentVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ContentConfigTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ContentConfigTableTable> {
+  $$ContentConfigTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get contentVersion => $composableBuilder(
+    column: $table.contentVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$ContentConfigTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ContentConfigTableTable,
+          ContentConfigTableData,
+          $$ContentConfigTableTableFilterComposer,
+          $$ContentConfigTableTableOrderingComposer,
+          $$ContentConfigTableTableAnnotationComposer,
+          $$ContentConfigTableTableCreateCompanionBuilder,
+          $$ContentConfigTableTableUpdateCompanionBuilder,
+          (
+            ContentConfigTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ContentConfigTableTable,
+              ContentConfigTableData
+            >,
+          ),
+          ContentConfigTableData,
+          PrefetchHooks Function()
+        > {
+  $$ContentConfigTableTableTableManager(
+    _$AppDatabase db,
+    $ContentConfigTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ContentConfigTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ContentConfigTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ContentConfigTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<int?> contentVersion = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ContentConfigTableCompanion(
+                id: id,
+                contentVersion: contentVersion,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<int?> contentVersion = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ContentConfigTableCompanion.insert(
+                id: id,
+                contentVersion: contentVersion,
+                syncedAt: syncedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ContentConfigTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ContentConfigTableTable,
+      ContentConfigTableData,
+      $$ContentConfigTableTableFilterComposer,
+      $$ContentConfigTableTableOrderingComposer,
+      $$ContentConfigTableTableAnnotationComposer,
+      $$ContentConfigTableTableCreateCompanionBuilder,
+      $$ContentConfigTableTableUpdateCompanionBuilder,
+      (
+        ContentConfigTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $ContentConfigTableTable,
+          ContentConfigTableData
+        >,
+      ),
+      ContentConfigTableData,
+      PrefetchHooks Function()
     >;
 typedef $$HanjaStrokeTableTableCreateCompanionBuilder =
     HanjaStrokeTableCompanion Function({
@@ -6022,39 +6389,6 @@ typedef $$HanjaStrokeTableTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$HanjaStrokeTableTableReferences
-    extends
-        BaseReferences<
-          _$AppDatabase,
-          $HanjaStrokeTableTable,
-          HanjaStrokeTableData
-        > {
-  $$HanjaStrokeTableTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $HanjaTableTable _hanjaIdTable(_$AppDatabase db) =>
-      db.hanjaTable.createAlias(
-        $_aliasNameGenerator(db.hanjaStrokeTable.hanjaId, db.hanjaTable.id),
-      );
-
-  $$HanjaTableTableProcessedTableManager get hanjaId {
-    final $_column = $_itemColumn<String>('hanja_id')!;
-
-    final manager = $$HanjaTableTableTableManager(
-      $_db,
-      $_db.hanjaTable,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_hanjaIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$HanjaStrokeTableTableFilterComposer
     extends Composer<_$AppDatabase, $HanjaStrokeTableTable> {
   $$HanjaStrokeTableTableFilterComposer({
@@ -6066,6 +6400,11 @@ class $$HanjaStrokeTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6083,29 +6422,6 @@ class $$HanjaStrokeTableTableFilterComposer
     column: $table.direction,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$HanjaTableTableFilterComposer get hanjaId {
-    final $$HanjaTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaStrokeTableTableOrderingComposer
@@ -6119,6 +6435,11 @@ class $$HanjaStrokeTableTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6136,29 +6457,6 @@ class $$HanjaStrokeTableTableOrderingComposer
     column: $table.direction,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$HanjaTableTableOrderingComposer get hanjaId {
-    final $$HanjaTableTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableOrderingComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaStrokeTableTableAnnotationComposer
@@ -6173,6 +6471,9 @@ class $$HanjaStrokeTableTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
+
   GeneratedColumn<int> get strokeIndex => $composableBuilder(
     column: $table.strokeIndex,
     builder: (column) => column,
@@ -6185,29 +6486,6 @@ class $$HanjaStrokeTableTableAnnotationComposer
 
   GeneratedColumn<String> get direction =>
       $composableBuilder(column: $table.direction, builder: (column) => column);
-
-  $$HanjaTableTableAnnotationComposer get hanjaId {
-    final $$HanjaTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaStrokeTableTableTableManager
@@ -6221,9 +6499,16 @@ class $$HanjaStrokeTableTableTableManager
           $$HanjaStrokeTableTableAnnotationComposer,
           $$HanjaStrokeTableTableCreateCompanionBuilder,
           $$HanjaStrokeTableTableUpdateCompanionBuilder,
-          (HanjaStrokeTableData, $$HanjaStrokeTableTableReferences),
+          (
+            HanjaStrokeTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $HanjaStrokeTableTable,
+              HanjaStrokeTableData
+            >,
+          ),
           HanjaStrokeTableData,
-          PrefetchHooks Function({bool hanjaId})
+          PrefetchHooks Function()
         > {
   $$HanjaStrokeTableTableTableManager(
     _$AppDatabase db,
@@ -6271,56 +6556,9 @@ class $$HanjaStrokeTableTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$HanjaStrokeTableTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({hanjaId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (hanjaId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.hanjaId,
-                                referencedTable:
-                                    $$HanjaStrokeTableTableReferences
-                                        ._hanjaIdTable(db),
-                                referencedColumn:
-                                    $$HanjaStrokeTableTableReferences
-                                        ._hanjaIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -6335,9 +6573,16 @@ typedef $$HanjaStrokeTableTableProcessedTableManager =
       $$HanjaStrokeTableTableAnnotationComposer,
       $$HanjaStrokeTableTableCreateCompanionBuilder,
       $$HanjaStrokeTableTableUpdateCompanionBuilder,
-      (HanjaStrokeTableData, $$HanjaStrokeTableTableReferences),
+      (
+        HanjaStrokeTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $HanjaStrokeTableTable,
+          HanjaStrokeTableData
+        >,
+      ),
       HanjaStrokeTableData,
-      PrefetchHooks Function({bool hanjaId})
+      PrefetchHooks Function()
     >;
 typedef $$HanjaWordTableTableCreateCompanionBuilder =
     HanjaWordTableCompanion Function({
@@ -6360,39 +6605,6 @@ typedef $$HanjaWordTableTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$HanjaWordTableTableReferences
-    extends
-        BaseReferences<
-          _$AppDatabase,
-          $HanjaWordTableTable,
-          HanjaWordTableData
-        > {
-  $$HanjaWordTableTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $HanjaTableTable _hanjaIdTable(_$AppDatabase db) =>
-      db.hanjaTable.createAlias(
-        $_aliasNameGenerator(db.hanjaWordTable.hanjaId, db.hanjaTable.id),
-      );
-
-  $$HanjaTableTableProcessedTableManager get hanjaId {
-    final $_column = $_itemColumn<String>('hanja_id')!;
-
-    final manager = $$HanjaTableTableTableManager(
-      $_db,
-      $_db.hanjaTable,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_hanjaIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$HanjaWordTableTableFilterComposer
     extends Composer<_$AppDatabase, $HanjaWordTableTable> {
   $$HanjaWordTableTableFilterComposer({
@@ -6404,6 +6616,11 @@ class $$HanjaWordTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6426,29 +6643,6 @@ class $$HanjaWordTableTableFilterComposer
     column: $table.example,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$HanjaTableTableFilterComposer get hanjaId {
-    final $$HanjaTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaWordTableTableOrderingComposer
@@ -6462,6 +6656,11 @@ class $$HanjaWordTableTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6484,29 +6683,6 @@ class $$HanjaWordTableTableOrderingComposer
     column: $table.example,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$HanjaTableTableOrderingComposer get hanjaId {
-    final $$HanjaTableTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableOrderingComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaWordTableTableAnnotationComposer
@@ -6521,6 +6697,9 @@ class $$HanjaWordTableTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
+
   GeneratedColumn<String> get word =>
       $composableBuilder(column: $table.word, builder: (column) => column);
 
@@ -6532,29 +6711,6 @@ class $$HanjaWordTableTableAnnotationComposer
 
   GeneratedColumn<String> get example =>
       $composableBuilder(column: $table.example, builder: (column) => column);
-
-  $$HanjaTableTableAnnotationComposer get hanjaId {
-    final $$HanjaTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaWordTableTableTableManager
@@ -6568,9 +6724,16 @@ class $$HanjaWordTableTableTableManager
           $$HanjaWordTableTableAnnotationComposer,
           $$HanjaWordTableTableCreateCompanionBuilder,
           $$HanjaWordTableTableUpdateCompanionBuilder,
-          (HanjaWordTableData, $$HanjaWordTableTableReferences),
+          (
+            HanjaWordTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $HanjaWordTableTable,
+              HanjaWordTableData
+            >,
+          ),
           HanjaWordTableData,
-          PrefetchHooks Function({bool hanjaId})
+          PrefetchHooks Function()
         > {
   $$HanjaWordTableTableTableManager(
     _$AppDatabase db,
@@ -6622,55 +6785,9 @@ class $$HanjaWordTableTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$HanjaWordTableTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({hanjaId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (hanjaId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.hanjaId,
-                                referencedTable: $$HanjaWordTableTableReferences
-                                    ._hanjaIdTable(db),
-                                referencedColumn:
-                                    $$HanjaWordTableTableReferences
-                                        ._hanjaIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -6685,9 +6802,12 @@ typedef $$HanjaWordTableTableProcessedTableManager =
       $$HanjaWordTableTableAnnotationComposer,
       $$HanjaWordTableTableCreateCompanionBuilder,
       $$HanjaWordTableTableUpdateCompanionBuilder,
-      (HanjaWordTableData, $$HanjaWordTableTableReferences),
+      (
+        HanjaWordTableData,
+        BaseReferences<_$AppDatabase, $HanjaWordTableTable, HanjaWordTableData>,
+      ),
       HanjaWordTableData,
-      PrefetchHooks Function({bool hanjaId})
+      PrefetchHooks Function()
     >;
 typedef $$HanjaIdiomTableTableCreateCompanionBuilder =
     HanjaIdiomTableCompanion Function({
@@ -6710,39 +6830,6 @@ typedef $$HanjaIdiomTableTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$HanjaIdiomTableTableReferences
-    extends
-        BaseReferences<
-          _$AppDatabase,
-          $HanjaIdiomTableTable,
-          HanjaIdiomTableData
-        > {
-  $$HanjaIdiomTableTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $HanjaTableTable _hanjaIdTable(_$AppDatabase db) =>
-      db.hanjaTable.createAlias(
-        $_aliasNameGenerator(db.hanjaIdiomTable.hanjaId, db.hanjaTable.id),
-      );
-
-  $$HanjaTableTableProcessedTableManager get hanjaId {
-    final $_column = $_itemColumn<String>('hanja_id')!;
-
-    final manager = $$HanjaTableTableTableManager(
-      $_db,
-      $_db.hanjaTable,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_hanjaIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$HanjaIdiomTableTableFilterComposer
     extends Composer<_$AppDatabase, $HanjaIdiomTableTable> {
   $$HanjaIdiomTableTableFilterComposer({
@@ -6754,6 +6841,11 @@ class $$HanjaIdiomTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6776,29 +6868,6 @@ class $$HanjaIdiomTableTableFilterComposer
     column: $table.origin,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$HanjaTableTableFilterComposer get hanjaId {
-    final $$HanjaTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaIdiomTableTableOrderingComposer
@@ -6812,6 +6881,11 @@ class $$HanjaIdiomTableTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -6834,29 +6908,6 @@ class $$HanjaIdiomTableTableOrderingComposer
     column: $table.origin,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$HanjaTableTableOrderingComposer get hanjaId {
-    final $$HanjaTableTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableOrderingComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaIdiomTableTableAnnotationComposer
@@ -6871,6 +6922,9 @@ class $$HanjaIdiomTableTableAnnotationComposer
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
+
   GeneratedColumn<String> get idiom =>
       $composableBuilder(column: $table.idiom, builder: (column) => column);
 
@@ -6882,29 +6936,6 @@ class $$HanjaIdiomTableTableAnnotationComposer
 
   GeneratedColumn<String> get origin =>
       $composableBuilder(column: $table.origin, builder: (column) => column);
-
-  $$HanjaTableTableAnnotationComposer get hanjaId {
-    final $$HanjaTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$HanjaIdiomTableTableTableManager
@@ -6918,9 +6949,16 @@ class $$HanjaIdiomTableTableTableManager
           $$HanjaIdiomTableTableAnnotationComposer,
           $$HanjaIdiomTableTableCreateCompanionBuilder,
           $$HanjaIdiomTableTableUpdateCompanionBuilder,
-          (HanjaIdiomTableData, $$HanjaIdiomTableTableReferences),
+          (
+            HanjaIdiomTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $HanjaIdiomTableTable,
+              HanjaIdiomTableData
+            >,
+          ),
           HanjaIdiomTableData,
-          PrefetchHooks Function({bool hanjaId})
+          PrefetchHooks Function()
         > {
   $$HanjaIdiomTableTableTableManager(
     _$AppDatabase db,
@@ -6972,56 +7010,9 @@ class $$HanjaIdiomTableTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$HanjaIdiomTableTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({hanjaId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (hanjaId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.hanjaId,
-                                referencedTable:
-                                    $$HanjaIdiomTableTableReferences
-                                        ._hanjaIdTable(db),
-                                referencedColumn:
-                                    $$HanjaIdiomTableTableReferences
-                                        ._hanjaIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -7036,9 +7027,16 @@ typedef $$HanjaIdiomTableTableProcessedTableManager =
       $$HanjaIdiomTableTableAnnotationComposer,
       $$HanjaIdiomTableTableCreateCompanionBuilder,
       $$HanjaIdiomTableTableUpdateCompanionBuilder,
-      (HanjaIdiomTableData, $$HanjaIdiomTableTableReferences),
+      (
+        HanjaIdiomTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $HanjaIdiomTableTable,
+          HanjaIdiomTableData
+        >,
+      ),
       HanjaIdiomTableData,
-      PrefetchHooks Function({bool hanjaId})
+      PrefetchHooks Function()
     >;
 typedef $$UserProgressTableTableCreateCompanionBuilder =
     UserProgressTableCompanion Function({
@@ -7081,39 +7079,6 @@ typedef $$UserProgressTableTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$UserProgressTableTableReferences
-    extends
-        BaseReferences<
-          _$AppDatabase,
-          $UserProgressTableTable,
-          UserProgressTableData
-        > {
-  $$UserProgressTableTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $HanjaTableTable _hanjaIdTable(_$AppDatabase db) =>
-      db.hanjaTable.createAlias(
-        $_aliasNameGenerator(db.userProgressTable.hanjaId, db.hanjaTable.id),
-      );
-
-  $$HanjaTableTableProcessedTableManager get hanjaId {
-    final $_column = $_itemColumn<String>('hanja_id')!;
-
-    final manager = $$HanjaTableTableTableManager(
-      $_db,
-      $_db.hanjaTable,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_hanjaIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
 class $$UserProgressTableTableFilterComposer
     extends Composer<_$AppDatabase, $UserProgressTableTable> {
   $$UserProgressTableTableFilterComposer({
@@ -7125,6 +7090,11 @@ class $$UserProgressTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7197,29 +7167,6 @@ class $$UserProgressTableTableFilterComposer
     column: $table.syncRevision,
     builder: (column) => ColumnFilters(column),
   );
-
-  $$HanjaTableTableFilterComposer get hanjaId {
-    final $$HanjaTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$UserProgressTableTableOrderingComposer
@@ -7233,6 +7180,11 @@ class $$UserProgressTableTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7305,29 +7257,6 @@ class $$UserProgressTableTableOrderingComposer
     column: $table.syncRevision,
     builder: (column) => ColumnOrderings(column),
   );
-
-  $$HanjaTableTableOrderingComposer get hanjaId {
-    final $$HanjaTableTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableOrderingComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$UserProgressTableTableAnnotationComposer
@@ -7341,6 +7270,9 @@ class $$UserProgressTableTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -7405,29 +7337,6 @@ class $$UserProgressTableTableAnnotationComposer
     column: $table.syncRevision,
     builder: (column) => column,
   );
-
-  $$HanjaTableTableAnnotationComposer get hanjaId {
-    final $$HanjaTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$UserProgressTableTableTableManager
@@ -7441,9 +7350,16 @@ class $$UserProgressTableTableTableManager
           $$UserProgressTableTableAnnotationComposer,
           $$UserProgressTableTableCreateCompanionBuilder,
           $$UserProgressTableTableUpdateCompanionBuilder,
-          (UserProgressTableData, $$UserProgressTableTableReferences),
+          (
+            UserProgressTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $UserProgressTableTable,
+              UserProgressTableData
+            >,
+          ),
           UserProgressTableData,
-          PrefetchHooks Function({bool hanjaId})
+          PrefetchHooks Function()
         > {
   $$UserProgressTableTableTableManager(
     _$AppDatabase db,
@@ -7538,56 +7454,9 @@ class $$UserProgressTableTableTableManager
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$UserProgressTableTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({hanjaId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (hanjaId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.hanjaId,
-                                referencedTable:
-                                    $$UserProgressTableTableReferences
-                                        ._hanjaIdTable(db),
-                                referencedColumn:
-                                    $$UserProgressTableTableReferences
-                                        ._hanjaIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -7602,9 +7471,16 @@ typedef $$UserProgressTableTableProcessedTableManager =
       $$UserProgressTableTableAnnotationComposer,
       $$UserProgressTableTableCreateCompanionBuilder,
       $$UserProgressTableTableUpdateCompanionBuilder,
-      (UserProgressTableData, $$UserProgressTableTableReferences),
+      (
+        UserProgressTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $UserProgressTableTable,
+          UserProgressTableData
+        >,
+      ),
       UserProgressTableData,
-      PrefetchHooks Function({bool hanjaId})
+      PrefetchHooks Function()
     >;
 typedef $$StudySessionTableTableCreateCompanionBuilder =
     StudySessionTableCompanion Function({
@@ -8078,25 +7954,6 @@ final class $$AnswerHistoryTableTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
-
-  static $HanjaTableTable _hanjaIdTable(_$AppDatabase db) =>
-      db.hanjaTable.createAlias(
-        $_aliasNameGenerator(db.answerHistoryTable.hanjaId, db.hanjaTable.id),
-      );
-
-  $$HanjaTableTableProcessedTableManager get hanjaId {
-    final $_column = $_itemColumn<String>('hanja_id')!;
-
-    final manager = $$HanjaTableTableTableManager(
-      $_db,
-      $_db.hanjaTable,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_hanjaIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
 }
 
 class $$AnswerHistoryTableTableFilterComposer
@@ -8110,6 +7967,11 @@ class $$AnswerHistoryTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8165,29 +8027,6 @@ class $$AnswerHistoryTableTableFilterComposer
     );
     return composer;
   }
-
-  $$HanjaTableTableFilterComposer get hanjaId {
-    final $$HanjaTableTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableFilterComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$AnswerHistoryTableTableOrderingComposer
@@ -8201,6 +8040,11 @@ class $$AnswerHistoryTableTableOrderingComposer
   });
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -8256,29 +8100,6 @@ class $$AnswerHistoryTableTableOrderingComposer
     );
     return composer;
   }
-
-  $$HanjaTableTableOrderingComposer get hanjaId {
-    final $$HanjaTableTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableOrderingComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$AnswerHistoryTableTableAnnotationComposer
@@ -8292,6 +8113,9 @@ class $$AnswerHistoryTableTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get answeredAt => $composableBuilder(
     column: $table.answeredAt,
@@ -8342,29 +8166,6 @@ class $$AnswerHistoryTableTableAnnotationComposer
         );
     return composer;
   }
-
-  $$HanjaTableTableAnnotationComposer get hanjaId {
-    final $$HanjaTableTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.hanjaId,
-      referencedTable: $db.hanjaTable,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$HanjaTableTableAnnotationComposer(
-            $db: $db,
-            $table: $db.hanjaTable,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 }
 
 class $$AnswerHistoryTableTableTableManager
@@ -8380,7 +8181,7 @@ class $$AnswerHistoryTableTableTableManager
           $$AnswerHistoryTableTableUpdateCompanionBuilder,
           (AnswerHistoryTableData, $$AnswerHistoryTableTableReferences),
           AnswerHistoryTableData,
-          PrefetchHooks Function({bool sessionId, bool hanjaId})
+          PrefetchHooks Function({bool sessionId})
         > {
   $$AnswerHistoryTableTableTableManager(
     _$AppDatabase db,
@@ -8454,7 +8255,7 @@ class $$AnswerHistoryTableTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({sessionId = false, hanjaId = false}) {
+          prefetchHooksCallback: ({sessionId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -8489,21 +8290,6 @@ class $$AnswerHistoryTableTableTableManager
                               )
                               as T;
                     }
-                    if (hanjaId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.hanjaId,
-                                referencedTable:
-                                    $$AnswerHistoryTableTableReferences
-                                        ._hanjaIdTable(db),
-                                referencedColumn:
-                                    $$AnswerHistoryTableTableReferences
-                                        ._hanjaIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
 
                     return state;
                   },
@@ -8528,7 +8314,7 @@ typedef $$AnswerHistoryTableTableProcessedTableManager =
       $$AnswerHistoryTableTableUpdateCompanionBuilder,
       (AnswerHistoryTableData, $$AnswerHistoryTableTableReferences),
       AnswerHistoryTableData,
-      PrefetchHooks Function({bool sessionId, bool hanjaId})
+      PrefetchHooks Function({bool sessionId})
     >;
 typedef $$AppSettingsTableTableCreateCompanionBuilder =
     AppSettingsTableCompanion Function({
@@ -8996,6 +8782,10 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$HanjaTableTableTableManager get hanjaTable =>
       $$HanjaTableTableTableManager(_db, _db.hanjaTable);
+  $$HanjaExtendTableTableTableManager get hanjaExtendTable =>
+      $$HanjaExtendTableTableTableManager(_db, _db.hanjaExtendTable);
+  $$ContentConfigTableTableTableManager get contentConfigTable =>
+      $$ContentConfigTableTableTableManager(_db, _db.contentConfigTable);
   $$HanjaStrokeTableTableTableManager get hanjaStrokeTable =>
       $$HanjaStrokeTableTableTableManager(_db, _db.hanjaStrokeTable);
   $$HanjaWordTableTableTableManager get hanjaWordTable =>

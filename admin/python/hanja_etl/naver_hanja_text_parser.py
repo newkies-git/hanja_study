@@ -170,7 +170,9 @@ class NaverHanjaTextParser:
                     continue
                 meaning = self._meaning_from_block_lines(lines, head_idx + 1)
                 collected.append(
-                    self._make_word_entity(word_k, hanja_w, meaning, "성어")
+                    self._make_word_entity(
+                        word_k, hanja_w, meaning, "성어", character
+                    )
                 )
                 continue
 
@@ -186,7 +188,9 @@ class NaverHanjaTextParser:
                 if not meaning:
                     continue
                 collected.append(
-                    self._make_word_entity(word_k, hanja_w, meaning, "단어")
+                    self._make_word_entity(
+                        word_k, hanja_w, meaning, "단어", character
+                    )
                 )
 
         dedup: Dict[Tuple[str, str, str], WordEntity] = {}
@@ -200,10 +204,12 @@ class NaverHanjaTextParser:
         hanja: str,
         meaning: str,
         entry_type: str,
+        head_character: str,
     ) -> WordEntity:
         related = [c for c in hanja if CJK_RE.match(c)]
         return WordEntity(
             word_id=make_word_entity_id(word, hanja, entry_type),
+            hanja_id=make_hanja_entity_id(head_character),
             word=word,
             hanja=hanja,
             meaning=meaning,

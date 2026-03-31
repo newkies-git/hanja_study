@@ -88,6 +88,60 @@ abstract final class FirestoreHanjaMapper {
   }
 }
 
+/// Firestore `hanja_basis` (CSV 필드명: 한자, 음, 훈, …) → [HanjaTableCompanion].
+abstract final class FirestoreBasisMapper {
+  static String resolveBasisId(String docId, Map<String, dynamic> raw) {
+    final String idField = raw['id']?.toString().trim() ?? '';
+    if (idField.isNotEmpty) return idField;
+    if (docId.isNotEmpty && docId.startsWith('H')) return docId;
+    final String ch = raw['한자']?.toString().trim() ?? '';
+    if (ch.isEmpty) return docId;
+    final int? cp = ch.runes.isNotEmpty ? ch.runes.first : null;
+    if (cp == null) return docId;
+    return 'H${cp.toRadixString(16).toUpperCase()}';
+  }
+
+  static HanjaTableCompanion hanjaFromBasisDoc(
+    String docId,
+    Map<String, dynamic> raw,
+  ) {
+    final String id = resolveBasisId(docId, raw);
+    final String character = raw['한자']?.toString().trim() ?? '';
+    final String reading = raw['음']?.toString().trim() ?? '';
+    final String meaning = raw['훈']?.toString().trim() ?? '';
+    final String hunEum = raw['훈음']?.toString().trim() ?? '';
+    final int totalStrokes =
+        int.tryParse(raw['전체']?.toString().trim() ?? '') ?? 0;
+    final String schoolLevel = _schoolLevelFromCategory(raw['구분']);
+
+    return HanjaTableCompanion.insert(
+      id: id,
+      serverId: Value(docId.isNotEmpty ? docId : id),
+      character: character.isNotEmpty ? character : '?',
+      reading: reading,
+      meaning: meaning.isNotEmpty ? meaning : hunEum,
+      radical: '',
+      radicalName: '',
+      totalStrokes: totalStrokes,
+      schoolLevel: schoolLevel,
+      grade: const Value.absent(),
+      origin: const Value.absent(),
+      usageNote: const Value.absent(),
+      syncStatus: const Value('synced'),
+      syncRevision: const Value(0),
+    );
+  }
+
+  static String _schoolLevelFromCategory(Object? v) {
+    final String s = v?.toString().trim().toLowerCase() ?? '';
+    if (s.contains('중')) return 'middle';
+    if (s.contains('고')) return 'high';
+    if (s.contains('both') || s.contains('공통') || s == 'both') return 'both';
+    if (s == 'middle' || s == 'high') return s;
+    return 'middle';
+  }
+}
+
 /// 획 데이터 → [HanjaStrokeTableCompanion] 목록.
 abstract final class FirestoreStrokeMapper {
   /// 한자 문서 안의 `strokes` 배열 (Python `stroke_entities`의 `strokes`와 동일 형태).
