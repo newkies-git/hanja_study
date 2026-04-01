@@ -993,21 +993,22 @@ onUnmounted(() => {
       class="rounded-xl border border-outline-variant/70 bg-surface-lowest px-3 py-2.5 shadow-float sm:px-4"
     >
       <p
-        class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+        class="mb-2 text-balance text-[10px] font-semibold uppercase leading-snug tracking-wide text-onSurface-variant"
       >
         업로드 대상 선택 · 권장 순서 basis → extend → stroke → word
       </p>
+      <!-- 모바일·태블릿: 단계 카드 세로 스택. lg+ 에서만 가로 한 줄(좁으면 가로 스크롤) -->
       <ol
-        class="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] sm:gap-2.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant/60"
+        class="flex flex-col gap-2 sm:gap-2.5 lg:flex-row lg:flex-nowrap lg:items-stretch lg:overflow-x-auto lg:pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant/60"
       >
         <li
           v-for="(s, i) in UPLOAD_STEPS"
           :key="s.collection"
-          class="min-w-[11rem] shrink-0 sm:min-w-0 sm:flex-1"
+          class="w-full min-w-0 lg:min-w-[10.5rem] lg:w-auto lg:shrink-0 lg:flex-1"
         >
           <button
             type="button"
-            class="flex h-full w-full flex-col gap-1 rounded-xl border px-3 py-2 text-left text-sm shadow-sm outline-none ring-primary/25 transition hover:bg-surface-low/90 focus-visible:ring-2 sm:flex-row sm:items-center sm:gap-2"
+            class="flex h-full min-h-[3.25rem] w-full flex-col gap-1 rounded-xl border px-3 py-2.5 text-left text-sm shadow-sm outline-none ring-primary/25 transition hover:bg-surface-low/90 focus-visible:ring-2 lg:min-h-0 lg:py-2"
             :class="{
               'border-primary/50 bg-primary/[0.08] text-onSurface ring-1 ring-primary/20':
                 i === currentStepIndex,
@@ -1024,7 +1025,7 @@ onUnmounted(() => {
             </span>
             <span
               v-if="stepSessionDone(i)"
-              class="ml-auto text-base font-semibold text-green-700 sm:ml-0"
+              class="mt-0.5 self-end text-base font-semibold text-green-700"
               aria-hidden="true"
             >✓</span>
           </button>

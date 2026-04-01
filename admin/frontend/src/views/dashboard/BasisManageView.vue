@@ -282,123 +282,135 @@ onMounted(() => { void loadAll(); });
             </div>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 sm:justify-end sm:gap-2">
-          <span
-            class="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/90 px-2 py-0.5 text-[11px] font-medium text-onSurface shadow-sm backdrop-blur-sm"
+        <div class="flex w-full min-w-0 flex-col gap-2 sm:items-end">
+          <div class="flex flex-wrap items-center gap-1.5 sm:justify-end">
+            <span
+              class="inline-flex items-center gap-1 rounded-full border border-white/60 bg-white/90 px-2 py-0.5 text-[11px] font-medium text-onSurface shadow-sm backdrop-blur-sm"
+            >
+              <span class="text-onSurface-variant">전체</span>
+              <span class="tabular-nums text-primary">{{ basisTotalLabel }}</span>
+              <span class="text-onSurface-variant">건</span>
+            </span>
+            <span
+              v-if="!loading && allDocs.length && filterActive"
+              class="inline-flex items-center rounded-full border border-outline-variant/70 bg-surface-lowest/90 px-2 py-0.5 text-[11px] font-medium text-onSurface backdrop-blur-sm"
+            >
+              필터 결과
+              <span class="ml-0.5 tabular-nums text-primary">{{ totalCount.toLocaleString("ko-KR") }}</span>건
+            </span>
+            <span
+              v-if="selectedCount > 0"
+              class="inline-flex items-center rounded-full border border-primary/25 bg-primary/[0.1] px-2 py-0.5 text-[11px] font-semibold text-primary"
+            >
+              {{ selectedCount.toLocaleString("ko-KR") }}건 선택
+            </span>
+          </div>
+          <div
+            class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end sm:gap-2"
           >
-            <span class="text-onSurface-variant">전체</span>
-            <span class="tabular-nums text-primary">{{ basisTotalLabel }}</span>
-            <span class="text-onSurface-variant">건</span>
-          </span>
-          <span
-            v-if="!loading && allDocs.length && filterActive"
-            class="inline-flex items-center rounded-full border border-outline-variant/70 bg-surface-lowest/90 px-2 py-0.5 text-[11px] font-medium text-onSurface backdrop-blur-sm"
-          >
-            필터 결과
-            <span class="ml-0.5 tabular-nums text-primary">{{ totalCount.toLocaleString("ko-KR") }}</span>건
-          </span>
-          <span
-            v-if="selectedCount > 0"
-            class="inline-flex items-center rounded-full border border-primary/25 bg-primary/[0.1] px-2 py-0.5 text-[11px] font-semibold text-primary"
-          >
-            {{ selectedCount.toLocaleString("ko-KR") }}건 선택
-          </span>
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-            :disabled="loading || !canMutateBasis"
-            title="admin 클레임·로그인 필요"
-            @click="openBasisAddModal"
-          >
-            추가
-          </button>
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-            :disabled="!canMutateBasis || !canUseSelectionActions"
-            title="카드 한 개 선택 · admin 필요"
-            @click="openBasisEditModal"
-          >
-            수정
-          </button>
-          <button
-            type="button"
-            class="rounded-md border border-red-300/90 bg-surface-low px-3 py-1.5 text-xs font-medium text-red-800 transition hover:bg-red-50/80 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
-            :disabled="loading || !canMutateBasis || selectedCount === 0"
-            title="선택한 항목 삭제 · admin 필요"
-            @click="deleteSelectedBasis"
-          >
-            삭제
-          </button>
-          <button
-            type="button"
-            class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-            :disabled="loading"
-            @click="loadAll"
-          >
-            새로고침
-          </button>
+            <button
+              type="button"
+              class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
+              :disabled="loading || !canMutateBasis"
+              title="admin 클레임·로그인 필요"
+              @click="openBasisAddModal"
+            >
+              추가
+            </button>
+            <button
+              type="button"
+              class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
+              :disabled="!canMutateBasis || !canUseSelectionActions"
+              title="카드 한 개 선택 · admin 필요"
+              @click="openBasisEditModal"
+            >
+              수정
+            </button>
+            <button
+              type="button"
+              class="min-h-[2.75rem] rounded-md border border-red-300/90 bg-surface-low px-3 py-2 text-xs font-medium text-red-800 transition hover:bg-red-50/80 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-1.5 sm:text-sm"
+              :disabled="loading || !canMutateBasis || selectedCount === 0"
+              title="선택한 항목 삭제 · admin 필요"
+              @click="deleteSelectedBasis"
+            >
+              삭제
+            </button>
+            <button
+              type="button"
+              class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
+              :disabled="loading"
+              @click="loadAll"
+            >
+              새로고침
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 필터 -->
+    <!-- 필터: 모바일은 세로·그리드, lg 이상에서 한 줄 (가로 스크롤 제거) -->
     <div
       class="rounded-xl border border-outline-variant/70 bg-surface-lowest px-3 py-2.5 shadow-float sm:px-4"
     >
       <div
-        class="flex flex-nowrap items-end gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] sm:gap-2.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant/60"
+        class="flex flex-col gap-3 lg:flex-row lg:flex-nowrap lg:items-end lg:gap-2.5"
       >
-        <h2 class="shrink-0 self-center pr-1 text-sm font-semibold leading-none text-onSurface">
+        <h2
+          class="text-sm font-semibold leading-none text-onSurface lg:shrink-0 lg:self-center lg:pr-1"
+        >
           검색 및 목록
         </h2>
-        <div class="flex w-[5.25rem] shrink-0 flex-col">
-          <label class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant">페이지당</label>
-          <select v-model="pageSize" class="input-minimal w-full cursor-pointer py-1.5 text-sm">
-            <option v-for="n in PAGE_SIZE_OPTIONS" :key="n" :value="n">{{ n }}건</option>
-          </select>
+        <div class="grid grid-cols-2 gap-3 lg:contents">
+          <div class="flex min-w-0 flex-col lg:w-[5.25rem] lg:shrink-0">
+            <label class="mb-0.5 text-[10px] font-medium text-onSurface-variant">페이지당</label>
+            <select v-model="pageSize" class="input-minimal w-full cursor-pointer py-1.5 text-sm">
+              <option v-for="n in PAGE_SIZE_OPTIONS" :key="n" :value="n">{{ n }}건</option>
+            </select>
+          </div>
+          <div class="flex min-w-0 flex-col lg:w-[4.75rem] lg:shrink-0">
+            <label class="mb-0.5 text-[10px] font-medium text-onSurface-variant">구분</label>
+            <select v-model="filter구분" class="input-minimal w-full cursor-pointer py-1.5 text-sm">
+              <option value="">전체</option>
+              <option value="중">중</option>
+              <option value="고">고</option>
+            </select>
+          </div>
         </div>
-        <div class="flex w-[4.75rem] shrink-0 flex-col">
-          <label class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant">구분</label>
-          <select v-model="filter구분" class="input-minimal w-full cursor-pointer py-1.5 text-sm">
-            <option value="">전체</option>
-            <option value="중">중</option>
-            <option value="고">고</option>
-          </select>
-        </div>
-        <div class="flex min-w-[6.25rem] flex-1 flex-col">
-          <label class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant">한자</label>
-          <input
-            v-model="search한자"
-            type="search"
-            class="input-minimal min-w-0 w-full py-1.5 text-sm"
-            placeholder="부분 일치"
-            autocomplete="off"
-          />
-        </div>
-        <div class="flex min-w-[6.25rem] flex-1 flex-col">
-          <label class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant">음</label>
-          <input
-            v-model="search음"
-            type="search"
-            class="input-minimal min-w-0 w-full py-1.5 text-sm"
-            placeholder="부분 일치"
-            autocomplete="off"
-          />
-        </div>
-        <div class="flex min-w-[6.25rem] flex-1 flex-col">
-          <label class="mb-0.5 whitespace-nowrap text-[10px] font-medium text-onSurface-variant">훈</label>
-          <input
-            v-model="search훈"
-            type="search"
-            class="input-minimal min-w-0 w-full py-1.5 text-sm"
-            placeholder="부분 일치"
-            autocomplete="off"
-          />
+        <div class="grid grid-cols-1 gap-3 lg:contents">
+          <div class="flex min-w-0 flex-col lg:min-w-0 lg:flex-1">
+            <label class="mb-0.5 text-[10px] font-medium text-onSurface-variant">한자</label>
+            <input
+              v-model="search한자"
+              type="search"
+              class="input-minimal min-w-0 w-full py-1.5 text-sm"
+              placeholder="부분 일치"
+              autocomplete="off"
+            />
+          </div>
+          <div class="flex min-w-0 flex-col lg:min-w-0 lg:flex-1">
+            <label class="mb-0.5 text-[10px] font-medium text-onSurface-variant">음</label>
+            <input
+              v-model="search음"
+              type="search"
+              class="input-minimal min-w-0 w-full py-1.5 text-sm"
+              placeholder="부분 일치"
+              autocomplete="off"
+            />
+          </div>
+          <div class="flex min-w-0 flex-col lg:min-w-0 lg:flex-1">
+            <label class="mb-0.5 text-[10px] font-medium text-onSurface-variant">훈</label>
+            <input
+              v-model="search훈"
+              type="search"
+              class="input-minimal min-w-0 w-full py-1.5 text-sm"
+              placeholder="부분 일치"
+              autocomplete="off"
+            />
+          </div>
         </div>
         <button
           type="button"
-          class="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:text-sm"
+          class="btn-secondary w-full shrink-0 py-2.5 text-xs sm:text-sm lg:w-auto lg:self-end lg:py-1.5"
           :disabled="!filterActive"
           @click="clearFilters"
         >
