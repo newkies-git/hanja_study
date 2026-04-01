@@ -7,6 +7,7 @@ import '../firebase/firestore_content_sync.dart';
 
 import '../database/repositories/local_repositories.dart';
 import '../database/repositories/repository_interfaces.dart';
+import '../settings/app_settings_keys.dart';
 import '../utils/normalized_points_parser.dart';
 
 /// 앱 전역 단일 [AppDatabase].
@@ -23,6 +24,10 @@ final hanjaRepositoryProvider = Provider<HanjaRepository>((ref) {
 
 final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
   return LocalProgressRepository(ref.watch(appDatabaseProvider));
+});
+
+final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  return LocalSettingsRepository(ref.watch(appDatabaseProvider));
 });
 
 /// 한자 총 갯수 FutureProvider.
@@ -60,6 +65,19 @@ final todayCompletedCountProvider = FutureProvider<int>((ref) {
 
 final streakDaysProvider = FutureProvider<int>((ref) {
   return ref.watch(progressRepositoryProvider).fetchStreakDays();
+});
+
+final dailyGoalProvider = FutureProvider<int>((ref) async {
+  final settings = ref.watch(settingsRepositoryProvider);
+  final raw = await settings.get(AppSettingsKeys.dailyGoal);
+  final value = int.tryParse(raw ?? '');
+  return value ?? 5;
+});
+
+final onboardingCompletedProvider = FutureProvider<bool>((ref) async {
+  final settings = ref.watch(settingsRepositoryProvider);
+  final raw = await settings.get(AppSettingsKeys.onboardingCompleted);
+  return raw == 'true';
 });
 
 final recommendedReviewHanjaProvider =

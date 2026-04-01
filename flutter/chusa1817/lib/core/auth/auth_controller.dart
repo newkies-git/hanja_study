@@ -43,6 +43,9 @@ class AuthController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref.watch(firebaseAuthProvider).signOut();
+      // 로그아웃 상태에서도 Firestore 규칙(`request.auth`)을 만족시키기 위해
+      // 익명 세션은 유지한다 (비로그인은 isNonAnonymousUserProvider로 판단).
+      await ref.watch(firebaseAuthProvider).signInAnonymously();
     });
   }
 }

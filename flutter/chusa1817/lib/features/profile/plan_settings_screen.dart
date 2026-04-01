@@ -1,26 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
+import '../../core/settings/app_settings_keys.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 
 /// 학습 계획 설정 화면.
 ///
 /// 하루 학습량, 학습 순서(가나다순/랜덤), 학습 요일을 설정한다.
-class PlanSettingsScreen extends StatefulWidget {
+class PlanSettingsScreen extends ConsumerStatefulWidget {
   const PlanSettingsScreen({super.key});
 
   @override
-  State<PlanSettingsScreen> createState() => _PlanSettingsScreenState();
+  ConsumerState<PlanSettingsScreen> createState() => _PlanSettingsScreenState();
 }
 
-class _PlanSettingsScreenState extends State<PlanSettingsScreen> {
+class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
   int _dailyGoal = 5;
   int _orderIndex = 0; // 0 = 가나다순, 1 = 랜덤
   final List<bool> _selectedDays = List.generate(7, (i) => i < 5);
 
   static const List<int> _dailyGoalOptions = [5, 10, 15, 20];
   static const List<String> _dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final settings = ref.read(settingsRepositoryProvider);
+
+      final dailyGoalRaw = await settings.get(AppSettingsKeys.dailyGoal);
+      final orderIndexRaw = await settings.get(AppSettingsKeys.orderIndex);
+      final selectedDaysRaw = await settings.get(AppSettingsKeys.selectedDays);
+
+      final dailyGoal = int.tryParse(dailyGoalRaw ?? '');
+      final orderIndex = int.tryParse(orderIndexRaw ?? '');
+
+      if (dailyGoal != null) _dailyGoal = dailyGoal;
+      if (orderIndex != null) _orderIndex = orderIndex;
+
+      if (selectedDaysRaw != null && selectedDaysRaw.isNotEmpty) {
+        final parsed = selectedDaysRaw
+            .replaceAll('[', '')
+            .replaceAll(']', '')
+            .split(',')
+            .map((e) => e.trim().toLowerCase() == 'true')
+            .toList();
+        if (parsed.length == 7) {
+          for (var i = 0; i < 7; i++) {
+            _selectedDays[i] = parsed[i];
+          }
+        }
+      }
+
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +251,16 @@ class _PlanSettingsScreenState extends State<PlanSettingsScreen> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             child: GradientPrimaryButton(
               label: '설정 완료',
-              onPressed: () => context.pop(),
+              onPressed: () async {
+                final settings = ref.read(settingsRepositoryProvider);
+                await settings.set(AppSettingsKeys.dailyGoal, '$_dailyGoal');
+                await settings.set(AppSettingsKeys.orderIndex, '$_orderIndex');
+                await settings.set(
+                  AppSettingsKeys.selectedDays,
+                  '[${_selectedDays.map((e) => e.toString()).join(',')}]',
+                );
+                if (context.mounted) context.pop();
+              },
             ),
           ),
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_controller.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
@@ -27,7 +28,7 @@ class ProfileScreen extends ConsumerWidget {
         const SizedBox(height: 14),
         _buildHanjaCountCard(textTheme, totalHanjaCount),
         const SizedBox(height: 14),
-        _buildMenuCard(context, textTheme),
+        _buildMenuCard(context, textTheme, ref),
       ],
     );
   }
@@ -144,7 +145,7 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, TextTheme textTheme) {
+  Widget _buildMenuCard(BuildContext context, TextTheme textTheme, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -181,7 +182,10 @@ class ProfileScreen extends ConsumerWidget {
               style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go(AppRoutes.landing),
+            onTap: () async {
+              await ref.read(authControllerProvider.notifier).signOut();
+              if (context.mounted) context.go(AppRoutes.landing);
+            },
           ),
         ],
       ),

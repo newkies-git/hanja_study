@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
+import '../../core/settings/app_settings_keys.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../shared/widgets/won_go_ji_grid.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
     if (_currentPage < 2) {
       _pageController.animateToPage(
         _currentPage + 1,
@@ -25,6 +28,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
+      final settings = ref.read(settingsRepositoryProvider);
+      await settings.set(AppSettingsKeys.onboardingCompleted, 'true');
+      if (!mounted) return;
       context.go('${AppRoutes.home}?tab=1');
     }
   }

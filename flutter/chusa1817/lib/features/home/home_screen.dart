@@ -16,11 +16,10 @@ import '../../core/router/app_router.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  static const int _todayGoal = 5;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final dailyGoalAsync = ref.watch(dailyGoalProvider);
     final todayDoneAsync = ref.watch(todayCompletedCountProvider);
     final streakDaysAsync = ref.watch(streakDaysProvider);
     final reviewHanjaAsync = ref.watch(recommendedReviewHanjaProvider);
@@ -31,7 +30,7 @@ class HomeScreen extends ConsumerWidget {
         const EditorialTopBar(title: '추사 1817'),
         const SizedBox(height: 14),
         _TodayProgressCard(
-          goal: _todayGoal,
+          goal: dailyGoalAsync.value ?? 5,
           done: todayDoneAsync.value ?? 0,
           textTheme: textTheme,
           onTap: () => context.go('${AppRoutes.home}?tab=1'),
