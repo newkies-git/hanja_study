@@ -6,7 +6,10 @@ import StrokeModal from "@/components/dashboard/StrokeModal.vue";
 import BasisFormModal from "@/components/dashboard/BasisFormModal.vue";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
-import { contains, usePaginatedCollection } from "@/composables/usePaginatedCollection";
+import {
+  textIncludesQueryIgnoreCase,
+  usePaginatedCollection,
+} from "@/composables/usePaginatedCollection";
 
 const auth = useAuthStore();
 
@@ -18,12 +21,12 @@ const search훈 = ref("");
 
 const {
   PAGE_SIZE_OPTIONS,
-  fetchCap,
+  loadCap,
   allDocs,
   rows,
   ids,
-  loading,
-  loadingMore,
+  isLoading,
+  isLoadingMore,
   error,
   filterWarning,
   hasMore,
@@ -44,9 +47,9 @@ const {
 } = usePaginatedCollection("hanja_basis", ({ data }) => {
   if (filter구분.value !== "" && String(data["구분"] ?? "").trim() !== filter구분.value)
     return false;
-  if (!contains(String(data["한자"] ?? ""), search한자.value)) return false;
-  if (!contains(String(data["음"] ?? ""), search음.value)) return false;
-  if (!contains(String(data["훈"] ?? ""), search훈.value)) return false;
+  if (!textIncludesQueryIgnoreCase(String(data["한자"] ?? ""), search한자.value)) return false;
+  if (!textIncludesQueryIgnoreCase(String(data["음"] ?? ""), search음.value)) return false;
+  if (!textIncludesQueryIgnoreCase(String(data["훈"] ?? ""), search훈.value)) return false;
   return true;
 });
 
@@ -103,7 +106,7 @@ const soleSelectedEntry = computed(() => {
 });
 
 const canUseSelectionActions = computed(
-  () => selectedBasisDocId.value !== null && !loading.value,
+  () => selectedBasisDocId.value !== null && !isLoading.value,
 );
 
 const extendId = computed(() => {
@@ -164,7 +167,7 @@ async function deleteSelectedBasis() {
     error.value = "Firebase가 설정되지 않았습니다.";
     return;
   }
-  loading.value = true;
+  isLoading.value = true;
   error.value = null;
   try {
     await auth.syncIdTokenForFirestore();
@@ -178,7 +181,7 @@ async function deleteSelectedBasis() {
   } catch (e) {
     error.value = e instanceof Error ? e.message : "삭제에 실패했습니다.";
   } finally {
-    loading.value = false;
+    isLoading.value = false;
   }
 }
 
@@ -187,7 +190,7 @@ const BASIS_MANAGE_HELP_TEXT =
   "그리드 위 조회 · 획순은 카드를 눌러 한 개만 선택한 뒤 사용합니다. 조회는 hanja_extend, 획순은 hanja_extend → hanja_stroke → hanja_basis 순으로 획 데이터를 불러옵니다. 행 추가·수정·삭제는 Firestore hanja_basis 에 직접 반영됩니다.";
 
 const basisManageHelpTriggerRef = ref<HTMLButtonElement | null>(null);
-const basisManageHelpTooltipOpen = ref(false);
+const isBasisManageHelpTooltipOpen = ref(false);
 const basisManageHelpTooltipStyle = ref<Record<string, string>>({});
 
 let basisManageHelpRemoveScrollListeners: (() => void) | null = null;
@@ -195,16 +198,16 @@ let basisManageHelpRemoveScrollListeners: (() => void) | null = null;
 function positionBasisManageHelpTooltip() {
   const el = basisManageHelpTriggerRef.value;
   if (!el) return;
-  const r = el.getBoundingClientRect();
+  const boundingRect = el.getBoundingClientRect();
   const margin = 10;
   const maxW = Math.min(400, window.innerWidth - margin * 2);
-  let left = r.left;
+  let left = boundingRect.left;
   if (left + maxW > window.innerWidth - margin) {
     left = Math.max(margin, window.innerWidth - margin - maxW);
   }
   if (left < margin) left = margin;
   basisManageHelpTooltipStyle.value = {
-    top: `${Math.round(r.bottom + margin)}px`,
+    top: `${Math.round(boundingRect.bottom + margin)}px`,
     left: `${Math.round(left)}px`,
     maxWidth: `${maxW}px`,
   };
@@ -212,15 +215,15 @@ function positionBasisManageHelpTooltip() {
 
 function openBasisManageHelpTooltip() {
   positionBasisManageHelpTooltip();
-  basisManageHelpTooltipOpen.value = true;
+  isBasisManageHelpTooltipOpen.value = true;
   void nextTick(() => positionBasisManageHelpTooltip());
 }
 
 function closeBasisManageHelpTooltip() {
-  basisManageHelpTooltipOpen.value = false;
+  isBasisManageHelpTooltipOpen.value = false;
 }
 
-watch(basisManageHelpTooltipOpen, (open) => {
+watch(isBasisManageHelpTooltipOpen, (open) => {
   basisManageHelpRemoveScrollListeners?.();
   basisManageHelpRemoveScrollListeners = null;
   if (!open) return;
@@ -274,7 +277,7 @@ onMounted(() => { void loadAll(); });
                 type="button"
                 class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
                 :aria-label="BASIS_MANAGE_HELP_TEXT"
-                :aria-describedby="basisManageHelpTooltipOpen ? 'basis-manage-help-tooltip-text' : undefined"
+                :aria-describedby="isBasisManageHelpTooltipOpen ? 'basis-manage-help-tooltip-text' : undefined"
                 @mouseenter="openBasisManageHelpTooltip"
                 @mouseleave="closeBasisManageHelpTooltip"
                 @focus="openBasisManageHelpTooltip"
@@ -295,7 +298,7 @@ onMounted(() => { void loadAll(); });
               <span class="text-onSurface-variant">건</span>
             </span>
             <span
-              v-if="!loading && allDocs.length && filterActive"
+              v-if="!isLoading && allDocs.length && filterActive"
               class="inline-flex items-center rounded-full border border-outline-variant/70 bg-surface-lowest/90 px-2 py-0.5 text-[11px] font-medium text-onSurface backdrop-blur-sm"
             >
               필터 결과
@@ -314,7 +317,7 @@ onMounted(() => { void loadAll(); });
             <button
               type="button"
               class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
-              :disabled="loading || !canMutateBasis"
+              :disabled="isLoading || !canMutateBasis"
               title="admin 클레임·로그인 필요"
               @click="openBasisAddModal"
             >
@@ -332,7 +335,7 @@ onMounted(() => { void loadAll(); });
             <button
               type="button"
               class="min-h-[2.75rem] rounded-md border border-red-300/90 bg-surface-low px-3 py-2 text-xs font-medium text-red-800 transition hover:bg-red-50/80 disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-1.5 sm:text-sm"
-              :disabled="loading || !canMutateBasis || selectedCount === 0"
+              :disabled="isLoading || !canMutateBasis || selectedCount === 0"
               title="선택한 항목 삭제 · admin 필요"
               @click="deleteSelectedBasis"
             >
@@ -341,7 +344,7 @@ onMounted(() => { void loadAll(); });
             <button
               type="button"
               class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
-              :disabled="loading"
+              :disabled="isLoading"
               @click="() => void loadAll()"
             >
               새로고침
@@ -423,7 +426,7 @@ onMounted(() => { void loadAll(); });
     </div>
 
     <div
-      v-if="isFirebaseConfigured() && auth.ready && auth.isAuthenticated && !auth.isAdmin"
+      v-if="isFirebaseConfigured() && auth.isAuthReady && auth.isAuthenticated && !auth.isAdmin"
       class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-2.5 text-xs text-amber-950 shadow-sm"
     >
       <strong class="font-medium">admin</strong> 클레임이 있어야
@@ -439,10 +442,10 @@ onMounted(() => { void loadAll(); });
         v-if="hasMore"
         type="button"
         class="btn-secondary text-xs sm:text-sm"
-        :disabled="loadingMore || loading"
+        :disabled="isLoadingMore || isLoading"
         @click="loadMore"
       >
-        {{ loadingMore ? "불러오는 중…" : `다음 ${fetchCap.toLocaleString("ko-KR")}건 불러오기` }}
+        {{ isLoadingMore ? "불러오는 중…" : `다음 ${loadCap.toLocaleString("ko-KR")}건 불러오기` }}
       </button>
     </div>
     <div
@@ -452,7 +455,7 @@ onMounted(() => { void loadAll(); });
       {{ error }}
     </div>
     <div
-      v-else-if="loading"
+      v-else-if="isLoading"
       class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-outline-variant/80 bg-surface-low/50 py-16"
     >
       <div class="flex gap-1.5" aria-hidden="true">
@@ -463,7 +466,7 @@ onMounted(() => { void loadAll(); });
       <p class="text-sm font-medium text-onSurface-variant">hanja_basis 불러오는 중…</p>
     </div>
     <div
-      v-else-if="!loading && !allDocs.length"
+      v-else-if="!isLoading && !allDocs.length"
       class="rounded-2xl border border-dashed border-outline-variant bg-surface-low/40 px-6 py-14 text-center"
     >
       <p class="text-sm font-medium text-onSurface">아직 문서가 없습니다</p>
@@ -474,7 +477,7 @@ onMounted(() => { void loadAll(); });
       </p>
     </div>
     <div
-      v-else-if="!loading && allDocs.length && !totalCount"
+      v-else-if="!isLoading && allDocs.length && !totalCount"
       class="rounded-2xl border border-dashed border-outline-variant bg-surface-low/40 px-6 py-14 text-center"
     >
       <p class="text-sm font-medium text-onSurface">필터와 일치하는 행이 없습니다</p>
@@ -601,7 +604,7 @@ onMounted(() => { void loadAll(); });
           <button
             type="button"
             class="btn-secondary px-3 py-1.5 text-sm"
-            :disabled="loading || currentPage <= 0"
+            :disabled="isLoading || currentPage <= 0"
             @click="prevPage"
           >
             이전
@@ -617,7 +620,7 @@ onMounted(() => { void loadAll(); });
                   ? 'bg-primary text-white shadow-md shadow-primary/20'
                   : 'bg-surface-lowest text-onSurface ring-1 ring-outline-variant/50 hover:bg-surface-bright'
               "
-              :disabled="loading"
+              :disabled="isLoading"
               @click="goToPage(item - 1)"
             >
               {{ item }}
@@ -626,7 +629,7 @@ onMounted(() => { void loadAll(); });
           <button
             type="button"
             class="btn-secondary px-3 py-1.5 text-sm"
-            :disabled="loading || currentPage >= totalPages - 1"
+            :disabled="isLoading || currentPage >= totalPages - 1"
             @click="nextPage"
           >
             다음
@@ -658,7 +661,7 @@ onMounted(() => { void loadAll(); });
     <!-- 도움말 툴팁 -->
     <Teleport to="body">
       <div
-        v-if="basisManageHelpTooltipOpen"
+        v-if="isBasisManageHelpTooltipOpen"
         id="basis-manage-help-tooltip-text"
         class="fixed z-[10050] rounded-xl border border-outline-variant/80 bg-surface-lowest p-3.5 text-left text-xs leading-relaxed text-onSurface shadow-[0_16px_48px_rgba(25,28,30,0.18)] ring-1 ring-black/[0.06]"
         :style="basisManageHelpTooltipStyle"

@@ -85,14 +85,14 @@ final GoRouter appRouter = GoRouter(
       path: '${AppRoutes.hanjaDetail}/:id',
       name: 'hanja-detail',
       builder: (_, state) {
-        final String hanja = state.pathParameters['id'] ?? '佳';
+        final String hanjaCharacter = state.pathParameters['id'] ?? '佳';
         final String meaning = state.uri.queryParameters['meaning'] ?? '';
         final String radical = state.uri.queryParameters['radical'] ?? '人';
         final String radicalLabel = state.uri.queryParameters['radicalLabel'] ?? '';
         final int totalStrokes =
             int.tryParse(state.uri.queryParameters['totalStrokes'] ?? '8') ?? 8;
         return HanjaDetailScreen(
-          hanja: hanja,
+          hanja: hanjaCharacter,
           meaning: meaning,
           radical: radical,
           radicalLabel: radicalLabel,
@@ -104,9 +104,9 @@ final GoRouter appRouter = GoRouter(
       path: '${AppRoutes.study}/:hanja',
       name: 'study',
       builder: (_, state) {
-        final String hanja = state.pathParameters['hanja'] ?? '佳';
+        final String hanjaCharacter = state.pathParameters['hanja'] ?? '佳';
         final String meaning = state.uri.queryParameters['meaning'] ?? '';
-        return StudyScreen(hanja: hanja, meaning: meaning);
+        return StudyScreen(hanja: hanjaCharacter, meaning: meaning);
       },
     ),
     GoRoute(

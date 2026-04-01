@@ -10,7 +10,7 @@ import { getFirebaseAuth, isFirebaseConfigured } from "@/firebase";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
-  const ready = ref(false);
+  const isAuthReady = ref(false);
   const adminClaim = ref<boolean | null>(null);
   const tokenError = ref<string | null>(null);
 
@@ -27,7 +27,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   function bindAuthListener() {
     if (!isFirebaseConfigured()) {
-      ready.value = true;
+      isAuthReady.value = true;
       return;
     }
     if (unsub) return;
@@ -47,7 +47,7 @@ export const useAuthStore = defineStore("auth", () => {
             e instanceof Error ? e.message : "토큰을 읽을 수 없습니다.";
         }
       }
-      ready.value = true;
+      isAuthReady.value = true;
     });
   }
 
@@ -95,13 +95,15 @@ export const useAuthStore = defineStore("auth", () => {
     }
     tokenError.value = null;
     await user.value.getIdToken(true);
-    const t = await user.value.getIdTokenResult();
-    adminClaim.value = claimIsAdmin(t.claims as Record<string, unknown>);
+    const idTokenResult = await user.value.getIdTokenResult();
+    adminClaim.value = claimIsAdmin(
+      idTokenResult.claims as Record<string, unknown>,
+    );
   }
 
   return {
     user,
-    ready,
+    isAuthReady,
     adminClaim,
     tokenError,
     isAuthenticated,

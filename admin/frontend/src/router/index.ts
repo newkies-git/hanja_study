@@ -61,10 +61,10 @@ const router = createRouter({
 
 async function waitAuthReady() {
   const auth = useAuthStore();
-  if (auth.ready) return;
+  if (auth.isAuthReady) return;
   await new Promise<void>((resolve) => {
     const stop = watch(
-      () => auth.ready,
+      () => auth.isAuthReady,
       (val) => {
         if (val) {
           stop();

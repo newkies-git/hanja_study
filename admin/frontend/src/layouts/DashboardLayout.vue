@@ -14,7 +14,7 @@ const appOption = useAppOptionStore();
     <AppSidebar />
     <div
       class="flex min-h-0 min-w-0 flex-1 flex-col transition-[margin] duration-200"
-      :class="appOption.sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'"
+      :class="appOption.isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'"
     >
       <AppHeader />
       <main
@@ -25,7 +25,7 @@ const appOption = useAppOptionStore();
       <AppFooter />
     </div>
     <button
-      v-if="appOption.sidebarMobileOpen"
+      v-if="appOption.isSidebarMobileOpen"
       type="button"
       class="fixed inset-0 z-40 bg-onSurface/20 backdrop-blur-sm lg:hidden"
       aria-label="메뉴 닫기"

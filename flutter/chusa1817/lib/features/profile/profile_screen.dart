@@ -126,7 +126,7 @@ class ProfileScreen extends ConsumerWidget {
                       color: Colors.white,
                     ),
                   ),
-                  error: (err, stack) => Text(
+                  error: (error, _) => Text(
                     '오류',
                     style: textTheme.bodyMedium?.copyWith(color: Colors.white),
                   ),

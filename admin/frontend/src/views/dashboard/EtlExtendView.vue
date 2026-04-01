@@ -4,7 +4,10 @@ import { RouterLink } from "vue-router";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
-import { contains, usePaginatedCollection } from "@/composables/usePaginatedCollection";
+import {
+  textIncludesQueryIgnoreCase,
+  usePaginatedCollection,
+} from "@/composables/usePaginatedCollection";
 import {
   extractSvgPaths,
   preferLongerSvgPaths,
@@ -43,7 +46,7 @@ const {
   allDocs,
   rows,
   ids,
-  loading,
+  isLoading,
   error,
   filterWarning,
   pageSize,
@@ -61,9 +64,9 @@ const {
 } = usePaginatedCollection("hanja_basis", ({ id, data }) => {
   if (filterEtl.value === "Y" && !isEtlYes(id, data)) return false;
   if (filterEtl.value === "N" && isEtlYes(id, data)) return false;
-  if (!contains(String(data["한자"] ?? ""), search한자.value)) return false;
-  if (!contains(String(data["음"] ?? ""), search음.value)) return false;
-  if (!contains(String(data["훈"] ?? ""), search훈.value)) return false;
+  if (!textIncludesQueryIgnoreCase(String(data["한자"] ?? ""), search한자.value)) return false;
+  if (!textIncludesQueryIgnoreCase(String(data["음"] ?? ""), search음.value)) return false;
+  if (!textIncludesQueryIgnoreCase(String(data["훈"] ?? ""), search훈.value)) return false;
   return true;
 });
 
@@ -215,22 +218,22 @@ const strokePreviewRow = computed(() => {
   return allDocs.value.find((d) => d.id === id)?.data ?? null;
 });
 
-const strokeLoading = ref(false);
+const isStrokeFirestoreLoading = ref(false);
 const strokeFirestoreDocId = ref<string | null>(null);
 const strokeJsonEditorText = ref("");
 const strokeJsonBaseline = ref("");
 const strokeJsonSaveError = ref<string | null>(null);
-const strokeJsonSaving = ref(false);
+const isStrokeJsonSaving = ref(false);
 
-const strokeJsonDirty = computed(
+const isStrokeJsonDirty = computed(
   () => strokeJsonEditorText.value !== strokeJsonBaseline.value,
 );
 
-function svgPathsEmptyInStrokeJsonText(raw: string): boolean {
-  const t = raw.trim();
-  if (!t) return true;
+function isStrokeJsonTextWithEmptySvgPaths(raw: string): boolean {
+  const trimmedRaw = raw.trim();
+  if (!trimmedRaw) return true;
   let parsed: unknown;
-  try { parsed = JSON.parse(t); } catch { return false; }
+  try { parsed = JSON.parse(trimmedRaw); } catch { return false; }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return false;
   const sp = (parsed as Record<string, unknown>).svg_paths;
   if (sp === undefined || sp === null) return true;
@@ -239,9 +242,9 @@ function svgPathsEmptyInStrokeJsonText(raw: string): boolean {
   return !sp.some((x) => typeof x === "string" && x.trim().length > 0);
 }
 
-const strokeJsonSvgPathsEmpty = computed(() => {
+const hasEmptySvgPathsInStrokeJson = computed(() => {
   if (!selectedEtlDocId.value || !strokeFirestoreDocId.value) return false;
-  return svgPathsEmptyInStrokeJsonText(strokeJsonEditorText.value);
+  return isStrokeJsonTextWithEmptySvgPaths(strokeJsonEditorText.value);
 });
 
 const canMutateStrokeDoc = computed(
@@ -291,7 +294,7 @@ async function saveHanjaStrokeJson() {
     return;
   }
   if (!isFirebaseConfigured()) return;
-  strokeJsonSaving.value = true;
+  isStrokeJsonSaving.value = true;
   try {
     await auth.syncIdTokenForFirestore();
     const db = getFirestoreDb();
@@ -302,7 +305,7 @@ async function saveHanjaStrokeJson() {
   } catch (e) {
     strokeJsonSaveError.value = e instanceof Error ? e.message : "저장에 실패했습니다.";
   } finally {
-    strokeJsonSaving.value = false;
+    isStrokeJsonSaving.value = false;
   }
 }
 
@@ -318,7 +321,7 @@ async function loadStrokesFromFirestore() {
     strokeJsonEditorText.value = "";
     strokeJsonBaseline.value = "";
     strokeJsonSaveError.value = null;
-    strokeLoading.value = false;
+    isStrokeFirestoreLoading.value = false;
     return;
   }
 
@@ -329,11 +332,11 @@ async function loadStrokesFromFirestore() {
     strokeJsonEditorText.value = "";
     strokeJsonBaseline.value = "";
     strokeJsonSaveError.value = null;
-    strokeLoading.value = false;
+    isStrokeFirestoreLoading.value = false;
     return;
   }
 
-  strokeLoading.value = true;
+  isStrokeFirestoreLoading.value = true;
 
   try {
     const db = getFirestoreDb();
@@ -407,7 +410,7 @@ async function loadStrokesFromFirestore() {
     strokeJsonBaseline.value = "";
     console.error("[ETL] hanja_stroke 로드 실패", e instanceof Error ? e.message : e);
   } finally {
-    if (token === strokeLoadToken) strokeLoading.value = false;
+    if (token === strokeLoadToken) isStrokeFirestoreLoading.value = false;
   }
 }
 
@@ -416,7 +419,7 @@ watch([strokePreviewDocId, allDocs], () => { void loadStrokesFromFirestore(); })
 // ── 도움말 툴팁 ───────────────────────────────────────────────────────────────
 
 const etlHelpTriggerRef = ref<HTMLButtonElement | null>(null);
-const etlHelpTooltipOpen = ref(false);
+const isEtlHelpTooltipOpen = ref(false);
 const etlHelpTooltipStyle = ref<Record<string, string>>({});
 
 let etlHelpRemoveScrollListeners: (() => void) | null = null;
@@ -424,14 +427,14 @@ let etlHelpRemoveScrollListeners: (() => void) | null = null;
 function positionEtlHelpTooltip() {
   const el = etlHelpTriggerRef.value;
   if (!el) return;
-  const r = el.getBoundingClientRect();
+  const boundingRect = el.getBoundingClientRect();
   const margin = 10;
   const maxW = Math.min(352, window.innerWidth - margin * 2);
-  let left = r.left;
+  let left = boundingRect.left;
   if (left + maxW > window.innerWidth - margin) left = Math.max(margin, window.innerWidth - margin - maxW);
   if (left < margin) left = margin;
   etlHelpTooltipStyle.value = {
-    top: `${Math.round(r.bottom + margin)}px`,
+    top: `${Math.round(boundingRect.bottom + margin)}px`,
     left: `${Math.round(left)}px`,
     maxWidth: `${maxW}px`,
   };
@@ -439,13 +442,13 @@ function positionEtlHelpTooltip() {
 
 function openEtlHelpTooltip() {
   positionEtlHelpTooltip();
-  etlHelpTooltipOpen.value = true;
+  isEtlHelpTooltipOpen.value = true;
   void nextTick(() => positionEtlHelpTooltip());
 }
 
-function closeEtlHelpTooltip() { etlHelpTooltipOpen.value = false; }
+function closeEtlHelpTooltip() { isEtlHelpTooltipOpen.value = false; }
 
-watch(etlHelpTooltipOpen, (open) => {
+watch(isEtlHelpTooltipOpen, (open) => {
   etlHelpRemoveScrollListeners?.();
   etlHelpRemoveScrollListeners = null;
   if (!open) return;
@@ -499,7 +502,7 @@ onMounted(() => { void loadAll(); });
                 type="button"
                 class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
                 aria-label="획 데이터는 hanja_basis·hanja_stroke(동일 문서 ID)에서 읽습니다. 목록에서 행을 눌러 선택하면 우측 hanja_stroke JSON에 반영됩니다. 저장은 문서 전체 덮어쓰기입니다. 추가 수집은 admin/python/hanja_pipeline.py 를 사용합니다."
-                :aria-describedby="etlHelpTooltipOpen ? 'etl-help-tooltip-text' : undefined"
+                :aria-describedby="isEtlHelpTooltipOpen ? 'etl-help-tooltip-text' : undefined"
                 @mouseenter="openEtlHelpTooltip"
                 @mouseleave="closeEtlHelpTooltip"
                 @focus="openEtlHelpTooltip"
@@ -520,7 +523,7 @@ onMounted(() => { void loadAll(); });
               <span class="text-onSurface-variant">건</span>
             </span>
             <span
-              v-if="!loading && allDocs.length && filterActive"
+              v-if="!isLoading && allDocs.length && filterActive"
               class="inline-flex items-center rounded-full border border-outline-variant/70 bg-surface-lowest/90 px-2 py-0.5 text-[11px] font-medium text-onSurface backdrop-blur-sm"
             >
               필터
@@ -539,7 +542,7 @@ onMounted(() => { void loadAll(); });
             <button
               type="button"
               class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
-              :disabled="loading || !allDocs.length"
+              :disabled="isLoading || !allDocs.length"
               title="id는 한자(또는 문서) 기준 H+16진 코드포인트입니다. 열: id, 한자, 음. 최대 2,500건."
               @click="downloadHanjaBasisCsv"
             >
@@ -548,7 +551,7 @@ onMounted(() => { void loadAll(); });
             <button
               type="button"
               class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
-              :disabled="loading"
+              :disabled="isLoading"
               @click="() => void loadAll()"
             >
               새로고침
@@ -648,7 +651,7 @@ onMounted(() => { void loadAll(); });
       {{ error }}
     </div>
     <div
-      v-else-if="loading"
+      v-else-if="isLoading"
       class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-outline-variant/80 bg-surface-low/50 py-16"
     >
       <div class="flex gap-1.5" aria-hidden="true">
@@ -659,7 +662,7 @@ onMounted(() => { void loadAll(); });
       <p class="text-sm font-medium text-onSurface-variant">hanja_basis 불러오는 중…</p>
     </div>
     <div
-      v-else-if="!loading && !allDocs.length"
+      v-else-if="!isLoading && !allDocs.length"
       class="rounded-2xl border border-dashed border-outline-variant bg-surface-low/40 px-6 py-14 text-center"
     >
       <p class="text-sm font-medium text-onSurface">아직 문서가 없습니다</p>
@@ -677,7 +680,7 @@ onMounted(() => { void loadAll(); });
       </p>
     </div>
     <div
-      v-else-if="!loading && allDocs.length && !totalCount"
+      v-else-if="!isLoading && allDocs.length && !totalCount"
       class="rounded-2xl border border-dashed border-outline-variant bg-surface-low/40 px-6 py-14 text-center"
     >
       <p class="text-sm font-medium text-onSurface">필터와 일치하는 행이 없습니다</p>
@@ -782,7 +785,7 @@ onMounted(() => { void loadAll(); });
               <button
                 type="button"
                 class="btn-secondary px-2.5 py-1.5 text-xs"
-                :disabled="loading || currentPage <= 0"
+                :disabled="isLoading || currentPage <= 0"
                 @click="prevPage"
               >
                 이전
@@ -798,7 +801,7 @@ onMounted(() => { void loadAll(); });
                       ? 'bg-primary text-white shadow-md shadow-primary/20'
                       : 'bg-surface-lowest text-onSurface ring-1 ring-outline-variant/50 hover:bg-surface-bright'
                   "
-                  :disabled="loading"
+                  :disabled="isLoading"
                   @click="goToPage(item - 1)"
                 >
                   {{ item }}
@@ -807,7 +810,7 @@ onMounted(() => { void loadAll(); });
               <button
                 type="button"
                 class="btn-secondary px-2.5 py-1.5 text-xs"
-                :disabled="loading || currentPage >= totalPages - 1"
+                :disabled="isLoading || currentPage >= totalPages - 1"
                 @click="nextPage"
               >
                 다음
@@ -821,7 +824,7 @@ onMounted(() => { void loadAll(); });
           <div
             class="flex min-h-[min(52vh,28rem)] flex-1 flex-col overflow-hidden rounded-2xl border bg-surface-lowest shadow-float transition-[border-color,box-shadow] duration-200"
             :class="
-              strokeJsonSvgPathsEmpty
+              hasEmptySvgPathsInStrokeJson
                 ? 'border-amber-500/90 shadow-[0_0_0_1px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/20'
                 : 'border-outline-variant/70 ring-1 ring-black/[0.02]'
             "
@@ -850,7 +853,7 @@ onMounted(() => { void loadAll(); });
                 <button
                   type="button"
                   class="btn-primary px-3 py-1.5 text-xs shadow-md shadow-primary/15 sm:text-sm"
-                  :disabled="loading || !selectedEtlDocId"
+                  :disabled="isLoading || !selectedEtlDocId"
                   title="선택한 한 행 기준 CSV를 클립보드에 복사합니다."
                   @click="runEtlOnSelection"
                 >
@@ -860,7 +863,7 @@ onMounted(() => { void loadAll(); });
             </div>
 
             <div
-              v-if="firebaseConfigured && auth.ready && auth.isAuthenticated && !auth.isAdmin"
+              v-if="firebaseConfigured && auth.isAuthReady && auth.isAuthenticated && !auth.isAdmin"
               class="mx-3 mt-2 rounded-lg border border-amber-200/90 bg-amber-50/90 px-3 py-2 text-[11px] text-amber-950"
             >
               <strong class="font-medium">admin</strong> 클레임이 있어야 JSON을 저장할 수 있습니다.
@@ -889,7 +892,7 @@ onMounted(() => { void loadAll(); });
                 <textarea
                   v-else
                   v-model="strokeJsonEditorText"
-                  :readonly="strokeLoading || strokeJsonSaving"
+                  :readonly="isStrokeFirestoreLoading || isStrokeJsonSaving"
                   spellcheck="false"
                   class="input-minimal h-full min-h-[16rem] w-full resize-y rounded-lg border border-outline-variant/70 bg-surface-low px-3 py-2.5 font-mono text-[11px] leading-relaxed text-onSurface shadow-inner focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
                   aria-label="hanja_stroke JSON"
@@ -904,7 +907,7 @@ onMounted(() => { void loadAll(); });
                   <button
                     type="button"
                     class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
-                    :disabled="!strokeJsonDirty || strokeJsonSaving || strokeLoading"
+                    :disabled="!isStrokeJsonDirty || isStrokeJsonSaving || isStrokeFirestoreLoading"
                     @click="revertStrokeJsonEditor"
                   >
                     되돌리기
@@ -912,13 +915,13 @@ onMounted(() => { void loadAll(); });
                   <button
                     type="button"
                     class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
-                    :disabled="!strokeJsonDirty || !canMutateStrokeDoc || strokeJsonSaving || strokeLoading"
+                    :disabled="!isStrokeJsonDirty || !canMutateStrokeDoc || isStrokeJsonSaving || isStrokeFirestoreLoading"
                     title="admin · 로그인 필요 · 저장 시 hanja_stroke 문서 전체 덮어쓰기"
                     @click="saveHanjaStrokeJson"
                   >
-                    {{ strokeJsonSaving ? "저장 중…" : "Firestore에 저장" }}
+                    {{ isStrokeJsonSaving ? "저장 중…" : "Firestore에 저장" }}
                   </button>
-                  <span v-if="strokeJsonDirty" class="text-[11px] text-onSurface-variant">
+                  <span v-if="isStrokeJsonDirty" class="text-[11px] text-onSurface-variant">
                     저장되지 않은 변경 있음
                   </span>
                 </div>
@@ -931,7 +934,7 @@ onMounted(() => { void loadAll(); });
 
     <Teleport to="body">
       <div
-        v-if="etlHelpTooltipOpen"
+        v-if="isEtlHelpTooltipOpen"
         id="etl-help-tooltip-text"
         class="fixed z-[10050] rounded-xl border border-outline-variant/80 bg-surface-lowest p-3.5 text-left text-xs leading-relaxed text-onSurface shadow-[0_16px_48px_rgba(25,28,30,0.18)] ring-1 ring-black/[0.06]"
         :style="etlHelpTooltipStyle"

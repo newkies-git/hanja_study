@@ -13,10 +13,12 @@ Future<void> bootstrapFirebase() async {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     }
     await _ensureAnonymousUser();
-  } catch (e, st) {
-    debugPrint('Firebase 초기화/익명 로그인 실패 — Firestore 동기화는 사용할 수 없습니다: $e');
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Firebase 초기화/익명 로그인 실패 — Firestore 동기화는 사용할 수 없습니다: $error',
+    );
     if (kDebugMode) {
-      debugPrint('$st');
+      debugPrint('$stackTrace');
     }
   }
 }

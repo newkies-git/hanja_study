@@ -42,20 +42,20 @@ class FirestoreContentSyncService {
   FirestoreContentSyncService({
     required FirebaseFirestore firestore,
     required AppDatabase database,
-  })  : _fs = firestore,
-        _db = database;
+  })  : _firestore = firestore,
+        _database = database;
 
-  final FirebaseFirestore _fs;
-  final AppDatabase _db;
+  final FirebaseFirestore _firestore;
+  final AppDatabase _database;
 
   /// 원격 콘텐츠 버전 (없으면 null).
   Future<int?> fetchRemoteContentVersion() async {
     _ensureFirebase();
     final DocumentSnapshot<Map<String, dynamic>> doc =
-        await _fs.doc(FirestorePaths.configContentPath).get();
-    final Object? v = doc.data()?['contentVersion'];
-    if (v is int) return v;
-    if (v is num) return v.toInt();
+        await _firestore.doc(FirestorePaths.configContentPath).get();
+    final Object? rawVersion = doc.data()?['contentVersion'];
+    if (rawVersion is int) return rawVersion;
+    if (rawVersion is num) return rawVersion.toInt();
     return null;
   }
 
@@ -68,7 +68,7 @@ class FirestoreContentSyncService {
 
     final int? remoteVersion = await fetchRemoteContentVersion();
 
-    await _db.into(_db.contentConfigTable).insertOnConflictUpdate(
+    await _database.into(_database.contentConfigTable).insertOnConflictUpdate(
           ContentConfigTableCompanion(
             id: const Value(FirestorePaths.localContentConfigRowId),
             contentVersion: Value(remoteVersion),
@@ -79,28 +79,31 @@ class FirestoreContentSyncService {
     int basisCount = 0;
     int extendCount = 0;
 
-    await _db.transaction(() async {
-      await _db.delete(_db.hanjaStrokeTable).go();
-      await _db.delete(_db.hanjaWordTable).go();
-      await _db.delete(_db.hanjaIdiomTable).go();
-      await _db.delete(_db.hanjaExtendTable).go();
-      await _db.delete(_db.hanjaTable).go();
+    await _database.transaction(() async {
+      await _database.delete(_database.hanjaStrokeTable).go();
+      await _database.delete(_database.hanjaWordTable).go();
+      await _database.delete(_database.hanjaIdiomTable).go();
+      await _database.delete(_database.hanjaExtendTable).go();
+      await _database.delete(_database.hanjaTable).go();
     });
 
-    Query<Map<String, dynamic>> basisQ = _fs
+    Query<Map<String, dynamic>> basisQuery = _firestore
         .collection(FirestorePaths.hanjaBasisCollection)
         .orderBy(FieldPath.documentId);
 
     for (;;) {
       final QuerySnapshot<Map<String, dynamic>> page =
-          await basisQ.limit(pageSize).get();
+          await basisQuery.limit(pageSize).get();
       if (page.docs.isEmpty) break;
 
-      await _db.transaction(() async {
-        for (final QueryDocumentSnapshot<Map<String, dynamic>> d in page.docs) {
-          final HanjaTableCompanion row =
-              FirestoreBasisMapper.hanjaFromBasisDoc(d.id, d.data());
-          await _db.into(_db.hanjaTable).insertOnConflictUpdate(
+      await _database.transaction(() async {
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> docSnapshot
+            in page.docs) {
+          final HanjaTableCompanion row = FirestoreBasisMapper.hanjaFromBasisDoc(
+            docSnapshot.id,
+            docSnapshot.data(),
+          );
+          await _database.into(_database.hanjaTable).insertOnConflictUpdate(
                 row.copyWith(updatedAt: Value(DateTime.now())),
               );
           basisCount++;
@@ -108,35 +111,36 @@ class FirestoreContentSyncService {
       });
 
       if (page.docs.length < pageSize) break;
-      basisQ = _fs
+      basisQuery = _firestore
           .collection(FirestorePaths.hanjaBasisCollection)
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
     }
 
-    Query<Map<String, dynamic>> extendQ = _fs
+    Query<Map<String, dynamic>> extendQuery = _firestore
         .collection(FirestorePaths.hanjaExtendCollection)
         .orderBy(FieldPath.documentId);
 
     for (;;) {
       final QuerySnapshot<Map<String, dynamic>> page =
-          await extendQ.limit(pageSize).get();
+          await extendQuery.limit(pageSize).get();
       if (page.docs.isEmpty) break;
 
-      await _db.transaction(() async {
-        for (final QueryDocumentSnapshot<Map<String, dynamic>> d in page.docs) {
-          final Map<String, dynamic> data = d.data();
-          await _db.into(_db.hanjaExtendTable).insertOnConflictUpdate(
+      await _database.transaction(() async {
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> docSnapshot
+            in page.docs) {
+          final Map<String, dynamic> data = docSnapshot.data();
+          await _database.into(_database.hanjaExtendTable).insertOnConflictUpdate(
                 HanjaExtendTableCompanion.insert(
-                  id: d.id,
+                  id: docSnapshot.id,
                   payloadJson: jsonEncode(data),
                   syncedAt: Value(DateTime.now()),
                 ),
               );
 
           final HanjaTableCompanion extended =
-              FirestoreHanjaMapper.hanjaFromMap(d.id, data);
-          await _db.into(_db.hanjaTable).insertOnConflictUpdate(
+              FirestoreHanjaMapper.hanjaFromMap(docSnapshot.id, data);
+          await _database.into(_database.hanjaTable).insertOnConflictUpdate(
                 extended.copyWith(updatedAt: Value(DateTime.now())),
               );
           extendCount++;
@@ -144,7 +148,7 @@ class FirestoreContentSyncService {
       });
 
       if (page.docs.length < pageSize) break;
-      extendQ = _fs
+      extendQuery = _firestore
           .collection(FirestorePaths.hanjaExtendCollection)
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
@@ -156,18 +160,19 @@ class FirestoreContentSyncService {
     int strokeDocCount = 0;
     int strokeRowCount = 0;
 
-    Query<Map<String, dynamic>> strokeQ = _fs
+    Query<Map<String, dynamic>> strokeQuery = _firestore
         .collection(FirestorePaths.hanjaStrokeCollection)
         .orderBy(FieldPath.documentId);
 
     for (;;) {
       final QuerySnapshot<Map<String, dynamic>> page =
-          await strokeQ.limit(pageSize).get();
+          await strokeQuery.limit(pageSize).get();
       if (page.docs.isEmpty) break;
 
-      await _db.transaction(() async {
-        for (final QueryDocumentSnapshot<Map<String, dynamic>> d in page.docs) {
-          final Map<String, dynamic> data = d.data();
+      await _database.transaction(() async {
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> docSnapshot
+            in page.docs) {
+          final Map<String, dynamic> data = docSnapshot.data();
           final String? hanjaId = _resolveHanjaIdForStroke(
             data,
             hanjaIds,
@@ -178,19 +183,21 @@ class FirestoreContentSyncService {
           final List<dynamic>? strokes = data['strokes'] as List<dynamic>?;
           if (strokes == null || strokes.isEmpty) continue;
 
-          final List<HanjaStrokeTableCompanion> rows =
+          final List<HanjaStrokeTableCompanion> strokeRows =
               FirestoreStrokeMapper.strokesFromEmbeddedList(hanjaId, strokes);
-          if (rows.isEmpty) continue;
+          if (strokeRows.isEmpty) continue;
           strokeDocCount++;
-          for (final HanjaStrokeTableCompanion c in rows) {
-            await _db.into(_db.hanjaStrokeTable).insertOnConflictUpdate(c);
+          for (final HanjaStrokeTableCompanion strokeCompanion in strokeRows) {
+            await _database
+                .into(_database.hanjaStrokeTable)
+                .insertOnConflictUpdate(strokeCompanion);
             strokeRowCount++;
           }
         }
       });
 
       if (page.docs.length < pageSize) break;
-      strokeQ = _fs
+      strokeQuery = _firestore
           .collection(FirestorePaths.hanjaStrokeCollection)
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
@@ -199,44 +206,50 @@ class FirestoreContentSyncService {
     int wordCount = 0;
     int idiomCount = 0;
 
-    Query<Map<String, dynamic>> wordQ = _fs
+    Query<Map<String, dynamic>> wordQuery = _firestore
         .collection(FirestorePaths.hanjaWordCollection)
         .orderBy(FieldPath.documentId);
 
     for (;;) {
       final QuerySnapshot<Map<String, dynamic>> page =
-          await wordQ.limit(pageSize).get();
+          await wordQuery.limit(pageSize).get();
       if (page.docs.isEmpty) break;
 
-      await _db.transaction(() async {
-        for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+      await _database.transaction(() async {
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> wordDocSnapshot
             in page.docs) {
-          final Map<String, dynamic> data = doc.data();
-          final List<String> related = _relatedHanjaChars(data);
+          final Map<String, dynamic> data = wordDocSnapshot.data();
+          final List<String> relatedCharacters = _relatedHanjaChars(data);
           final String entryType = data['entry_type']?.toString() ?? '단어';
 
-          for (final String ch in related.toSet()) {
-            final String? hid = charToHanjaId[ch];
-            if (hid == null) continue;
+          for (final String relatedCharacter in relatedCharacters.toSet()) {
+            final String? relatedHanjaId = charToHanjaId[relatedCharacter];
+            if (relatedHanjaId == null) continue;
 
             if (entryType == '성어') {
-              final HanjaIdiomTableCompanion? row = FirestoreWordMapper.idiomRow(
-                wordDocId: doc.id,
-                hanjaId: hid,
+              final HanjaIdiomTableCompanion? idiomCompanion =
+                  FirestoreWordMapper.idiomRow(
+                wordDocId: wordDocSnapshot.id,
+                hanjaId: relatedHanjaId,
                 data: data,
               );
-              if (row != null) {
-                await _db.into(_db.hanjaIdiomTable).insertOnConflictUpdate(row);
+              if (idiomCompanion != null) {
+                await _database
+                    .into(_database.hanjaIdiomTable)
+                    .insertOnConflictUpdate(idiomCompanion);
                 idiomCount++;
               }
             } else {
-              final HanjaWordTableCompanion? row = FirestoreWordMapper.wordRow(
-                wordDocId: doc.id,
-                hanjaId: hid,
+              final HanjaWordTableCompanion? wordCompanion =
+                  FirestoreWordMapper.wordRow(
+                wordDocId: wordDocSnapshot.id,
+                hanjaId: relatedHanjaId,
                 data: data,
               );
-              if (row != null) {
-                await _db.into(_db.hanjaWordTable).insertOnConflictUpdate(row);
+              if (wordCompanion != null) {
+                await _database
+                    .into(_database.hanjaWordTable)
+                    .insertOnConflictUpdate(wordCompanion);
                 wordCount++;
               }
             }
@@ -245,7 +258,7 @@ class FirestoreContentSyncService {
       });
 
       if (page.docs.length < pageSize) break;
-      wordQ = _fs
+      wordQuery = _firestore
           .collection(FirestorePaths.hanjaWordCollection)
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
@@ -277,35 +290,39 @@ class FirestoreContentSyncService {
     Set<String> hanjaIds,
     Map<String, String> charToHanjaId,
   ) {
-    final String sid = data['stroke_data_id']?.toString().trim() ?? '';
-    if (sid.isNotEmpty && hanjaIds.contains(sid)) return sid;
-
-    final String ch = data['char']?.toString().trim() ?? '';
-    if (ch.isNotEmpty) {
-      final String? byChar = charToHanjaId[ch];
-      if (byChar != null) return byChar;
+    final String strokeDataId = data['stroke_data_id']?.toString().trim() ?? '';
+    if (strokeDataId.isNotEmpty && hanjaIds.contains(strokeDataId)) {
+      return strokeDataId;
     }
-    if (sid.isNotEmpty) return sid;
+
+    final String character = data['char']?.toString().trim() ?? '';
+    if (character.isNotEmpty) {
+      final String? hanjaIdByChar = charToHanjaId[character];
+      if (hanjaIdByChar != null) return hanjaIdByChar;
+    }
+    if (strokeDataId.isNotEmpty) return strokeDataId;
     return null;
   }
 
   Future<Set<String>> _loadHanjaIds() async {
-    final List<HanjaTableData> rows = await _db.select(_db.hanjaTable).get();
-    return rows.map((r) => r.id).toSet();
+    final List<HanjaTableData> rows =
+        await _database.select(_database.hanjaTable).get();
+    return rows.map((hanjaRow) => hanjaRow.id).toSet();
   }
 
   Future<Map<String, String>> _loadCharacterToHanjaIdMap() async {
-    final List<HanjaTableData> rows = await _db.select(_db.hanjaTable).get();
+    final List<HanjaTableData> rows =
+        await _database.select(_database.hanjaTable).get();
     final Map<String, String> map = {};
-    for (final HanjaTableData r in rows) {
-      map.putIfAbsent(r.character, () => r.id);
+    for (final HanjaTableData hanjaRow in rows) {
+      map.putIfAbsent(hanjaRow.character, () => hanjaRow.id);
     }
     return map;
   }
 
   List<String> _relatedHanjaChars(Map<String, dynamic> data) {
-    final Object? raw = data['related_hanja'];
-    if (raw is! List) return [];
-    return raw.map((e) => e.toString()).toList();
+    final Object? rawRelated = data['related_hanja'];
+    if (rawRelated is! List) return [];
+    return rawRelated.map((item) => item.toString()).toList();
   }
 }

@@ -5,24 +5,24 @@ import { ref } from "vue";
  * HUD 템플릿의 app-option과 유사: 사이드바·모바일 오버레이 상태만 유지한다.
  */
 export const useAppOptionStore = defineStore("appOption", () => {
-  const sidebarCollapsed = ref(false);
-  const sidebarMobileOpen = ref(false);
+  const isSidebarCollapsed = ref(false);
+  const isSidebarMobileOpen = ref(false);
 
   function toggleSidebarCollapsed() {
-    sidebarCollapsed.value = !sidebarCollapsed.value;
+    isSidebarCollapsed.value = !isSidebarCollapsed.value;
   }
 
   function toggleSidebarMobile() {
-    sidebarMobileOpen.value = !sidebarMobileOpen.value;
+    isSidebarMobileOpen.value = !isSidebarMobileOpen.value;
   }
 
   function closeSidebarMobile() {
-    sidebarMobileOpen.value = false;
+    isSidebarMobileOpen.value = false;
   }
 
   return {
-    sidebarCollapsed,
-    sidebarMobileOpen,
+    isSidebarCollapsed,
+    isSidebarMobileOpen,
     toggleSidebarCollapsed,
     toggleSidebarMobile,
     closeSidebarMobile,

@@ -42,13 +42,13 @@ def merge_split_outputs(output_dir: Path) -> None:
     """
     output_dir = output_dir.resolve()
     bases = ("hanja_entities", "stroke_entities", "word_entities")
-    for base in bases:
+    for output_stem in bases:
         paths = sorted(
-            output_dir.glob(f"{base}.part*.json"),
-            key=lambda p: _part_index_from_name(p.name),
+            output_dir.glob(f"{output_stem}.part*.json"),
+            key=lambda path: _part_index_from_name(path.name),
         )
         if not paths:
-            print(f"[merge] 건너뜀 (파트 없음): {base}")
+            print(f"[merge] 건너뜀 (파트 없음): {output_stem}")
             continue
         merged: List[Any] = []
         for path in paths:
@@ -56,14 +56,14 @@ def merge_split_outputs(output_dir: Path) -> None:
             if not isinstance(chunk, list):
                 raise TypeError(f"{path}는 JSON 배열이어야 합니다.")
             merged.extend(chunk)
-        out_path = output_dir / f"{base}.json"
+        out_path = output_dir / f"{output_stem}.json"
         save_json(out_path, merged)
         print(f"[merge] {len(paths)}개 파트 → {out_path} ({len(merged)}건)")
 
 
 def _part_index_from_name(filename: str) -> int:
-    m = _PART_SUFFIX_RE.search(filename)
-    return int(m.group(1)) if m else -1
+    suffix_match = _PART_SUFFIX_RE.search(filename)
+    return int(suffix_match.group(1)) if suffix_match else -1
 
 
 class PipelineRunner:
@@ -113,37 +113,40 @@ class PipelineRunner:
                     (chunk_index, chunks[chunk_index])
                 ]
             else:
-                work = [(i, chs) for i, chs in enumerate(chunks)]
+                work = [
+                    (chunk_index, character_chunk)
+                    for chunk_index, character_chunk in enumerate(chunks)
+                ]
         else:
             if chunk_index is not None:
                 raise ValueError("chunk_index는 --split-files 와 함께만 사용할 수 있습니다.")
             work = [(0, characters)]
 
-        failed_chars: Set[str] = set()
-        processed_chars: Set[str] = set()
+        failed_hanja_chars: Set[str] = set()
+        attempted_hanja_chars: Set[str] = set()
         with sync_playwright() as playwright:
             browser, context = ChromiumBrowserFactory.create_browser_and_context(
                 playwright, headless=headless
             )
-            for part_idx, chs in work:
-                if not chs:
+            for part_idx, character_chunk in work:
+                if not character_chunk:
                     print(f"[파트 {part_idx:03d}] 한자 0건 — 건너뜀")
                     continue
                 label = f"part {part_idx:03d}" if use_parts else "단일"
-                print(f"[{label}] {len(chs)}자 처리")
-                part_failed, part_ok = self._scrape_naver_targets(
+                print(f"[{label}] {len(character_chunk)}자 처리")
+                part_failed_chars, part_attempted_chars = self._scrape_naver_targets(
                     context,
-                    chs,
+                    character_chunk,
                     throttle_ms=throttle_ms,
                     part_index=part_idx if use_parts else None,
                 )
-                failed_chars |= part_failed
-                processed_chars |= part_ok
+                failed_hanja_chars |= part_failed_chars
+                attempted_hanja_chars |= part_attempted_chars
             browser.close()
 
-        update_csv_errors(csv_path, failed_chars, processed_chars)
-        if failed_chars:
-            print(f"[CSV] 오류 표시 {len(failed_chars)}자 → {csv_path}")
+        update_csv_errors(csv_path, failed_hanja_chars, attempted_hanja_chars)
+        if failed_hanja_chars:
+            print(f"[CSV] 오류 표시 {len(failed_hanja_chars)}자 → {csv_path}")
 
         if use_parts:
             self._print_outputs_parts()
@@ -172,29 +175,31 @@ class PipelineRunner:
         hanja_entities: List[Dict[str, Any]] = []
         stroke_entities: List[Dict[str, Any]] = []
         word_entities: List[Dict[str, Any]] = []
-        failed: Set[str] = set()
-        processed: Set[str] = set()
+        failed_hanja_chars: Set[str] = set()
+        attempted_hanja_chars: Set[str] = set()
 
         total = len(target_chars)
-        for index, ch in enumerate(target_chars, start=1):
-            print(f"  - ({index}/{total}) {ch}")
-            processed.add(ch)
+        for index, hanja_character in enumerate(target_chars, start=1):
+            print(f"  - ({index}/{total}) {hanja_character}")
+            attempted_hanja_chars.add(hanja_character)
             try:
-                hanja_e, stroke_e, words = self._scrape.scrape_one_character(
-                    naver_page, ch
+                hanja_entity, stroke_entity, word_entity_list = (
+                    self._scrape.scrape_one_character(naver_page, hanja_character)
                 )
-                hanja_entities.append(hanja_e.model_dump())
-                stroke_entities.append(stroke_e.model_dump())
-                word_entities.extend(w.model_dump() for w in words)
+                hanja_entities.append(hanja_entity.model_dump())
+                stroke_entities.append(stroke_entity.model_dump())
+                word_entities.extend(
+                    word.model_dump() for word in word_entity_list
+                )
                 naver_page.wait_for_timeout(throttle_ms)
-            except Exception as exc:
-                failed.add(ch)
-                print(f"    ! 오류: {ch} -> {exc}")
+            except Exception as error:
+                failed_hanja_chars.add(hanja_character)
+                print(f"    ! 오류: {hanja_character} -> {error}")
 
         save_json(hanja_path, hanja_entities)
         save_json(stroke_path, stroke_entities)
         save_json(word_path, word_entities)
-        return failed, processed
+        return failed_hanja_chars, attempted_hanja_chars
 
     def _print_outputs(self) -> None:
         print("\n완료")

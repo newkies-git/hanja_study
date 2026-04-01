@@ -13,17 +13,17 @@ class StrokeGeometryCalculator:
     def sample_path_points(self, path_d: str, sample_count: int = 24) -> List[List[float]]:
         path = parse_path(path_d)
         points: List[List[float]] = []
-        for i in range(sample_count):
-            t = i / max(sample_count - 1, 1)
-            point = path.point(t)
+        for sample_index in range(sample_count):
+            interpolation_t = sample_index / max(sample_count - 1, 1)
+            point = path.point(interpolation_t)
             points.append([round(float(point.real), 3), round(float(point.imag), 3)])
         return points
 
     def normalize_to_unit_square(self, points: List[List[float]]) -> List[List[float]]:
         if not points:
             return points
-        xs = [p[0] for p in points]
-        ys = [p[1] for p in points]
+        xs = [point[0] for point in points]
+        ys = [point[1] for point in points]
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
         dx = max(max_x - min_x, 1e-6)

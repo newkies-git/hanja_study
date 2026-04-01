@@ -40,17 +40,17 @@ class NaverHanjaDictionaryBrowserClient:
         본문 줄바꿈을 유지한 텍스트. 단어·성어·부수 줄 단위 파싱에 사용.
         (공백만 합친 get_normalized_visible_text 는 구조가 무너짐)
         """
-        raw = self._page.inner_text("body", timeout=30000)
-        lines = [ln.strip() for ln in raw.splitlines()]
-        out: list[str] = []
+        raw_body_text = self._page.inner_text("body", timeout=30000)
+        lines = [line.strip() for line in raw_body_text.splitlines()]
+        normalized_lines: list[str] = []
         prev_empty = False
-        for ln in lines:
-            empty = not ln
+        for line in lines:
+            empty = not line
             if empty and prev_empty:
                 continue
-            out.append(ln)
+            normalized_lines.append(line)
             prev_empty = empty
-        return "\n".join(out)
+        return "\n".join(normalized_lines)
 
     def open_stroke_order_modal(self) -> bool:
         """
@@ -58,9 +58,9 @@ class NaverHanjaDictionaryBrowserClient:
         SVG는 iframe.svgAni( ssl.pstatic.net dicimg aniSVG )에 로드된다.
         """
         try:
-            btn = self._page.get_by_role("button", name="획순보기").first
-            btn.wait_for(state="visible", timeout=10000)
-            btn.click(timeout=8000)
+            stroke_order_button = self._page.get_by_role("button", name="획순보기").first
+            stroke_order_button.wait_for(state="visible", timeout=10000)
+            stroke_order_button.click(timeout=8000)
         except Exception:
             for selector in (
                 "text=획순보기",
@@ -101,13 +101,15 @@ class NaverHanjaDictionaryBrowserClient:
         획순 iframe 내부에서 stroke-normal / stroke-radical path의 d를
         id 접미 숫자(d1, d2, …) 순으로 정렬해 반환한다.
         """
-        fl = self._page.frame_locator(_STROKE_IFRAME_SELECTOR).first
-        fl.locator("path[d]").first.wait_for(state="attached", timeout=15000)
+        stroke_iframe_locator = self._page.frame_locator(_STROKE_IFRAME_SELECTOR).first
+        stroke_iframe_locator.locator("path[d]").first.wait_for(
+            state="attached", timeout=15000
+        )
 
-        count = fl.locator("path[d]").count()
+        path_element_count = stroke_iframe_locator.locator("path[d]").count()
         ordered: list[tuple[int, str]] = []
-        for i in range(count):
-            path = fl.locator("path[d]").nth(i)
+        for path_index in range(path_element_count):
+            path = stroke_iframe_locator.locator("path[d]").nth(path_index)
             class_attr = path.get_attribute("class") or ""
             if "stroke-normal" not in class_attr and "stroke-radical" not in class_attr:
                 continue
@@ -120,5 +122,5 @@ class NaverHanjaDictionaryBrowserClient:
                 continue
             ordered.append((int(match.group(1)), d_attr))
 
-        ordered.sort(key=lambda x: x[0])
-        return [d for _, d in ordered]
+        ordered.sort(key=lambda order_and_d: order_and_d[0])
+        return [path_d for _, path_d in ordered]

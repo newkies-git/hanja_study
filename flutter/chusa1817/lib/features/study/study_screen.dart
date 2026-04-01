@@ -32,7 +32,7 @@ class _StudyScreenState extends State<StudyScreen> {
     super.dispose();
   }
 
-  void _onComplete() {
+  void _navigateToPracticeResult() {
     context.push(AppRoutes.practiceResult);
   }
 
@@ -171,7 +171,7 @@ class _StudyScreenState extends State<StudyScreen> {
           icon: Icons.arrow_forward,
           label: '완료',
           variant: PracticeActionTileVariant.primary,
-          onTap: _onComplete,
+          onTap: _navigateToPracticeResult,
         ),
       ],
     );

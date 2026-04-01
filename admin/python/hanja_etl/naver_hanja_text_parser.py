@@ -54,35 +54,35 @@ class NaverHanjaTextParser:
         stroke_count = 0
         grade_level = ""
 
-        mr = _RADICAL_MAIN_LINE.search(page_text)
-        if not mr:
-            mr = _RADICAL_FALLBACK.search(page_text)
-        if mr:
-            radical = (mr.group(1) or "").strip()
-            radical_meaning = (mr.group(2) or "").strip()
-            stroke_count = int(mr.group(3))
+        radical_match = _RADICAL_MAIN_LINE.search(page_text)
+        if not radical_match:
+            radical_match = _RADICAL_FALLBACK.search(page_text)
+        if radical_match:
+            radical = (radical_match.group(1) or "").strip()
+            radical_meaning = (radical_match.group(2) or "").strip()
+            stroke_count = int(radical_match.group(3))
 
         if not stroke_count:
-            ms = re.search(r"총\s*획수\s*(\d+)획", page_text)
-            if ms:
-                stroke_count = int(ms.group(1))
+            stroke_count_match = re.search(r"총\s*획수\s*(\d+)획", page_text)
+            if stroke_count_match:
+                stroke_count = int(stroke_count_match.group(1))
 
-        mg = re.search(r"(준?특?[\d]+급|준[\d]+급)", page_text)
-        if mg:
-            grade_level = mg.group(1)
+        grade_match = re.search(r"(준?특?[\d]+급|준[\d]+급)", page_text)
+        if grade_match:
+            grade_level = grade_match.group(1)
 
         school_level = infer_school_level_from_text(page_text)
 
         origin_note = ""
         shape_explanation = ""
         if "한자 유래" in page_text or "의 한자 유래" in page_text:
-            mo = re.search(
+            origin_match = re.search(
                 r"(?:의\s*)?한자 유래\s*\n(.+?)(?:\n\n|\n\[한자로드|\n오픈사전|\Z)",
                 page_text,
                 re.DOTALL,
             )
-            if mo:
-                origin_note = normalize_whitespace(mo.group(1))
+            if origin_match:
+                origin_note = normalize_whitespace(origin_match.group(1))
                 if len(origin_note) > 800:
                     origin_note = origin_note[:800] + "…"
                 shape_explanation = origin_note[:200]
@@ -105,35 +105,35 @@ class NaverHanjaTextParser:
         )
 
     def _slice_word_idiom_section(self, page_text: str) -> str:
-        m = re.search(r"단어·성어\s+[\d,]+", page_text)
-        if not m:
+        section_head_match = re.search(r"단어·성어\s+[\d,]+", page_text)
+        if not section_head_match:
             return ""
-        start = m.end()
+        start = section_head_match.end()
         rest = page_text[start:]
-        end_m = re.search(
+        section_end_match = re.search(
             r"(?:^|\n)단어·성어\s+더보기|(?:^|\n)[^\n]*의 한자 유래\n",
             rest,
         )
-        if end_m:
-            return rest[: end_m.start()]
+        if section_end_match:
+            return rest[: section_end_match.start()]
         return rest
 
     @staticmethod
     def _meaning_from_block_lines(lines: List[str], start: int) -> str:
         parts: List[str] = []
         for line in lines[start:]:
-            s = line.strip()
-            if not s:
+            stripped_line = line.strip()
+            if not stripped_line:
                 if parts:
                     break
                 continue
-            if "단어장에 저장" in s:
+            if "단어장에 저장" in stripped_line:
                 continue
-            if s == _SPLIT_VENDOR:
+            if stripped_line == _SPLIT_VENDOR:
                 break
-            if re.fullmatch(r"\d+\.", s):
+            if re.fullmatch(r"\d+\.", stripped_line):
                 continue
-            parts.append(s)
+            parts.append(stripped_line)
         return normalize_whitespace(" ".join(parts))[:2500]
 
     def build_word_entities(self, character: str, page_text: str) -> List[WordEntity]:
@@ -148,12 +148,16 @@ class NaverHanjaTextParser:
             block = block.strip()
             if not block:
                 continue
-            lines = [ln.rstrip() for ln in block.splitlines() if ln.strip()]
+            lines = [
+                line.rstrip() for line in block.splitlines() if line.strip()
+            ]
 
             head_idx = 0
             while head_idx < len(lines):
-                ln = lines[head_idx]
-                if "단어장에 저장" in ln or ln.startswith("오픈사전"):
+                candidate_line = lines[head_idx]
+                if "단어장에 저장" in candidate_line or candidate_line.startswith(
+                    "오픈사전"
+                ):
                     head_idx += 1
                     continue
                 break
@@ -162,41 +166,49 @@ class NaverHanjaTextParser:
 
             head = lines[head_idx].strip()
 
-            idiom_m = _IDIOM_HEAD.match(head)
-            if idiom_m:
-                hanja_w = idiom_m.group(1).strip()
-                word_k = idiom_m.group(2).strip()
-                if character not in hanja_w:
+            idiom_match = _IDIOM_HEAD.match(head)
+            if idiom_match:
+                idiom_hanja_text = idiom_match.group(1).strip()
+                idiom_reading_text = idiom_match.group(2).strip()
+                if character not in idiom_hanja_text:
                     continue
                 meaning = self._meaning_from_block_lines(lines, head_idx + 1)
                 collected.append(
                     self._make_word_entity(
-                        word_k, hanja_w, meaning, "성어", character
+                        idiom_reading_text,
+                        idiom_hanja_text,
+                        meaning,
+                        "성어",
+                        character,
                     )
                 )
                 continue
 
-            cw = _COMPOUND_WORD_HEAD.match(head)
-            if cw:
-                hanja_w = cw.group(1).strip()
-                word_k = cw.group(2).strip()
-                if character not in hanja_w:
+            compound_match = _COMPOUND_WORD_HEAD.match(head)
+            if compound_match:
+                compound_hanja_text = compound_match.group(1).strip()
+                compound_reading_text = compound_match.group(2).strip()
+                if character not in compound_hanja_text:
                     continue
-                if len(hanja_w) < 2:
+                if len(compound_hanja_text) < 2:
                     continue
                 meaning = self._meaning_from_block_lines(lines, head_idx + 1)
                 if not meaning:
                     continue
                 collected.append(
                     self._make_word_entity(
-                        word_k, hanja_w, meaning, "단어", character
+                        compound_reading_text,
+                        compound_hanja_text,
+                        meaning,
+                        "단어",
+                        character,
                     )
                 )
 
-        dedup: Dict[Tuple[str, str, str], WordEntity] = {}
+        deduplicated_by_key: Dict[Tuple[str, str, str], WordEntity] = {}
         for item in collected:
-            dedup[(item.word, item.hanja, item.entry_type)] = item
-        return list(dedup.values())
+            deduplicated_by_key[(item.word, item.hanja, item.entry_type)] = item
+        return list(deduplicated_by_key.values())
 
     def _make_word_entity(
         self,
@@ -206,7 +218,7 @@ class NaverHanjaTextParser:
         entry_type: str,
         head_character: str,
     ) -> WordEntity:
-        related = [c for c in hanja if CJK_RE.match(c)]
+        related = [glyph for glyph in hanja if CJK_RE.match(glyph)]
         return WordEntity(
             word_id=make_word_entity_id(word, hanja, entry_type),
             hanja_id=make_hanja_entity_id(head_character),

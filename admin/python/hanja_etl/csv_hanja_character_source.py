@@ -32,13 +32,13 @@ class CsvHanjaCharacterSource:
     @staticmethod
     def hanja_from_data_row(row: List[str]) -> Optional[str]:
         """데이터 행(헤더 아님)에서 한 글자 한자를 꺼낸다."""
-        if not row or not any(c.strip() for c in row):
+        if not row or not any(cell.strip() for cell in row):
             return None
-        row = [c.strip() for c in row]
-        key0 = row[0]
-        if key0.lower() == "id" or key0 == "한자":
+        row = [cell.strip() for cell in row]
+        first_cell = row[0]
+        if first_cell.lower() == "id" or first_cell == "한자":
             return None
-        if len(row) >= 2 and CsvHanjaCharacterSource._looks_like_basis_id(key0):
+        if len(row) >= 2 and CsvHanjaCharacterSource._looks_like_basis_id(first_cell):
             field = row[1]
         else:
             field = row[0]
@@ -72,7 +72,7 @@ class CsvHanjaCharacterSource:
             return None
         if not row:
             return None
-        row = [c.strip() for c in row]
+        row = [cell.strip() for cell in row]
         if len(row) >= 2 and CsvHanjaCharacterSource._looks_like_basis_id(row[0]):
             target = row[1]
         else:
@@ -86,17 +86,17 @@ class CsvHanjaCharacterSource:
         raw = self._path.read_text(encoding="utf-8-sig")
         ordered: List[str] = []
         for row in csv.reader(StringIO(raw)):
-            if not row or not any(c.strip() for c in row):
+            if not row or not any(cell.strip() for cell in row):
                 continue
-            row = [c.strip() for c in row]
-            key0 = row[0].strip()
-            if key0.lower() == "id" or key0 == "한자":
+            row = [cell.strip() for cell in row]
+            first_cell = row[0].strip()
+            if first_cell.lower() == "id" or first_cell == "한자":
                 continue
-            if len(row) >= 2 and self._looks_like_basis_id(key0):
+            if len(row) >= 2 and self._looks_like_basis_id(first_cell):
                 field = row[1]
             else:
                 field = row[0]
-            ch = self.extract_leading_hanja_from_field(field)
-            if ch:
-                ordered.append(ch)
+            hanja_character = self.extract_leading_hanja_from_field(field)
+            if hanja_character:
+                ordered.append(hanja_character)
         return unique_preserve_order(ordered)

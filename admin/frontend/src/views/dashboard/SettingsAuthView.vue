@@ -85,7 +85,7 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
     </div>
 
     <div
-      v-else-if="auth.ready && auth.isAuthenticated && !auth.isAdmin"
+      v-else-if="auth.isAuthReady && auth.isAuthenticated && !auth.isAdmin"
       class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm"
     >
       <strong class="font-medium">admin</strong> 클레임이 없으면 Firestore 쓰기가 거절됩니다.
@@ -113,7 +113,7 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
 
       <div class="p-4 sm:p-6">
         <div
-          v-if="!auth.ready"
+          v-if="!auth.isAuthReady"
           class="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-outline-variant/70 bg-surface-low/40 py-14"
         >
           <div class="flex gap-1.5" aria-hidden="true">

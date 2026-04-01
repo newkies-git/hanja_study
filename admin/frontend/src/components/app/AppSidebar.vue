@@ -39,8 +39,8 @@ function onNavigate() {
   <aside
     class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-outline-variant/80 bg-gradient-to-b from-surface-lowest via-surface-low to-surface-low/95 shadow-[4px_0_32px_rgba(25,28,30,0.05)] transition-[width,transform] duration-200 ease-out lg:translate-x-0"
     :class="[
-      appOption.sidebarCollapsed ? 'lg:w-20' : 'lg:w-64',
-      appOption.sidebarMobileOpen
+      appOption.isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64',
+      appOption.isSidebarMobileOpen
         ? 'translate-x-0'
         : '-translate-x-full lg:translate-x-0',
     ]"
@@ -48,7 +48,7 @@ function onNavigate() {
     <!-- 브랜드: AppHeader 와 동일 h-14 / sm:h-16 로 상단 바 높이 정렬 -->
     <div
       class="relative flex h-14 min-h-14 shrink-0 items-center border-b border-outline-variant bg-gradient-to-r from-primary/[0.07] to-transparent px-3 sm:h-16 sm:min-h-16 sm:px-4"
-      :class="{ 'lg:px-2': appOption.sidebarCollapsed }"
+      :class="{ 'lg:px-2': appOption.isSidebarCollapsed }"
     >
       <div
         class="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-primary/[0.04] to-transparent"
@@ -56,7 +56,7 @@ function onNavigate() {
       />
       <div
         class="relative flex min-h-0 min-w-0 flex-1 items-center gap-2.5 sm:gap-3"
-        :class="{ 'lg:justify-center': appOption.sidebarCollapsed }"
+        :class="{ 'lg:justify-center': appOption.isSidebarCollapsed }"
       >
         <div
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-b from-primary to-primary-container font-display text-sm font-bold text-white shadow-md shadow-primary/20 sm:h-9 sm:w-9 sm:rounded-xl"
@@ -66,7 +66,7 @@ function onNavigate() {
         </div>
         <div
           class="min-w-0 leading-tight"
-          :class="{ 'lg:hidden': appOption.sidebarCollapsed }"
+          :class="{ 'lg:hidden': appOption.isSidebarCollapsed }"
         >
           <p class="font-display text-sm font-semibold tracking-tight text-onSurface">
             Scholarly Curator
@@ -86,7 +86,7 @@ function onNavigate() {
         <p
           v-if="item.type === 'header'"
           class="mb-1 mt-4 flex items-center gap-2 px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-onSurface-variant/90 first:mt-0"
-          :class="{ 'lg:hidden': appOption.sidebarCollapsed }"
+          :class="{ 'lg:hidden': appOption.isSidebarCollapsed }"
         >
           <span
             class="h-px w-2 shrink-0 rounded-full bg-primary/35"
@@ -102,9 +102,9 @@ function onNavigate() {
             isActive(item.to)
               ? 'border-primary/15 bg-white text-primary shadow-sm shadow-primary/[0.08] ring-1 ring-primary/10'
               : 'text-onSurface-variant hover:border-outline-variant/50 hover:bg-white/90 hover:text-onSurface hover:shadow-sm',
-            appOption.sidebarCollapsed ? 'lg:justify-center lg:px-2' : '',
+            appOption.isSidebarCollapsed ? 'lg:justify-center lg:px-2' : '',
           ]"
-          :title="appOption.sidebarCollapsed ? item.label : undefined"
+          :title="appOption.isSidebarCollapsed ? item.label : undefined"
           @click="onNavigate"
         >
           <span
@@ -118,7 +118,7 @@ function onNavigate() {
           >{{ item.icon }}</span>
           <span
             class="truncate"
-            :class="{ 'lg:sr-only': appOption.sidebarCollapsed }"
+            :class="{ 'lg:sr-only': appOption.isSidebarCollapsed }"
           >{{ item.label }}</span>
         </RouterLink>
       </template>
@@ -127,7 +127,7 @@ function onNavigate() {
     <!-- 하단 장식 (HUD식 얇은 구분) -->
     <div
       class="shrink-0 border-t border-outline-variant/50 bg-surface-lowest/40 px-4 py-3"
-      :class="{ 'lg:px-2': appOption.sidebarCollapsed }"
+      :class="{ 'lg:px-2': appOption.isSidebarCollapsed }"
     >
       <div
         class="mx-auto h-1 w-8 rounded-full bg-gradient-to-r from-transparent via-primary/25 to-transparent"

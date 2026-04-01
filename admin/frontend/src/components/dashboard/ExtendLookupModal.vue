@@ -10,7 +10,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>();
 
-const loading = ref(false);
+const isExtendDocumentLoading = ref(false);
 const error = ref<string | null>(null);
 const payload = ref<Record<string, unknown> | null>(null);
 
@@ -47,9 +47,9 @@ const fieldRows = computed(() => {
   });
 });
 
-async function fetchData() {
+async function loadExtendDocumentFromFirestore() {
   if (!props.queryId) return;
-  loading.value = true;
+  isExtendDocumentLoading.value = true;
   error.value = null;
   payload.value = null;
   try {
@@ -63,7 +63,7 @@ async function fetchData() {
   } catch (e) {
     error.value = e instanceof Error ? e.message : "hanja_extend 를 불러오지 못했습니다.";
   } finally {
-    loading.value = false;
+    isExtendDocumentLoading.value = false;
   }
 }
 
@@ -73,7 +73,7 @@ function handleKeyDown(e: KeyboardEvent) {
 
 watch(() => props.open, (val) => {
   if (val) {
-    fetchData();
+    loadExtendDocumentFromFirestore();
     document.addEventListener("keydown", handleKeyDown);
   } else {
     document.removeEventListener("keydown", handleKeyDown);
@@ -144,7 +144,7 @@ onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
               {{ queryId }}
             </span>
             <span
-              v-if="!loading && !error && fieldRows.length"
+              v-if="!isExtendDocumentLoading && !error && fieldRows.length"
               class="rounded-full bg-onSurface/[0.06] px-2.5 py-1 text-[11px] font-medium text-onSurface-variant"
             >
               {{ fieldRows.length }}개 필드
@@ -155,7 +155,7 @@ onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
         <!-- 본문 -->
         <div class="min-h-0 flex-1 overflow-y-auto bg-surface px-4 py-4 sm:px-5 sm:py-5">
           <div
-            v-if="loading"
+            v-if="isExtendDocumentLoading"
             class="flex flex-col items-center justify-center gap-4 py-16"
           >
             <div class="flex gap-1.5" role="status" aria-label="불러오는 중">

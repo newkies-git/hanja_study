@@ -15,15 +15,15 @@ class ChromiumBrowserFactory:
     ) -> Tuple[Browser, BrowserContext]:
         try:
             browser = playwright.chromium.launch(headless=headless)
-        except Error as exc:
-            msg = str(exc)
-            if "Executable doesn't exist" in msg or "playwright install" in msg:
+        except Error as playwright_error:
+            error_message = str(playwright_error)
+            if "Executable doesn't exist" in error_message or "playwright install" in error_message:
                 raise RuntimeError(
                     "Playwright Chromium이 이 환경에 설치되어 있지 않습니다.\n"
                     "프로젝트 가상환경을 켠 뒤 아래를 한 번 실행하세요.\n"
                     "  python -m playwright install chromium\n"
-                    f"(상세: {msg})"
-                ) from exc
+                    f"(상세: {error_message})"
+                ) from playwright_error
             raise
         context = browser.new_context(
             locale="ko-KR",

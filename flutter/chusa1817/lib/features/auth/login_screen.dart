@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _onLoginPressed() {
+  void _submitLoginForm() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_emailController.text == 'admin@test.com' && _passwordController.text == 'admin!1') {
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 12),
                         GradientPrimaryButton(
                           label: '로그인',
-                          onPressed: _onLoginPressed,
+                          onPressed: _submitLoginForm,
                         ),
                         const SizedBox(height: 20),
                         Row(

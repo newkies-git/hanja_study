@@ -9,9 +9,9 @@ import '../database/repositories/repository_interfaces.dart';
 
 /// 앱 전역 단일 [AppDatabase].
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
-  final AppDatabase db = AppDatabase();
-  ref.onDispose(db.close);
-  return db;
+  final AppDatabase database = AppDatabase();
+  ref.onDispose(database.close);
+  return database;
 });
 
 /// 한자 Repository Provider.

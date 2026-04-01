@@ -871,7 +871,7 @@ const BASIS_UPLOAD_HELP_TEXT =
   "단계 칩을 눌러 원하는 컬렉션부터 올릴 수 있습니다. 반영 시 Firestore에 선행 컬렉션 문서가 1건 이상 있는지만 검사합니다(extend→basis, stroke→extend, word→stroke). hanja_basis는 CSV. hanja_extend는 JSON·CSV. hanja_stroke·hanja_word는 JSON 다중 파일 가능. 동일 문서 ID가 있으면 업로드 내용으로 문서 전체를 교체합니다(병합 아님·페이로드에 없는 필드는 제거). 한 파일 안에서 같은 문서 ID가 여러 행·객체에 있으면 업로드하지 않습니다. ETL·확장 화면에서 획 JSON을 열려면 hanja_stroke 문서 ID를 해당 글자의 hanja_basis 문서 ID(보통 H+16진 코드포인트)와 맞추는 것을 권장합니다.";
 
 const basisUploadHelpTriggerRef = ref<HTMLButtonElement | null>(null);
-const basisUploadHelpTooltipOpen = ref(false);
+const isBasisUploadHelpTooltipOpen = ref(false);
 const basisUploadHelpTooltipStyle = ref<Record<string, string>>({});
 
 let basisUploadHelpRemoveScrollListeners: (() => void) | null = null;
@@ -879,16 +879,16 @@ let basisUploadHelpRemoveScrollListeners: (() => void) | null = null;
 function positionBasisUploadHelpTooltip() {
   const el = basisUploadHelpTriggerRef.value;
   if (!el) return;
-  const r = el.getBoundingClientRect();
+  const boundingRect = el.getBoundingClientRect();
   const margin = 10;
   const maxW = Math.min(400, window.innerWidth - margin * 2);
-  let left = r.left;
+  let left = boundingRect.left;
   if (left + maxW > window.innerWidth - margin) {
     left = Math.max(margin, window.innerWidth - margin - maxW);
   }
   if (left < margin) left = margin;
   basisUploadHelpTooltipStyle.value = {
-    top: `${Math.round(r.bottom + margin)}px`,
+    top: `${Math.round(boundingRect.bottom + margin)}px`,
     left: `${Math.round(left)}px`,
     maxWidth: `${maxW}px`,
   };
@@ -896,15 +896,15 @@ function positionBasisUploadHelpTooltip() {
 
 function openBasisUploadHelpTooltip() {
   positionBasisUploadHelpTooltip();
-  basisUploadHelpTooltipOpen.value = true;
+  isBasisUploadHelpTooltipOpen.value = true;
   void nextTick(() => positionBasisUploadHelpTooltip());
 }
 
 function closeBasisUploadHelpTooltip() {
-  basisUploadHelpTooltipOpen.value = false;
+  isBasisUploadHelpTooltipOpen.value = false;
 }
 
-watch(basisUploadHelpTooltipOpen, (open) => {
+watch(isBasisUploadHelpTooltipOpen, (open) => {
   basisUploadHelpRemoveScrollListeners?.();
   basisUploadHelpRemoveScrollListeners = null;
   if (!open) return;
@@ -965,7 +965,7 @@ onUnmounted(() => {
                 class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
                 :aria-label="BASIS_UPLOAD_HELP_TEXT"
                 :aria-describedby="
-                  basisUploadHelpTooltipOpen
+                  isBasisUploadHelpTooltipOpen
                     ? 'basis-upload-help-tooltip-text'
                     : undefined
                 "
@@ -1431,7 +1431,7 @@ onUnmounted(() => {
 
     <Teleport to="body">
       <div
-        v-if="basisUploadHelpTooltipOpen"
+        v-if="isBasisUploadHelpTooltipOpen"
         id="basis-upload-help-tooltip-text"
         class="fixed z-[10050] rounded-xl border border-outline-variant/80 bg-surface-lowest p-3.5 text-left text-xs leading-relaxed text-onSurface shadow-[0_16px_48px_rgba(25,28,30,0.18)] ring-1 ring-black/[0.06]"
         :style="basisUploadHelpTooltipStyle"

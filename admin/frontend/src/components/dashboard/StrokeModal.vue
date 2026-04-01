@@ -19,7 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: [] }>();
 
-const loading = ref(false);
+const isModalLoading = ref(false);
 const error = ref<string | null>(null);
 const shapes = ref<StrokeShape[]>([]);
 const svgPaths = ref<string[]>([]);
@@ -57,10 +57,10 @@ function normalizeStrokes(raw: unknown): StrokeShape[] {
   return list.sort((a, b) => a.order - b.order);
 }
 
-async function fetchData() {
+async function loadStrokeModalFromFirestore() {
   const entry = props.entry;
   if (!entry) return;
-  loading.value = true;
+  isModalLoading.value = true;
   error.value = null;
   shapes.value = [];
   svgPaths.value = [];
@@ -146,7 +146,7 @@ async function fetchData() {
   } catch (e) {
     error.value = e instanceof Error ? e.message : "획 데이터를 불러오지 못했습니다.";
   } finally {
-    loading.value = false;
+    isModalLoading.value = false;
   }
 }
 
@@ -156,7 +156,7 @@ function handleKeyDown(e: KeyboardEvent) {
 
 watch(() => props.open, (val) => {
   if (val) {
-    fetchData();
+    loadStrokeModalFromFirestore();
     document.addEventListener("keydown", handleKeyDown);
   } else {
     document.removeEventListener("keydown", handleKeyDown);
@@ -228,7 +228,7 @@ onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
           class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface px-4 py-4 sm:px-5 sm:py-5"
         >
           <div
-            v-if="loading"
+            v-if="isModalLoading"
             class="flex flex-col items-center justify-center gap-4 py-14 text-sm text-onSurface-variant"
             role="status"
             aria-live="polite"

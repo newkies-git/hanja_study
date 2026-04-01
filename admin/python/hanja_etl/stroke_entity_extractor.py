@@ -36,8 +36,8 @@ class StrokeEntityExtractor:
             svg_paths = svg_paths[:total_strokes]
 
         strokes: List[StrokeStep] = []
-        for index, d in enumerate(svg_paths, start=1):
-            points = self._geometry.sample_path_points(d)
+        for index, path_d in enumerate(svg_paths, start=1):
+            points = self._geometry.sample_path_points(path_d)
             points = self._geometry.normalize_to_unit_square(points)
             strokes.append(
                 StrokeStep(

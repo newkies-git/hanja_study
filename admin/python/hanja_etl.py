@@ -128,14 +128,14 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
-    out = args.output_dir
-    if out is not None:
-        out.mkdir(parents=True, exist_ok=True)
+    output_directory = args.output_dir
+    if output_directory is not None:
+        output_directory.mkdir(parents=True, exist_ok=True)
     else:
-        out = ensure_output_dir()
+        output_directory = ensure_output_dir()
 
     if args.merge:
-        merge_split_outputs(out)
+        merge_split_outputs(output_directory)
         return
 
     if args.chunk_index is not None and args.split_files is None:
@@ -157,7 +157,7 @@ def main() -> None:
     if args.hanja_range is not None:
         hanja_range = _parse_hanja_range(args.hanja_range)
 
-    runner = PipelineRunner(output_dir=out)
+    runner = PipelineRunner(output_dir=output_directory)
     runner.run_from_csv(
         csv_path=csv_path,
         headless=not args.no_headless,

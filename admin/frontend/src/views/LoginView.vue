@@ -12,13 +12,13 @@ const router = useRouter();
 const email = ref("");
 const password = ref("");
 const error = ref<string | null>(null);
-const loading = ref(false);
+const isLoginSubmitting = ref(false);
 
 const configured = computed(() => isFirebaseConfigured());
 
 async function onSubmit() {
   error.value = null;
-  loading.value = true;
+  isLoginSubmitting.value = true;
   try {
     await auth.login(email.value.trim(), password.value);
     const redirect = (route.query.redirect as string) || "/";
@@ -27,7 +27,7 @@ async function onSubmit() {
     error.value =
       e instanceof Error ? e.message : "로그인에 실패했습니다.";
   } finally {
-    loading.value = false;
+    isLoginSubmitting.value = false;
   }
 }
 </script>
@@ -184,9 +184,9 @@ async function onSubmit() {
               <button
                 type="submit"
                 class="btn-primary mt-2 w-full py-2.5 text-sm font-medium shadow-md shadow-primary/20 disabled:opacity-60"
-                :disabled="loading"
+                :disabled="isLoginSubmitting"
               >
-                {{ loading ? "처리 중…" : "로그인" }}
+                {{ isLoginSubmitting ? "처리 중…" : "로그인" }}
               </button>
             </form>
           </div>

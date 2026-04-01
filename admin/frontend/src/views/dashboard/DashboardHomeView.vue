@@ -132,7 +132,7 @@ const cardStaticClass = "cursor-default opacity-[0.98]";
     </div>
 
     <div
-      v-if="auth.ready && !auth.isAdmin"
+      v-if="auth.isAuthReady && !auth.isAdmin"
       class="space-y-2 rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
     >
       <p v-if="showAdminGateNotice">

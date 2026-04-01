@@ -24,15 +24,15 @@ class HanjaDictionaryScrapeService:
     def scrape_one_character(
         self, page: Page, character: str
     ) -> Tuple[HanjaEntity, StrokeEntity, List[WordEntity]]:
-        browser = NaverHanjaDictionaryBrowserClient(page)
-        browser.open_search_for_character(character)
-        text = browser.get_inner_text_for_parsing()
-        hanja_entity = self._text_parser.build_hanja_entity(character, text)
+        dictionary_client = NaverHanjaDictionaryBrowserClient(page)
+        dictionary_client.open_search_for_character(character)
+        page_text = dictionary_client.get_inner_text_for_parsing()
+        hanja_entity = self._text_parser.build_hanja_entity(character, page_text)
         stroke_entity = self._stroke_extractor.extract_from_page(
             page,
             character,
             hanja_entity.stroke_count,
-            browser_client=browser,
+            browser_client=dictionary_client,
         )
-        word_entities = self._text_parser.build_word_entities(character, text)
+        word_entities = self._text_parser.build_word_entities(character, page_text)
         return hanja_entity, stroke_entity, word_entities
