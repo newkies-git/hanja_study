@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 
@@ -7,19 +9,16 @@ import '../../shared/widgets/editorial_top_bar.dart';
 ///
 /// 요일별 막대 그래프로 학습량을 시각화한다.
 /// Phase 2에서 SQLite/API 기반 실제 데이터로 전환된다.
-class StatisticsScreen extends StatelessWidget {
+class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
-
-  static const List<double> _weeklyHeightRatios = [
-    0.4, 0.65, 0.35, 0.85, 0.55, 0.25, 0.15,
-  ];
   static const List<String> _dayLabels = [
     '월', '화', '수', '목', '금', '토', '일',
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final weeklyCountsAsync = ref.watch(weeklyStudyCountsProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -33,9 +32,23 @@ class StatisticsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _WeeklyBarChart(
-          heightRatios: _weeklyHeightRatios,
-          dayLabels: _dayLabels,
+        weeklyCountsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (error, _) => Center(
+            child: Text(
+              '통계를 불러오지 못했습니다.\n$error',
+              textAlign: TextAlign.center,
+            ),
+          ),
+          data: (counts) => _WeeklyBarChart(
+            counts: counts,
+            dayLabels: _dayLabels,
+          ),
         ),
       ],
     );
@@ -45,11 +58,11 @@ class StatisticsScreen extends StatelessWidget {
 /// 주간 막대 그래프 위젯.
 class _WeeklyBarChart extends StatelessWidget {
   const _WeeklyBarChart({
-    required this.heightRatios,
+    required this.counts,
     required this.dayLabels,
   });
 
-  final List<double> heightRatios;
+  final List<int> counts;
   final List<String> dayLabels;
 
   static const double _maxBarHeight = 140.0;
@@ -66,10 +79,11 @@ class _WeeklyBarChart extends StatelessWidget {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(heightRatios.length, (index) {
-          final double heightFactor = heightRatios[index];
-          final bool isHighest = heightFactor ==
-              heightRatios.reduce((a, b) => a > b ? a : b);
+        children: List.generate(counts.length, (index) {
+          final int max = counts.isEmpty ? 0 : counts.reduce((a, b) => a > b ? a : b);
+          final int count = counts[index];
+          final double heightFactor = max == 0 ? 0.0 : (count / max).clamp(0.0, 1.0);
+          final bool isHighest = max != 0 && count == max;
 
           return Expanded(
             child: Padding(
@@ -99,6 +113,14 @@ class _WeeklyBarChart extends StatelessWidget {
                           ],
                         ),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$count',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: HanjaColors.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 10),

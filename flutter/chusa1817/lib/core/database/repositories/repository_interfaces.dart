@@ -39,8 +39,16 @@ abstract class ProgressRepository {
   /// 복습이 필요한 한자 목록을 반환한다 (nextReviewAt <= now).
   Future<List<UserProgressTableData>> fetchDueForReview();
 
+  /// 예정된 복습 목록을 반환한다 (nextReviewAt > now).
+  Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 20});
+
   /// 오늘의 학습 완료 수를 반환한다.
   Future<int> fetchTodayCompletedCount();
+
+  /// 최근 N일(오늘 포함)의 일자별 학습한 한자 수를 반환한다.
+  ///
+  /// 반환값은 `DateTime(year, month, day)`를 key로 한다.
+  Future<Map<DateTime, int>> fetchDailyStudyCounts({int days = 7});
 
   /// 연속 학습일 수를 반환한다.
   Future<int> fetchStreakDays();
@@ -53,6 +61,13 @@ abstract class ProgressRepository {
 
   /// 즐겨찾기를 토글한다.
   Future<void> toggleBookmark(String hanjaId);
+
+  /// 특정 한자에 대한 진도를 "있으면 갱신, 없으면 생성"한다.
+  Future<void> upsertProgressByHanjaId({
+    required String hanjaId,
+    required DateTime studiedAt,
+    required bool isCorrect,
+  });
 }
 
 /// 학습 세션 Repository 인터페이스.

@@ -26,6 +26,10 @@ final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
   return LocalProgressRepository(ref.watch(appDatabaseProvider));
 });
 
+final studySessionRepositoryProvider = Provider<StudySessionRepository>((ref) {
+  return LocalStudySessionRepository(ref.watch(appDatabaseProvider));
+});
+
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   return LocalSettingsRepository(ref.watch(appDatabaseProvider));
 });
@@ -65,6 +69,41 @@ final todayCompletedCountProvider = FutureProvider<int>((ref) {
 
 final streakDaysProvider = FutureProvider<int>((ref) {
   return ref.watch(progressRepositoryProvider).fetchStreakDays();
+});
+
+final weeklyStudyCountsProvider = FutureProvider<List<int>>((ref) async {
+  final counts = await ref.watch(progressRepositoryProvider).fetchDailyStudyCounts(days: 7);
+  final DateTime now = DateTime.now();
+  final DateTime start =
+      DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+  return List.generate(7, (i) {
+    final date = start.add(Duration(days: i));
+    final day = DateTime(date.year, date.month, date.day);
+    return counts[day] ?? 0;
+  });
+});
+
+final upcomingReviewHanjaProvider =
+    FutureProvider<List<(String hanjaId, String hanja, String meaning, DateTime nextReviewAt)>>(
+        (ref) async {
+  final progressRepository = ref.watch(progressRepositoryProvider);
+  final hanjaRepository = ref.watch(hanjaRepositoryProvider);
+
+  final upcoming = await progressRepository.fetchUpcomingForReview(limit: 20);
+  final results = <(String, String, String, DateTime)>[];
+  for (final row in upcoming) {
+    final hanjaRow = await hanjaRepository.fetchById(row.hanjaId);
+    if (hanjaRow == null) continue;
+    final nextReviewAt = row.nextReviewAt;
+    if (nextReviewAt == null) continue;
+    results.add((
+      hanjaRow.id,
+      hanjaRow.character,
+      '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
+      nextReviewAt,
+    ));
+  }
+  return results;
 });
 
 final dailyGoalProvider = FutureProvider<int>((ref) async {

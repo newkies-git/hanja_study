@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -63,6 +64,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
 
         final hanja = hanjaRow.character;
         final meaning = '${hanjaRow.meaning} (${hanjaRow.reading})';
+        final originText = (hanjaRow.origin ?? '').trim();
 
         return Scaffold(
           backgroundColor: HanjaColors.surface,
@@ -72,7 +74,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                 ListView(
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                   children: [
-                    _buildAppBar(context),
+                    _buildAppBar(context, hanjaId: hanjaRow.id),
                     const SizedBox(height: 10),
                     _buildHeroSection(textTheme, hanja: hanja, meaning: meaning),
                     const SizedBox(height: 18),
@@ -85,6 +87,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                       radical: hanjaRow.radical,
                       radicalLabel: hanjaRow.radicalName,
                       totalStrokes: hanjaRow.totalStrokes,
+                      originText: originText,
                     ),
                   ],
                 ),
@@ -101,7 +104,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
+  Widget _buildAppBar(BuildContext context, {required String hanjaId}) {
     return Row(
       children: [
         IconButton(
@@ -118,7 +121,20 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                 ),
           ),
         ),
-        const Icon(Icons.share, color: HanjaColors.onSurface),
+        IconButton(
+          tooltip: '공유 링크 복사',
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: '${AppRoutes.hanjaDetail}/$hanjaId'));
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('링크를 복사했습니다.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+          icon: const Icon(Icons.share, color: HanjaColors.onSurface),
+        ),
       ],
     );
   }
@@ -222,6 +238,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     required String radical,
     required String radicalLabel,
     required int totalStrokes,
+    required String originText,
   }) {
     switch (_activeTab) {
       case HanjaDetailTab.info:
@@ -230,6 +247,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
           radical: radical,
           radicalLabel: radicalLabel,
           totalStrokes: totalStrokes,
+          originText: originText,
         );
       case HanjaDetailTab.strokes:
         return _buildStrokesTab(textTheme, hanjaId: hanjaId, hanja: hanja);
@@ -243,6 +261,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     required String radical,
     required String radicalLabel,
     required int totalStrokes,
+    required String originText,
   }) {
     return Column(
       children: [
@@ -278,7 +297,9 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
             ),
           ),
           child: Text(
-            '"사람(人)과 규범적 형태가 결합된 자형으로, 옥(圭)처럼 맑고 깨끗한 사람을 아름답다고 한 데서 유래했습니다."',
+            originText.isNotEmpty
+                ? originText
+                : '아직 유래 설명이 준비되지 않았습니다.',
             textAlign: TextAlign.center,
             style: textTheme.titleMedium?.copyWith(
               color: HanjaColors.onSurfaceVariant,

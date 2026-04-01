@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:drift/drift.dart' show Value;
 
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -8,6 +10,7 @@ import '../../shared/widgets/ghost_button.dart';
 import '../../core/router/app_router.dart';
 import 'widgets/practice_action_tile.dart';
 import 'widgets/writing_canvas_widget.dart';
+import '../../core/database/app_database.dart';
 
 /// 한자 쓰기 연습 화면.
 ///
@@ -30,7 +33,19 @@ class StudyScreen extends ConsumerStatefulWidget {
 
 class _StudyScreenState extends ConsumerState<StudyScreen> {
   final WritingCanvasController _canvasController = WritingCanvasController();
-  static const int _totalStrokes = 8;
+  String? _sessionId;
+  bool _showAnswerOverlay = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final repo = ref.read(studySessionRepositoryProvider);
+      final id = await repo.startSession('review');
+      if (!mounted) return;
+      setState(() => _sessionId = id);
+    });
+  }
 
   @override
   void dispose() {
@@ -42,6 +57,55 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     context.push(AppRoutes.practiceResult);
   }
 
+  void _showHint() {
+    setState(() => _showAnswerOverlay = true);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() => _showAnswerOverlay = false);
+    });
+  }
+
+  void _toggleAnswerOverlay() {
+    setState(() => _showAnswerOverlay = !_showAnswerOverlay);
+  }
+
+  Future<void> _gradeAndSave() async {
+    final guideStrokesAsync = ref.read(hanjaStrokePointsProvider(widget.hanjaId));
+    final guideStrokes = guideStrokesAsync.valueOrNull?.where((s) => s.length >= 2).toList() ?? const [];
+
+    final int expected = guideStrokes.length;
+    final int actual = _canvasController.strokeCount;
+    final bool isCorrect = expected > 0 && actual == expected;
+
+    final sessionId = _sessionId;
+    if (sessionId != null) {
+      await ref.read(studySessionRepositoryProvider).saveAnswer(
+            AnswerHistoryTableCompanion.insert(
+              id: DateTime.now().microsecondsSinceEpoch.toString(),
+              sessionId: sessionId,
+              hanjaId: widget.hanjaId,
+              answeredAt: DateTime.now(),
+              isCorrect: isCorrect,
+              accuracyScore: Value(expected == 0 ? 0.0 : (actual / expected).clamp(0.0, 1.0)),
+              strokesJson: Value(jsonEncode(_canvasController.strokes.map((s) => s.map((p) => [p.dx, p.dy]).toList()).toList())),
+            ),
+          );
+      await ref.read(studySessionRepositoryProvider).endSession(
+            sessionId,
+            correctCount: isCorrect ? 1 : 0,
+          );
+    }
+
+    await ref.read(progressRepositoryProvider).upsertProgressByHanjaId(
+          hanjaId: widget.hanjaId,
+          studiedAt: DateTime.now(),
+          isCorrect: isCorrect,
+        );
+
+    if (!mounted) return;
+    _navigateToPracticeResult();
+  }
+
   @override
   Widget build(BuildContext context) {
     final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
@@ -49,6 +113,8 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     final guideStrokesAsync = ref.watch(hanjaStrokePointsProvider(widget.hanjaId));
     final guideStrokes =
         guideStrokesAsync.valueOrNull?.where((s) => s.length >= 2).toList();
+    final int totalStrokes =
+        guideStrokes?.length ?? (hanjaAsync.value?.totalStrokes ?? 0);
 
     return Scaffold(
       backgroundColor: HanjaColors.surface,
@@ -60,7 +126,9 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
               builder: (context, child) => _PracticeTopBar(
                 lessonLabel: '제 4강',
                 title: '추사 1817',
-                progress: (_canvasController.strokeCount / _totalStrokes).clamp(0.0, 1.0),
+                progress: totalStrokes == 0
+                    ? 0.0
+                    : (_canvasController.strokeCount / totalStrokes).clamp(0.0, 1.0),
                 onBack: () => context.pop(),
               ),
             ),
@@ -68,14 +136,14 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
                 children: [
-                  _buildHanjaInfoRow(context),
+                  _buildHanjaInfoRow(context, totalStrokes: totalStrokes),
                   const SizedBox(height: 18),
                   AspectRatio(
                     aspectRatio: 1,
                     child: WritingCanvasWidget(
                       hanja: hanja,
                       controller: _canvasController,
-                      guideNormalizedStrokes: guideStrokes,
+                      guideNormalizedStrokes: _showAnswerOverlay ? guideStrokes : null,
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -89,7 +157,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     );
   }
 
-  Widget _buildHanjaInfoRow(BuildContext context) {
+  Widget _buildHanjaInfoRow(BuildContext context, {required int totalStrokes}) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
     final hanja = hanjaAsync.value?.character ?? '';
@@ -139,7 +207,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '획 ${_canvasController.strokeCount} / $_totalStrokes',
+                          '획 ${_canvasController.strokeCount} / ${totalStrokes == 0 ? '-' : totalStrokes}',
                           style: textTheme.bodyMedium?.copyWith(
                             color: HanjaColors.primaryContainer,
                             fontWeight: FontWeight.w700,
@@ -156,7 +224,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
         GhostButton(
           label: '힌트',
           icon: Icons.lightbulb_outline,
-          onPressed: () {},
+          onPressed: _showHint,
         ),
       ],
     );
@@ -183,13 +251,13 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
         PracticeActionTile(
           icon: Icons.visibility,
           label: '정답 보기',
-          onTap: () {},
+          onTap: _toggleAnswerOverlay,
         ),
         PracticeActionTile(
           icon: Icons.arrow_forward,
           label: '완료',
           variant: PracticeActionTileVariant.primary,
-          onTap: _navigateToPracticeResult,
+          onTap: _gradeAndSave,
         ),
       ],
     );

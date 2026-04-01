@@ -67,6 +67,7 @@ class LocalProgressRepository implements ProgressRepository {
   LocalProgressRepository(this._db);
 
   final AppDatabase _db;
+  static const _uuid = Uuid();
 
   @override
   Future<UserProgressTableData?> fetchProgress(String hanjaId) =>
@@ -88,6 +89,20 @@ class LocalProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 20}) {
+    final DateTime now = DateTime.now();
+    return (_db.select(_db.userProgressTable)
+          ..where(
+            (t) =>
+                t.nextReviewAt.isBiggerThanValue(now) &
+                t.status.isNotIn(['unseen']),
+          )
+          ..orderBy([(t) => OrderingTerm.asc(t.nextReviewAt)])
+          ..limit(limit))
+        .get();
+  }
+
+  @override
   Future<int> fetchTodayCompletedCount() async {
     final DateTime startOfDay = DateTime(
       DateTime.now().year,
@@ -98,6 +113,26 @@ class LocalProgressRepository implements ProgressRepository {
       ..where((t) => t.lastStudiedAt.isBiggerOrEqualValue(startOfDay));
     final rows = await query.get();
     return rows.length;
+  }
+
+  @override
+  Future<Map<DateTime, int>> fetchDailyStudyCounts({int days = 7}) async {
+    final DateTime now = DateTime.now();
+    final DateTime start = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: days - 1));
+
+    final rows = await (_db.select(_db.userProgressTable)
+          ..where((t) => t.lastStudiedAt.isBiggerOrEqualValue(start)))
+        .get();
+
+    final Map<DateTime, int> counts = {};
+    for (final row in rows) {
+      final studiedAt = row.lastStudiedAt;
+      if (studiedAt == null) continue;
+      final day = DateTime(studiedAt.year, studiedAt.month, studiedAt.day);
+      counts.update(day, (v) => v + 1, ifAbsent: () => 1);
+    }
+    return counts;
   }
 
   @override
@@ -147,6 +182,40 @@ class LocalProgressRepository implements ProgressRepository {
       isBookmarked: Value(!existing.isBookmarked),
       updatedAt: Value(DateTime.now()),
     ));
+  }
+
+  @override
+  Future<void> upsertProgressByHanjaId({
+    required String hanjaId,
+    required DateTime studiedAt,
+    required bool isCorrect,
+  }) async {
+    final existing = await fetchProgress(hanjaId);
+    final DateTime now = DateTime.now();
+
+    final String id = existing?.id ?? _uuid.v4();
+    final int totalAttempts = (existing?.totalAttempts ?? 0) + 1;
+    final int correctAttempts = (existing?.correctAttempts ?? 0) + (isCorrect ? 1 : 0);
+    final double accuracyRate =
+        totalAttempts == 0 ? 0.0 : correctAttempts / totalAttempts;
+
+    final DateTime nextReviewAt = isCorrect
+        ? studiedAt.add(const Duration(days: 1))
+        : studiedAt.add(const Duration(hours: 6));
+
+    await _db.into(_db.userProgressTable).insertOnConflictUpdate(
+          UserProgressTableCompanion(
+            id: Value(id),
+            hanjaId: Value(hanjaId),
+            status: Value(isCorrect ? 'learning' : 'review_needed'),
+            totalAttempts: Value(totalAttempts),
+            correctAttempts: Value(correctAttempts),
+            accuracyRate: Value(accuracyRate),
+            lastStudiedAt: Value(studiedAt),
+            nextReviewAt: Value(nextReviewAt),
+            updatedAt: Value(now),
+          ),
+        );
   }
 }
 

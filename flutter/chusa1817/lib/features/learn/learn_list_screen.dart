@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,16 +8,24 @@ import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
+import '../../core/database/app_database.dart';
 
 /// 학습 한자 목록 화면.
 ///
 /// 현재는 더미 데이터 8개를 표시하며, Phase 2에서 SQLite/API 연동으로 전환된다.
 /// 정렬 필터(가나다순, 획수순, 랜덤)를 Pill 형태로 제공한다.
-class LearnListScreen extends ConsumerWidget {
+class LearnListScreen extends ConsumerStatefulWidget {
   const LearnListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LearnListScreen> createState() => _LearnListScreenState();
+}
+
+class _LearnListScreenState extends ConsumerState<LearnListScreen> {
+  _LearnSort _sort = _LearnSort.koreanOrder;
+
+  @override
+  Widget build(BuildContext context) {
     final hanjaListAsync = ref.watch(middleSchoolHanjaListProvider);
 
     return Column(
@@ -27,11 +37,23 @@ class LearnListScreen extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _FilterPill(label: '가나다순', isSelected: true, onTap: () {}),
+                _FilterPill(
+                  label: '가나다순',
+                  isSelected: _sort == _LearnSort.koreanOrder,
+                  onTap: () => setState(() => _sort = _LearnSort.koreanOrder),
+                ),
                 const SizedBox(width: 10),
-                _FilterPill(label: '획수순', isSelected: false, onTap: () {}),
+                _FilterPill(
+                  label: '획수순',
+                  isSelected: _sort == _LearnSort.strokeCount,
+                  onTap: () => setState(() => _sort = _LearnSort.strokeCount),
+                ),
                 const SizedBox(width: 10),
-                _FilterPill(label: '랜덤', isSelected: false, onTap: () {}),
+                _FilterPill(
+                  label: '랜덤',
+                  isSelected: _sort == _LearnSort.random,
+                  onTap: () => setState(() => _sort = _LearnSort.random),
+                ),
               ],
             ),
           ),
@@ -52,6 +74,17 @@ class LearnListScreen extends ConsumerWidget {
                 );
               }
 
+              final List<HanjaTableData> sorted = List.of(hanjaList);
+              switch (_sort) {
+                case _LearnSort.koreanOrder:
+                  sorted.sort((a, b) => a.reading.compareTo(b.reading));
+                case _LearnSort.strokeCount:
+                  sorted.sort((a, b) => a.totalStrokes.compareTo(b.totalStrokes));
+                case _LearnSort.random:
+                  final seed = DateTime.now().millisecondsSinceEpoch ~/ (1000 * 30);
+                  sorted.shuffle(Random(seed));
+              }
+
               return GridView.builder(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -60,9 +93,9 @@ class LearnListScreen extends ConsumerWidget {
                   mainAxisSpacing: 14,
                   childAspectRatio: 1.1,
                 ),
-                itemCount: hanjaList.length,
+                itemCount: sorted.length,
                 itemBuilder: (BuildContext context, int index) {
-                  final hanjaRow = hanjaList[index];
+                  final hanjaRow = sorted[index];
                   final hanjaId = hanjaRow.id;
                   final hanja = hanjaRow.character;
                   final meaning = hanjaRow.meaning;
@@ -87,6 +120,8 @@ class LearnListScreen extends ConsumerWidget {
     );
   }
 }
+
+enum _LearnSort { koreanOrder, strokeCount, random }
 
 /// 정렬 필터 Pill 버튼.
 class _FilterPill extends StatelessWidget {

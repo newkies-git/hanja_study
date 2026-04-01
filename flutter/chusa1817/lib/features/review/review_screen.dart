@@ -19,8 +19,11 @@ class ReviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final dueAsync = ref.watch(dueForReviewHanjaProvider);
+    final upcomingAsync = ref.watch(upcomingReviewHanjaProvider);
 
     final dueToday = dueAsync.value ?? const <(String, String, String)>[];
+    final upcoming = upcomingAsync.value ??
+        const <(String hanjaId, String hanja, String meaning, DateTime nextReviewAt)>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -57,14 +60,50 @@ class ReviewScreen extends ConsumerWidget {
         // ── 예정 복습 섹션 ──────────────────────────────────────────
         _SectionHeader(
           label: 'UPCOMING',
-          title: '다가오는 복습',
+          title: '다가오는 복습 (${upcoming.length}자)',
           textTheme: textTheme,
         ),
         const SizedBox(height: 12),
-        _EmptyCard(textTheme: textTheme),
+        if (upcomingAsync.isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (upcoming.isEmpty)
+          _EmptyCard(textTheme: textTheme)
+        else
+          ...upcoming.map((item) => _ReviewCard(
+                item: _ReviewItem(
+                  hanjaId: item.$1,
+                  hanja: item.$2,
+                  meaning: item.$3,
+                  dueLabel: _formatUpcomingLabel(item.$4),
+                  accuracy: 0.0,
+                ),
+                textTheme: textTheme,
+                onStudyTap: () => context.push(
+                  '${AppRoutes.study}/${item.$1}'
+                  '?meaning=${Uri.encodeComponent(item.$3)}',
+                ),
+              )),
       ],
     );
   }
+}
+
+String _formatUpcomingLabel(DateTime nextReviewAt) {
+  final DateTime now = DateTime.now();
+  final DateTime startOfToday = DateTime(now.year, now.month, now.day);
+  final DateTime startOfTarget =
+      DateTime(nextReviewAt.year, nextReviewAt.month, nextReviewAt.day);
+  final int days = startOfTarget.difference(startOfToday).inDays;
+  if (days <= 0) return '곧 복습';
+  if (days == 1) return '내일';
+  if (days < 7) return '$days일 후';
+  final int weeks = (days / 7).ceil();
+  return '$weeks주 후';
 }
 
 /// 복습 항목 데이터 모델 (더미).
