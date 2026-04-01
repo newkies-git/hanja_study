@@ -24,6 +24,11 @@ flutter/**/*.iml
 # OS / editor
 .DS_Store
 
+# 로컬·스크래치 (의도적으로 추적 제외)
+\!use/
+admin/python/output/
+flutter/chusa1817/to-do.md
+
 # Admin frontend (Vite)
 admin/frontend/node_modules/
 admin/frontend/dist/
