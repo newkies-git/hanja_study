@@ -60,8 +60,15 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   async function logout() {
-    if (!isFirebaseConfigured()) return;
-    await signOut(getFirebaseAuth());
+    if (isFirebaseConfigured()) {
+      await signOut(getFirebaseAuth());
+    }
+    // signOut 은 비동기로 onAuthStateChanged 만 갱신할 뿐, Vue Router 는 네비게이션하지 않음.
+    // 보호 라우트에 그대로 머물면 UI만 비어 있거나 토큰 만료처럼 보일 수 있어 로그인으로 보낸다.
+    const { default: router } = await import("@/router");
+    if (router.currentRoute.value.name !== "login") {
+      await router.replace({ name: "login" });
+    }
   }
 
   async function refreshClaims() {
