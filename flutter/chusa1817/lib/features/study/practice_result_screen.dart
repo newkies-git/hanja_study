@@ -63,7 +63,7 @@ class PracticeResultScreen extends StatelessWidget {
                 ),
                 onPressed: () => Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (_) => const AppShell(initialIndex: 2),
+                    builder: (_) => const AppShell(initialIndex: 3),
                   ),
                   (route) => false,
                 ),

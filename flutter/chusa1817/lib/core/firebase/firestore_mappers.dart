@@ -83,7 +83,7 @@ abstract final class FirestoreHanjaMapper {
       case 'both':
         return s;
       default:
-        return s.isEmpty ? 'middle' : raw.trim();
+        return 'middle';
     }
   }
 }
@@ -230,13 +230,14 @@ abstract final class FirestoreWordMapper {
   }) {
     final String wid = data['word_id']?.toString() ?? wordDocId;
     final String word = data['word']?.toString() ?? '';
+    final String reading = data['reading']?.toString() ?? data['pronunciation']?.toString() ?? '';
     final String meaning = data['meaning']?.toString() ?? '';
     if (word.isEmpty) return null;
     return HanjaWordTableCompanion.insert(
       id: '${wid}__$hanjaId',
       hanjaId: hanjaId,
       word: word,
-      reading: word,
+      reading: reading.isNotEmpty ? reading : word,
       meaning: meaning,
     );
   }
@@ -249,13 +250,14 @@ abstract final class FirestoreWordMapper {
     final String wid = data['word_id']?.toString() ?? wordDocId;
     final String hanjaStr = data['hanja']?.toString() ?? '';
     final String word = data['word']?.toString() ?? '';
+    final String reading = data['reading']?.toString() ?? data['pronunciation']?.toString() ?? '';
     final String meaning = data['meaning']?.toString() ?? '';
     if (hanjaStr.isEmpty && word.isEmpty) return null;
     return HanjaIdiomTableCompanion.insert(
       id: '${wid}__$hanjaId',
       hanjaId: hanjaId,
       idiom: hanjaStr.isNotEmpty ? hanjaStr : word,
-      reading: word,
+      reading: reading.isNotEmpty ? reading : word,
       meaning: meaning,
     );
   }

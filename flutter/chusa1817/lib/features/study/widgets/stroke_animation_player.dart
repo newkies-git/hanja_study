@@ -101,6 +101,18 @@ class _StrokeAnimationPlayerState extends State<StrokeAnimationPlayer>
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    if (widget.strokes.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: const Center(
+          child: Text('표시할 획순 데이터가 없습니다.'),
+        ),
+      );
+    }
     final bool isFirst = _currentStrokeIndex == 0;
     final bool isLast = _currentStrokeIndex == widget.strokes.length - 1;
 

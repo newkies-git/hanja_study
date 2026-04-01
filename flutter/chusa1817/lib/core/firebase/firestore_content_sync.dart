@@ -68,14 +68,6 @@ class FirestoreContentSyncService {
 
     final int? remoteVersion = await fetchRemoteContentVersion();
 
-    await _database.into(_database.contentConfigTable).insertOnConflictUpdate(
-          ContentConfigTableCompanion(
-            id: const Value(FirestorePaths.localContentConfigRowId),
-            contentVersion: Value(remoteVersion),
-            syncedAt: Value(DateTime.now()),
-          ),
-        );
-
     int basisCount = 0;
     int extendCount = 0;
 
@@ -263,6 +255,15 @@ class FirestoreContentSyncService {
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
     }
+
+    // 중요: 실제 콘텐츠 테이블 동기화가 끝난 뒤에만 버전을 기록한다.
+    await _database.into(_database.contentConfigTable).insertOnConflictUpdate(
+          ContentConfigTableCompanion(
+            id: const Value(FirestorePaths.localContentConfigRowId),
+            contentVersion: Value(remoteVersion),
+            syncedAt: Value(DateTime.now()),
+          ),
+        );
 
     return ContentSyncResult(
       basisCount: basisCount,

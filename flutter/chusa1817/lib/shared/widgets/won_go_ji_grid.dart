@@ -40,6 +40,6 @@ class _WonGoJiGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WonGoJiGridPainter oldDelegate) {
-    return oldDelegate.opacity != opacity;
+    return oldDelegate.opacity != opacity || oldDelegate.cellSize != cellSize;
   }
 }
