@@ -1,4 +1,5 @@
 import { computed, ref, watch } from "vue";
+import type { Ref } from "vue";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import {
   collection,
@@ -22,9 +23,52 @@ export function contains(hay: string, needle: string): boolean {
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
+// ── 모듈 레벨 컬렉션 캐시 ──────────────────────────────────────────────────
+//
+// 동일한 collectionName을 사용하는 여러 뷰(예: BasisManageView, EtlExtendView)가
+// 공통 캐시 엔트리를 공유합니다.
+//   · allDocs / lastDoc / hasMore / filterWarning : 컬렉션 원본 상태 → 공유
+//   · loadedAt                                    : TTL 판단 기준 → 공유
+//   · loadingPromise                              : in-flight 중복 방지 → 공유
+//
+// 인스턴스별 상태(loading, loadingMore, error, pageSize, currentPage, rows, ids)는
+// 각 usePaginatedCollection 호출 내부에 유지됩니다.
+
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5분
+
+type CacheEntry = {
+  allDocs: Ref<DocEntry[]>;
+  lastDoc: Ref<QueryDocumentSnapshot<DocumentData> | null>;
+  hasMore: Ref<boolean>;
+  filterWarning: Ref<string | null>;
+  loadedAt: Ref<number | null>;
+  loadingPromise: Promise<void> | null;
+};
+
+const _collectionCache = new Map<string, CacheEntry>();
+
+function getOrCreateCache(name: string): CacheEntry {
+  if (!_collectionCache.has(name)) {
+    _collectionCache.set(name, {
+      allDocs: ref<DocEntry[]>([]),
+      lastDoc: ref<QueryDocumentSnapshot<DocumentData> | null>(null),
+      hasMore: ref(false),
+      filterWarning: ref<string | null>(null),
+      loadedAt: ref<number | null>(null),
+      loadingPromise: null,
+    });
+  }
+  return _collectionCache.get(name)!;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Firestore 컬렉션을 클라이언트 메모리에 불러온 뒤
  * 필터·페이지네이션을 처리하는 공용 composable.
+ *
+ * 동일 collectionName 호출은 모듈 레벨 캐시를 공유하므로
+ * 여러 뷰가 마운트되어도 Firestore 읽기는 한 번(TTL 5분)만 발생합니다.
  *
  * @param collectionName  Firestore 컬렉션 이름
  * @param filterFn        항목별 표시 여부 판단 함수 (반응형 refs를 클로저로 캡처 가능)
@@ -38,19 +82,19 @@ export function usePaginatedCollection(
   const FETCH_CAP = options.fetchCap ?? 2500;
   const defaultPage = options.defaultPageSize ?? 20;
 
-  const allDocs = ref<DocEntry[]>([]);
-  const rows = ref<Record<string, unknown>[]>([]);
-  const ids = ref<string[]>([]);
+  const cache = getOrCreateCache(collectionName);
+
+  // ── 인스턴스 로컬 상태 (필터·페이지네이션·로딩) ──────────────────────────
   const loading = ref(false);
   const loadingMore = ref(false);
   const error = ref<string | null>(null);
-  const filterWarning = ref<string | null>(null);
-  const lastDoc = ref<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const hasMore = ref(false);
   const pageSize = ref<PageSize>(defaultPage);
   const currentPage = ref(0);
+  const rows = ref<Record<string, unknown>[]>([]);
+  const ids = ref<string[]>([]);
 
-  const filteredDocs = computed(() => allDocs.value.filter(filterFn));
+  // ── 공유 캐시에서 파생되는 computed ─────────────────────────────────────
+  const filteredDocs = computed(() => cache.allDocs.value.filter(filterFn));
 
   const totalPages = computed(() =>
     Math.max(1, Math.ceil(filteredDocs.value.length / pageSize.value)),
@@ -123,39 +167,83 @@ export function usePaginatedCollection(
     return `한 번에 최대 ${FETCH_CAP.toLocaleString("ko-KR")}건씩만 가져옵니다. 지금 ${loadedCount.toLocaleString("ko-KR")}건이 메모리에 있습니다. 더 있으면 「다음 ${FETCH_CAP.toLocaleString("ko-KR")}건 불러오기」를 누르거나 Firebase 콘솔·보내기 스크립트로 전체를 확인하세요.`;
   }
 
-  async function loadAll() {
+  /** 캐시 TTL을 초기화합니다. 다음 loadAll() 호출 시 Firestore에서 새로 조회합니다. */
+  function invalidate() {
+    cache.loadedAt.value = null;
+  }
+
+  /** 실제 Firestore getDocs를 수행합니다. 캐시 엔트리만 업데이트합니다. */
+  async function doFetch(): Promise<void> {
     if (!isFirebaseConfigured()) {
-      error.value = "Firebase가 설정되지 않았습니다.";
+      throw new Error("Firebase가 설정되지 않았습니다.");
+    }
+    const db = getFirestoreDb();
+    const q = query(
+      collection(db, collectionName),
+      orderBy(documentId()),
+      limit(FETCH_CAP),
+    );
+    const snap = await getDocs(q);
+    cache.allDocs.value = snap.docs.map((d) => ({
+      id: d.id,
+      data: d.data() as Record<string, unknown>,
+    }));
+    cache.lastDoc.value = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : null;
+    cache.hasMore.value = snap.docs.length >= FETCH_CAP;
+    cache.filterWarning.value = buildWarning(cache.allDocs.value.length, cache.hasMore.value);
+    cache.loadedAt.value = Date.now();
+  }
+
+  /**
+   * 컬렉션 전체를 로드합니다.
+   *
+   * - force=false (기본): TTL 5분 내 캐시가 유효하면 Firestore 조회를 건너뜁니다.
+   * - force=true: TTL 무관하게 즉시 재조회합니다. 뮤테이션(추가·수정·삭제) 후 사용.
+   * - 같은 컬렉션에 대해 동시에 여러 인스턴스가 loadAll()을 호출해도
+   *   Firestore 요청은 단 하나만 발생하며, 나머지는 그 결과를 공유합니다.
+   */
+  async function loadAll(force = false) {
+    if (force) cache.loadedAt.value = null;
+
+    // TTL 캐시 히트: Firestore 호출 없이 로컬 슬라이스만 동기화
+    if (cache.loadedAt.value !== null && Date.now() - cache.loadedAt.value < CACHE_TTL_MS) {
+      currentPage.value = 0;
+      syncSliceToRows();
       return;
     }
+
+    // in-flight 중복 방지: 이미 진행 중인 요청의 결과를 공유
+    if (cache.loadingPromise !== null) {
+      loading.value = true;
+      error.value = null;
+      try {
+        await cache.loadingPromise;
+        currentPage.value = 0;
+        syncSliceToRows();
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : `${collectionName}를 불러오지 못했습니다.`;
+      } finally {
+        loading.value = false;
+      }
+      return;
+    }
+
+    // 신규 Firestore 요청
     loading.value = true;
     error.value = null;
+    cache.loadingPromise = doFetch();
     try {
-      const db = getFirestoreDb();
-      const q = query(
-        collection(db, collectionName),
-        orderBy(documentId()),
-        limit(FETCH_CAP),
-      );
-      const snap = await getDocs(q);
-      allDocs.value = snap.docs.map((d) => ({
-        id: d.id,
-        data: d.data() as Record<string, unknown>,
-      }));
-      lastDoc.value = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : null;
-      hasMore.value = snap.docs.length >= FETCH_CAP;
-      filterWarning.value = buildWarning(allDocs.value.length, hasMore.value);
+      await cache.loadingPromise;
       currentPage.value = 0;
       syncSliceToRows();
     } catch (e) {
-      error.value = e instanceof Error ? e.message : `${collectionName} 를 불러오지 못했습니다.`;
-      allDocs.value = [];
-      rows.value = [];
-      ids.value = [];
-      filterWarning.value = null;
-      lastDoc.value = null;
-      hasMore.value = false;
+      error.value = e instanceof Error ? e.message : `${collectionName}를 불러오지 못했습니다.`;
+      cache.allDocs.value = [];
+      cache.filterWarning.value = null;
+      cache.lastDoc.value = null;
+      cache.hasMore.value = false;
     } finally {
+      cache.loadingPromise = null;
       loading.value = false;
     }
   }
@@ -163,8 +251,8 @@ export function usePaginatedCollection(
   async function loadMore() {
     if (
       !isFirebaseConfigured() ||
-      !hasMore.value ||
-      !lastDoc.value ||
+      !cache.hasMore.value ||
+      !cache.lastDoc.value ||
       loading.value ||
       loadingMore.value
     ) {
@@ -177,7 +265,7 @@ export function usePaginatedCollection(
       const q = query(
         collection(db, collectionName),
         orderBy(documentId()),
-        startAfter(lastDoc.value),
+        startAfter(cache.lastDoc.value),
         limit(FETCH_CAP),
       );
       const snap = await getDocs(q);
@@ -185,11 +273,11 @@ export function usePaginatedCollection(
         id: d.id,
         data: d.data() as Record<string, unknown>,
       }));
-      allDocs.value = [...allDocs.value, ...next];
-      lastDoc.value =
-        snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : lastDoc.value;
-      hasMore.value = snap.docs.length >= FETCH_CAP;
-      filterWarning.value = buildWarning(allDocs.value.length, hasMore.value);
+      cache.allDocs.value = [...cache.allDocs.value, ...next];
+      cache.lastDoc.value =
+        snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : cache.lastDoc.value;
+      cache.hasMore.value = snap.docs.length >= FETCH_CAP;
+      cache.filterWarning.value = buildWarning(cache.allDocs.value.length, cache.hasMore.value);
     } catch (e) {
       error.value = e instanceof Error ? e.message : "추가 페이지를 불러오지 못했습니다.";
     } finally {
@@ -200,14 +288,14 @@ export function usePaginatedCollection(
   return {
     PAGE_SIZE_OPTIONS,
     fetchCap: FETCH_CAP,
-    allDocs,
+    allDocs: cache.allDocs,
     rows,
     ids,
     loading,
     loadingMore,
     error,
-    filterWarning,
-    hasMore,
+    filterWarning: cache.filterWarning,
+    hasMore: cache.hasMore,
     pageSize,
     currentPage,
     filteredDocs,
@@ -220,6 +308,7 @@ export function usePaginatedCollection(
     scheduleResetPage,
     loadAll,
     loadMore,
+    invalidate,
     goToPage,
     prevPage,
     nextPage,

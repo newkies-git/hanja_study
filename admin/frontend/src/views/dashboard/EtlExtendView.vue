@@ -339,11 +339,6 @@ async function loadStrokesFromFirestore() {
 
   try {
     const db = getFirestoreDb();
-    let strokesRaw: unknown;
-    let strokeDataId: string | undefined;
-    let totalStrokes: number | undefined;
-    let charDoc = "";
-    let svgPathsBest: string[] = [];
 
     function extractSvgPaths(data: Record<string, unknown>): string[] {
       const raw = data.svg_paths;
@@ -357,44 +352,53 @@ async function loadStrokesFromFirestore() {
       return b.length > a.length ? b : a;
     }
 
-    const hanjaSnap = await getDoc(doc(db, "hanja", hanjaId));
+    // stroke_data_id === hanjaId이므로 두 컬렉션을 동시에 조회합니다 (2-RTT → 1-RTT).
+    const [hanjaSnap, strokeSnap] = await Promise.all([
+      getDoc(doc(db, "hanja", hanjaId)),
+      getDoc(doc(db, "hanja_stroke", hanjaId)),
+    ]);
+
+    if (token !== strokeLoadToken) return;
+
+    let charDoc = "";
+    let totalStrokes: number | undefined;
+    let strokesRaw: unknown;
+    let svgPathsBest: string[] = [];
+
     if (hanjaSnap.exists()) {
       const d = hanjaSnap.data() as Record<string, unknown>;
       charDoc = String(d.char ?? d.character ?? "");
-      if (typeof d.stroke_data_id === "string") strokeDataId = d.stroke_data_id.trim() || undefined;
       if (typeof d.total_strokes === "number") totalStrokes = d.total_strokes;
       else if (typeof d.stroke_count === "number") totalStrokes = d.stroke_count;
       strokesRaw = d.strokes;
       svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(d));
     }
 
-    let strokeSnapData: Record<string, unknown> | null = null;
-    if (strokeDataId) {
-      const stSnap = await getDoc(doc(db, "hanja_stroke", strokeDataId));
-      if (stSnap.exists()) strokeSnapData = stSnap.data() as Record<string, unknown>;
-    }
+    const strokeSnapData = strokeSnap.exists()
+      ? (strokeSnap.data() as Record<string, unknown>)
+      : null;
 
     if (strokeSnapData) {
       svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(strokeSnapData));
+      if (!Array.isArray(strokesRaw) || strokesRaw.length === 0) {
+        strokesRaw = strokeSnapData.strokes;
+        if (!charDoc) charDoc = String(strokeSnapData.char ?? "");
+        if (totalStrokes === undefined && typeof strokeSnapData.total_strokes === "number")
+          totalStrokes = strokeSnapData.total_strokes;
+      }
     }
 
-    if ((!Array.isArray(strokesRaw) || strokesRaw.length === 0) && strokeSnapData) {
-      const sd = strokeSnapData;
-      strokesRaw = sd.strokes;
-      if (!charDoc) charDoc = String(sd.char ?? "");
-      if (totalStrokes === undefined && typeof sd.total_strokes === "number") totalStrokes = sd.total_strokes;
-    }
-
-    if (token !== strokeLoadToken) return;
     strokeJsonSaveError.value = null;
 
-    if (strokeSnapData && strokeDataId) {
-      strokeFirestoreDocId.value = strokeDataId;
+    if (strokeSnapData) {
+      // hanja_stroke 문서 있음 → 직접 표시
+      strokeFirestoreDocId.value = hanjaId;
       const jsonText = docDataToJsonText(strokeSnapData);
       strokeJsonEditorText.value = jsonText;
       strokeJsonBaseline.value = jsonText;
-    } else if (strokeDataId) {
-      strokeFirestoreDocId.value = strokeDataId;
+    } else if (hanjaSnap.exists()) {
+      // hanja 있음 + hanja_stroke 없음 → seed 생성
+      strokeFirestoreDocId.value = hanjaId;
       const seed: Record<string, unknown> = {
         char: charDoc || leadingHanjaChar(row),
         total_strokes: totalStrokes,
@@ -405,6 +409,7 @@ async function loadStrokesFromFirestore() {
       strokeJsonEditorText.value = text;
       strokeJsonBaseline.value = text;
     } else {
+      // 두 문서 모두 없음
       strokeFirestoreDocId.value = null;
       strokeJsonEditorText.value = "";
       strokeJsonBaseline.value = "";

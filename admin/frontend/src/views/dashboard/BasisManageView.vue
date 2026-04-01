@@ -36,6 +36,7 @@ const {
   paginationItems,
   loadAll,
   loadMore,
+  invalidate,
   goToPage,
   prevPage,
   nextPage,
@@ -147,6 +148,7 @@ function openBasisEditModal() {
 
 async function onBasisSaved(newId: string) {
   selectedBasisDocId.value = newId;
+  invalidate();
   await loadAll();
 }
 
@@ -171,6 +173,7 @@ async function deleteSelectedBasis() {
     batch.delete(doc(collection(db, "hanja_basis"), toDelete));
     await batch.commit();
     selectedBasisDocId.value = null;
+    invalidate();
     await loadAll();
   } catch (e) {
     error.value = e instanceof Error ? e.message : "삭제에 실패했습니다.";
