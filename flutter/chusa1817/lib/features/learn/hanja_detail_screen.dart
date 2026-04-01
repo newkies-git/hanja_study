@@ -387,23 +387,31 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                 child: CircularProgressIndicator(),
               ),
             )
+          else if (wordsAsync.hasError || idiomsAsync.hasError)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                '관련 단어를 불러오지 못했습니다.\n'
+                '${wordsAsync.error ?? ''}\n'
+                '${idiomsAsync.error ?? ''}',
+                textAlign: TextAlign.center,
+              ),
+            )
           else ...[
-            ...wordsAsync.valueOrNull?.map(
-                  (w) => RelatedWordTile(
-                    hanja: w.word,
-                    meaning: '${w.meaning} (${w.reading})'.trim(),
-                  ),
-                ) ??
-                const [],
-            ...idiomsAsync.valueOrNull?.map(
-                  (i) => RelatedWordTile(
-                    hanja: i.idiom,
-                    meaning: '${i.meaning} (${i.reading})'.trim(),
-                  ),
-                ) ??
-                const [],
-            if ((wordsAsync.valueOrNull?.isEmpty ?? true) &&
-                (idiomsAsync.valueOrNull?.isEmpty ?? true))
+            ...((wordsAsync.value ?? const []).map(
+              (w) => RelatedWordTile(
+                hanja: w.word,
+                meaning: '${w.meaning} (${w.reading})'.trim(),
+              ),
+            )),
+            ...((idiomsAsync.value ?? const []).map(
+              (i) => RelatedWordTile(
+                hanja: i.idiom,
+                meaning: '${i.meaning} (${i.reading})'.trim(),
+              ),
+            )),
+            if ((wordsAsync.value?.isEmpty ?? true) &&
+                (idiomsAsync.value?.isEmpty ?? true))
               const Padding(
                 padding: EdgeInsets.all(12),
                 child: Text('표시할 단어/성어 데이터가 없습니다.'),

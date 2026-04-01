@@ -28,11 +28,11 @@ class EditorialBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: Color(0xFFFAFAFA),
+        color: HanjaColors.legacySurfaceSoft,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x14000000),
+            color: HanjaColors.legacyShadow,
             blurRadius: 20,
             offset: Offset(0, -4),
           ),
@@ -83,7 +83,7 @@ class _NavButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color foregroundColor = isSelected
         ? HanjaColors.primaryContainer
-        : const Color(0xFF9A9DA0);
+        : HanjaColors.legacyNeutralIcon;
 
     return Expanded(
       child: Padding(

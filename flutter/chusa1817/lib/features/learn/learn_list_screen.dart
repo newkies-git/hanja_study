@@ -12,7 +12,6 @@ import '../../core/database/app_database.dart';
 
 /// 학습 한자 목록 화면.
 ///
-/// 현재는 더미 데이터 8개를 표시하며, Phase 2에서 SQLite/API 연동으로 전환된다.
 /// 정렬 필터(가나다순, 획수순, 랜덤)를 Pill 형태로 제공한다.
 class LearnListScreen extends ConsumerStatefulWidget {
   const LearnListScreen({super.key});

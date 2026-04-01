@@ -50,7 +50,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,10 +75,10 @@ class AppDatabase extends _$AppDatabase {
             await customStatement('PRAGMA foreign_keys = ON');
           }
 
-          // v2 → v3: 오답노트 테이블 추가 (예정)
-          // if (from < 3) {
-          //   await m.createTable(wrongNotesTable);
-          // }
+          // v2 → v3: 사용자 스코프 필드 추가 (멀티 유저 대비)
+          if (from < 3) {
+            await m.addColumn(userProgressTable, userProgressTable.userId);
+          }
 
           // v3 → v4: 학습 통계 테이블 추가 (예정)
           // if (from < 4) {

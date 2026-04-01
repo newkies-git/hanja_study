@@ -17,7 +17,7 @@ class EditorialTopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
       child: Row(
         children: [
-          const Icon(Icons.menu, color: Color(0xFF9A9DA0)),
+          const Icon(Icons.menu, color: HanjaColors.legacyNeutralIcon),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -30,7 +30,7 @@ class EditorialTopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.account_circle, color: Color(0xFF9A9DA0)),
+          const Icon(Icons.account_circle, color: HanjaColors.legacyNeutralIcon),
         ],
       ),
     );

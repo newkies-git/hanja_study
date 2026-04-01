@@ -2660,6 +2660,16 @@ class $UserProgressTableTable extends UserProgressTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   static const VerificationMeta _hanjaIdMeta = const VerificationMeta(
     'hanjaId',
   );
@@ -2842,6 +2852,7 @@ class $UserProgressTableTable extends UserProgressTable
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    userId,
     hanjaId,
     status,
     totalAttempts,
@@ -2874,6 +2885,12 @@ class $UserProgressTableTable extends UserProgressTable
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
     }
     if (data.containsKey('hanja_id')) {
       context.handle(
@@ -3011,6 +3028,10 @@ class $UserProgressTableTable extends UserProgressTable
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
       hanjaId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}hanja_id'],
@@ -3083,6 +3104,7 @@ class $UserProgressTableTable extends UserProgressTable
 class UserProgressTableData extends DataClass
     implements Insertable<UserProgressTableData> {
   final String id;
+  final String userId;
   final String hanjaId;
   final String status;
   final int totalAttempts;
@@ -3108,6 +3130,7 @@ class UserProgressTableData extends DataClass
   final int syncRevision;
   const UserProgressTableData({
     required this.id,
+    required this.userId,
     required this.hanjaId,
     required this.status,
     required this.totalAttempts,
@@ -3128,6 +3151,7 @@ class UserProgressTableData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
     map['hanja_id'] = Variable<String>(hanjaId);
     map['status'] = Variable<String>(status);
     map['total_attempts'] = Variable<int>(totalAttempts);
@@ -3153,6 +3177,7 @@ class UserProgressTableData extends DataClass
   UserProgressTableCompanion toCompanion(bool nullToAbsent) {
     return UserProgressTableCompanion(
       id: Value(id),
+      userId: Value(userId),
       hanjaId: Value(hanjaId),
       status: Value(status),
       totalAttempts: Value(totalAttempts),
@@ -3182,6 +3207,7 @@ class UserProgressTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return UserProgressTableData(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
       hanjaId: serializer.fromJson<String>(json['hanjaId']),
       status: serializer.fromJson<String>(json['status']),
       totalAttempts: serializer.fromJson<int>(json['totalAttempts']),
@@ -3204,6 +3230,7 @@ class UserProgressTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
       'hanjaId': serializer.toJson<String>(hanjaId),
       'status': serializer.toJson<String>(status),
       'totalAttempts': serializer.toJson<int>(totalAttempts),
@@ -3224,6 +3251,7 @@ class UserProgressTableData extends DataClass
 
   UserProgressTableData copyWith({
     String? id,
+    String? userId,
     String? hanjaId,
     String? status,
     int? totalAttempts,
@@ -3241,6 +3269,7 @@ class UserProgressTableData extends DataClass
     int? syncRevision,
   }) => UserProgressTableData(
     id: id ?? this.id,
+    userId: userId ?? this.userId,
     hanjaId: hanjaId ?? this.hanjaId,
     status: status ?? this.status,
     totalAttempts: totalAttempts ?? this.totalAttempts,
@@ -3262,6 +3291,7 @@ class UserProgressTableData extends DataClass
   UserProgressTableData copyWithCompanion(UserProgressTableCompanion data) {
     return UserProgressTableData(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       hanjaId: data.hanjaId.present ? data.hanjaId.value : this.hanjaId,
       status: data.status.present ? data.status.value : this.status,
       totalAttempts: data.totalAttempts.present
@@ -3306,6 +3336,7 @@ class UserProgressTableData extends DataClass
   String toString() {
     return (StringBuffer('UserProgressTableData(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('hanjaId: $hanjaId, ')
           ..write('status: $status, ')
           ..write('totalAttempts: $totalAttempts, ')
@@ -3328,6 +3359,7 @@ class UserProgressTableData extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    userId,
     hanjaId,
     status,
     totalAttempts,
@@ -3349,6 +3381,7 @@ class UserProgressTableData extends DataClass
       identical(this, other) ||
       (other is UserProgressTableData &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.hanjaId == this.hanjaId &&
           other.status == this.status &&
           other.totalAttempts == this.totalAttempts &&
@@ -3369,6 +3402,7 @@ class UserProgressTableData extends DataClass
 class UserProgressTableCompanion
     extends UpdateCompanion<UserProgressTableData> {
   final Value<String> id;
+  final Value<String> userId;
   final Value<String> hanjaId;
   final Value<String> status;
   final Value<int> totalAttempts;
@@ -3387,6 +3421,7 @@ class UserProgressTableCompanion
   final Value<int> rowid;
   const UserProgressTableCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.hanjaId = const Value.absent(),
     this.status = const Value.absent(),
     this.totalAttempts = const Value.absent(),
@@ -3406,6 +3441,7 @@ class UserProgressTableCompanion
   });
   UserProgressTableCompanion.insert({
     required String id,
+    this.userId = const Value.absent(),
     required String hanjaId,
     this.status = const Value.absent(),
     this.totalAttempts = const Value.absent(),
@@ -3426,6 +3462,7 @@ class UserProgressTableCompanion
        hanjaId = Value(hanjaId);
   static Insertable<UserProgressTableData> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? hanjaId,
     Expression<String>? status,
     Expression<int>? totalAttempts,
@@ -3445,6 +3482,7 @@ class UserProgressTableCompanion
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (hanjaId != null) 'hanja_id': hanjaId,
       if (status != null) 'status': status,
       if (totalAttempts != null) 'total_attempts': totalAttempts,
@@ -3466,6 +3504,7 @@ class UserProgressTableCompanion
 
   UserProgressTableCompanion copyWith({
     Value<String>? id,
+    Value<String>? userId,
     Value<String>? hanjaId,
     Value<String>? status,
     Value<int>? totalAttempts,
@@ -3485,6 +3524,7 @@ class UserProgressTableCompanion
   }) {
     return UserProgressTableCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       hanjaId: hanjaId ?? this.hanjaId,
       status: status ?? this.status,
       totalAttempts: totalAttempts ?? this.totalAttempts,
@@ -3509,6 +3549,9 @@ class UserProgressTableCompanion
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (hanjaId.present) {
       map['hanja_id'] = Variable<String>(hanjaId.value);
@@ -3565,6 +3608,7 @@ class UserProgressTableCompanion
   String toString() {
     return (StringBuffer('UserProgressTableCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('hanjaId: $hanjaId, ')
           ..write('status: $status, ')
           ..write('totalAttempts: $totalAttempts, ')
@@ -7041,6 +7085,7 @@ typedef $$HanjaIdiomTableTableProcessedTableManager =
 typedef $$UserProgressTableTableCreateCompanionBuilder =
     UserProgressTableCompanion Function({
       required String id,
+      Value<String> userId,
       required String hanjaId,
       Value<String> status,
       Value<int> totalAttempts,
@@ -7061,6 +7106,7 @@ typedef $$UserProgressTableTableCreateCompanionBuilder =
 typedef $$UserProgressTableTableUpdateCompanionBuilder =
     UserProgressTableCompanion Function({
       Value<String> id,
+      Value<String> userId,
       Value<String> hanjaId,
       Value<String> status,
       Value<int> totalAttempts,
@@ -7090,6 +7136,11 @@ class $$UserProgressTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7183,6 +7234,11 @@ class $$UserProgressTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get hanjaId => $composableBuilder(
     column: $table.hanjaId,
     builder: (column) => ColumnOrderings(column),
@@ -7270,6 +7326,9 @@ class $$UserProgressTableTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get hanjaId =>
       $composableBuilder(column: $table.hanjaId, builder: (column) => column);
@@ -7380,6 +7439,7 @@ class $$UserProgressTableTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
                 Value<String> hanjaId = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<int> totalAttempts = const Value.absent(),
@@ -7398,6 +7458,7 @@ class $$UserProgressTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => UserProgressTableCompanion(
                 id: id,
+                userId: userId,
                 hanjaId: hanjaId,
                 status: status,
                 totalAttempts: totalAttempts,
@@ -7418,6 +7479,7 @@ class $$UserProgressTableTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String> userId = const Value.absent(),
                 required String hanjaId,
                 Value<String> status = const Value.absent(),
                 Value<int> totalAttempts = const Value.absent(),
@@ -7436,6 +7498,7 @@ class $$UserProgressTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => UserProgressTableCompanion.insert(
                 id: id,
+                userId: userId,
                 hanjaId: hanjaId,
                 status: status,
                 totalAttempts: totalAttempts,

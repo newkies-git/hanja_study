@@ -109,12 +109,42 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   @override
   Widget build(BuildContext context) {
     final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
-    final hanja = hanjaAsync.value?.character ?? '';
     final guideStrokesAsync = ref.watch(hanjaStrokePointsProvider(widget.hanjaId));
+
+    if (hanjaAsync.isLoading) {
+      return const Scaffold(
+        backgroundColor: HanjaColors.surface,
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      );
+    }
+    if (hanjaAsync.hasError) {
+      return Scaffold(
+        backgroundColor: HanjaColors.surface,
+        body: SafeArea(
+          child: Center(
+            child: Text(
+              '한자 정보를 불러오지 못했습니다.\n${hanjaAsync.error}',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    final hanjaRow = hanjaAsync.value;
+    if (hanjaRow == null) {
+      return const Scaffold(
+        backgroundColor: HanjaColors.surface,
+        body: SafeArea(
+          child: Center(child: Text('해당 한자를 찾을 수 없습니다.')),
+        ),
+      );
+    }
+
+    final hanja = hanjaRow.character;
     final guideStrokes =
         guideStrokesAsync.valueOrNull?.where((s) => s.length >= 2).toList();
-    final int totalStrokes =
-        guideStrokes?.length ?? (hanjaAsync.value?.totalStrokes ?? 0);
+    final int totalStrokes = guideStrokes?.length ?? hanjaRow.totalStrokes;
 
     return Scaffold(
       backgroundColor: HanjaColors.surface,
@@ -146,6 +176,17 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
                       guideNormalizedStrokes: _showAnswerOverlay ? guideStrokes : null,
                     ),
                   ),
+                  if (guideStrokesAsync.hasError)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        '획순 데이터를 불러오지 못했습니다.\n${guideStrokesAsync.error}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: HanjaColors.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
                   const SizedBox(height: 22),
                   _buildActionGrid(),
                 ],

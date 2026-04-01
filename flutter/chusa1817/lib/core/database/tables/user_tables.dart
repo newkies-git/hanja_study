@@ -8,6 +8,7 @@ class UserProgressTable extends Table {
   String get tableName => 'user_progress';
 
   TextColumn get id => text()();
+  TextColumn get userId => text().withDefault(const Constant(''))();
   TextColumn get hanjaId => text()();
 
   // ── 학습 상태 ─────────────────────────────────────────────────────────────

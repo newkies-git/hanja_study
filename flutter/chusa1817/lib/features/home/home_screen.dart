@@ -11,8 +11,7 @@ import '../../core/router/app_router.dart';
 /// 홈 화면.
 ///
 /// 오늘의 학습 진도 카드, 연속 학습일 스트릭 뱃지,
-/// 추천 복습 섹션을 더미 데이터로 표시한다.
-/// Phase 3에서 Drift DB 및 Riverpod Provider로 실데이터 교체.
+/// 추천 복습 섹션을 DB/Provider 기반으로 표시한다.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -29,24 +28,74 @@ class HomeScreen extends ConsumerWidget {
       children: [
         const EditorialTopBar(title: '추사 1817'),
         const SizedBox(height: 14),
-        _TodayProgressCard(
-          goal: dailyGoalAsync.value ?? 5,
-          done: todayDoneAsync.value ?? 0,
-          textTheme: textTheme,
-          onTap: () => context.go('${AppRoutes.home}?tab=1'),
-        ),
-        const SizedBox(height: 14),
-        _StreakBadge(streakDays: streakDaysAsync.value ?? 0, textTheme: textTheme),
-        const SizedBox(height: 22),
-        _RecommendedReviewSection(
-          hanjaList: (reviewHanjaAsync.value ?? const [])
-              .map((row) => {'hanjaId': row.$1, 'hanja': row.$2, 'meaning': row.$3})
-              .toList(),
-          textTheme: textTheme,
-          onStudyTap: (hanjaId, meaning) => context.push(
-            '${AppRoutes.study}/$hanjaId?meaning=${Uri.encodeComponent(meaning)}',
+        if (dailyGoalAsync.isLoading || todayDoneAsync.isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (dailyGoalAsync.hasError || todayDoneAsync.hasError)
+          Center(
+            child: Text(
+              '진도를 불러오지 못했습니다.\n'
+              '${dailyGoalAsync.error ?? ''}\n'
+              '${todayDoneAsync.error ?? ''}',
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          _TodayProgressCard(
+            goal: dailyGoalAsync.value ?? 5,
+            done: todayDoneAsync.value ?? 0,
+            textTheme: textTheme,
+            onTap: () => context.go('${AppRoutes.home}?tab=1'),
           ),
-        ),
+        const SizedBox(height: 14),
+        if (streakDaysAsync.isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (streakDaysAsync.hasError)
+          Center(
+            child: Text(
+              '스트릭을 불러오지 못했습니다.\n${streakDaysAsync.error}',
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          _StreakBadge(
+            streakDays: streakDaysAsync.value ?? 0,
+            textTheme: textTheme,
+          ),
+        const SizedBox(height: 22),
+        if (reviewHanjaAsync.isLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (reviewHanjaAsync.hasError)
+          Center(
+            child: Text(
+              '추천 복습을 불러오지 못했습니다.\n${reviewHanjaAsync.error}',
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          _RecommendedReviewSection(
+            hanjaList: (reviewHanjaAsync.value ?? const [])
+                .map((row) => {'hanjaId': row.$1, 'hanja': row.$2, 'meaning': row.$3})
+                .toList(),
+            textTheme: textTheme,
+            onStudyTap: (hanjaId, meaning) => context.push(
+              '${AppRoutes.study}/$hanjaId?meaning=${Uri.encodeComponent(meaning)}',
+            ),
+          ),
         const SizedBox(height: 22),
         GradientPrimaryButton(
           label: '학습 이어가기',

@@ -70,7 +70,7 @@ class _WritingCanvasWidgetState extends State<WritingCanvasWidget> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x14000000),
+            color: HanjaColors.legacyShadow,
             blurRadius: 32,
             offset: Offset(0, 10),
           ),
@@ -93,7 +93,7 @@ class _WritingCanvasWidgetState extends State<WritingCanvasWidget> {
                     child: Text(
                       widget.hanja,
                       style: textTheme.displayLarge?.copyWith(
-                        color: const Color(0xFF9A9DA0).withValues(alpha: 0.18),
+                        color: HanjaColors.legacyNeutralIcon.withValues(alpha: 0.18),
                         height: 1,
                       ),
                     ),

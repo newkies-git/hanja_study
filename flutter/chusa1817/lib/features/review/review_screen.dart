@@ -39,6 +39,14 @@ class ReviewScreen extends ConsumerWidget {
         const SizedBox(height: 12),
         if (dueAsync.isLoading)
           const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+        else if (dueAsync.hasError)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              '복습 목록을 불러오지 못했습니다.\n${dueAsync.error}',
+              textAlign: TextAlign.center,
+            ),
+          )
         else if (dueToday.isEmpty)
           _EmptyCard(textTheme: textTheme)
         else
@@ -69,6 +77,14 @@ class ReviewScreen extends ConsumerWidget {
             child: Padding(
               padding: EdgeInsets.all(24),
               child: CircularProgressIndicator(),
+            ),
+          )
+        else if (upcomingAsync.hasError)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              '예정 복습을 불러오지 못했습니다.\n${upcomingAsync.error}',
+              textAlign: TextAlign.center,
             ),
           )
         else if (upcoming.isEmpty)
