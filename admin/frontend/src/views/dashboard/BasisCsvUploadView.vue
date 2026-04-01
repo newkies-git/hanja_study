@@ -602,6 +602,17 @@ async function onFileChange(ev: Event) {
   }
 }
 
+function collectDuplicateDocIds(ids: string[]): string[] {
+  const count = new Map<string, number>();
+  for (const id of ids) {
+    count.set(id, (count.get(id) ?? 0) + 1);
+  }
+  return [...count.entries()]
+    .filter(([, c]) => c > 1)
+    .map(([id]) => id)
+    .sort();
+}
+
 /** Firestore Commit 요청 상한(~11MiB) 대비: 획·단어 문서는 건당 크기가 커서 배치를 작게 */
 function batchChunkForCollection(coll: string): number {
   if (coll === "hanja_stroke") return 20;
@@ -664,6 +675,31 @@ async function onUpload() {
       }
       const headers = rows[0].map((h) => h.replace(/^\ufeff/, "").trim() || "col");
       const dataRows = rows.length - 1;
+
+      uploadProgressPhase.value = "validate";
+      uploadProgressTotal.value = dataRows;
+      uploadProgressDone.value = 0;
+      const csvPrimaries: string[] = [];
+      for (let r = 1; r < rows.length; r++) {
+        const cells = rows[r] ?? [];
+        const primary =
+          collName === "hanja_basis"
+            ? normalizeHanjaBasisDocId(headers, cells, r)
+            : safeDocId(cells[0] ?? "", `row_${r}_validate`);
+        csvPrimaries.push(primary);
+        uploadProgressDone.value = r;
+        tickUploadElapsed();
+      }
+
+      const csvDupIds = collectDuplicateDocIds(csvPrimaries);
+      if (csvDupIds.length > 0) {
+        uploadError.value = {
+          kind: "plain",
+          message: `파일 안에 동일한 문서 ID가 여러 행에 있습니다. (${csvDupIds.slice(0, 8).join(", ")}${csvDupIds.length > 8 ? ` 외 ${csvDupIds.length - 8}종` : ""})`,
+        };
+        return;
+      }
+
       uploadProgressPhase.value = "upload";
       uploadProgressTotal.value = dataRows;
       uploadBatchTotal.value = Math.max(1, Math.ceil(dataRows / chunk));
@@ -694,7 +730,7 @@ async function onUpload() {
             data.id = primary;
           }
           const ref = doc(collection(db, collName), primary);
-          batch.set(ref, data, { merge: true });
+          batch.set(ref, data);
         });
         await batch.commit();
         total += slice.length;
@@ -731,6 +767,7 @@ async function onUpload() {
       uploadBatchTotal.value = 0;
       uploadBatchCurrent.value = 0;
 
+      const jsonPrimaries: string[] = [];
       for (let i = 0; i < n; i++) {
         const id = docIdFromJsonItem(collName, items[i]);
         if (!id) {
@@ -740,10 +777,23 @@ async function onUpload() {
           };
           return;
         }
+        const rowIndex = i + 1;
+        jsonPrimaries.push(
+          safeDocId(id, `row_${rowIndex}_validate_${i}`),
+        );
         if (i % validateStride === 0 || i === n - 1) {
           uploadProgressDone.value = i + 1;
           tickUploadElapsed();
         }
+      }
+
+      const jsonDupIds = collectDuplicateDocIds(jsonPrimaries);
+      if (jsonDupIds.length > 0) {
+        uploadError.value = {
+          kind: "plain",
+          message: `JSON에 동일한 문서 ID가 여러 객체에 있습니다. (${jsonDupIds.slice(0, 8).join(", ")}${jsonDupIds.length > 8 ? ` 외 ${jsonDupIds.length - 8}종` : ""})`,
+        };
+        return;
       }
 
       uploadProgressPhase.value = "upload";
@@ -768,7 +818,7 @@ async function onUpload() {
             _importedAt: serverTimestamp(),
           };
           const ref = doc(collection(db, collName), primary);
-          batch.set(ref, data, { merge: true });
+          batch.set(ref, data);
         });
         await batch.commit();
         total += slice.length;
@@ -818,7 +868,7 @@ function clearSessionCompletedLog() {
 }
 
 const BASIS_UPLOAD_HELP_TEXT =
-  "단계 칩을 눌러 원하는 컬렉션부터 올릴 수 있습니다. 반영 시 Firestore에 선행 컬렉션 문서가 1건 이상 있는지만 검사합니다(extend→basis, stroke→extend, word→stroke). hanja_basis는 CSV. hanja_extend는 JSON·CSV. hanja_stroke·hanja_word는 JSON 다중 파일 가능. 동일 문서 ID는 merge됩니다.";
+  "단계 칩을 눌러 원하는 컬렉션부터 올릴 수 있습니다. 반영 시 Firestore에 선행 컬렉션 문서가 1건 이상 있는지만 검사합니다(extend→basis, stroke→extend, word→stroke). hanja_basis는 CSV. hanja_extend는 JSON·CSV. hanja_stroke·hanja_word는 JSON 다중 파일 가능. 동일 문서 ID가 있으면 업로드 내용으로 문서 전체를 교체합니다(병합 아님·페이로드에 없는 필드는 제거). 한 파일 안에서 같은 문서 ID가 여러 행·객체에 있으면 업로드하지 않습니다.";
 
 const basisUploadHelpTriggerRef = ref<HTMLButtonElement | null>(null);
 const basisUploadHelpTooltipOpen = ref(false);

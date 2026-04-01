@@ -764,13 +764,13 @@ async function saveBasisForm() {
       if (newId !== oldId) {
         const batch = writeBatch(db);
         batch.delete(doc(colRef, oldId));
-        batch.set(doc(colRef, newId), payload, { merge: true });
+        batch.set(doc(colRef, newId), payload);
         await batch.commit();
       } else {
-        await setDoc(doc(colRef, oldId), payload, { merge: true });
+        await setDoc(doc(colRef, oldId), payload);
       }
     } else {
-      await setDoc(doc(colRef, newId), payload, { merge: true });
+      await setDoc(doc(colRef, newId), payload);
     }
 
     closeBasisFormModal();

@@ -362,9 +362,7 @@ async function saveHanjaStrokeJson() {
     }
     await user.getIdToken(true);
     const db = getFirestoreDb();
-    await setDoc(doc(db, "hanja_stroke", docId), parsed as Record<string, unknown>, {
-      merge: true,
-    });
+    await setDoc(doc(db, "hanja_stroke", docId), parsed as Record<string, unknown>);
     strokeJsonBaseline.value = strokeJsonEditorText.value;
     await loadStrokesFromFirestore();
   } catch (e) {
