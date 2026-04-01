@@ -45,26 +45,29 @@ function onNavigate() {
         : '-translate-x-full lg:translate-x-0',
     ]"
   >
-    <!-- 브랜드 -->
+    <!-- 브랜드: AppHeader 와 동일 h-14 / sm:h-16 로 상단 바 높이 정렬 -->
     <div
-      class="relative shrink-0 border-b border-outline-variant/60 bg-gradient-to-r from-primary/[0.07] to-transparent px-4 py-3.5 sm:py-4"
-      :class="{ 'lg:px-2 lg:py-3': appOption.sidebarCollapsed }"
+      class="relative flex h-14 min-h-14 shrink-0 items-center border-b border-outline-variant bg-gradient-to-r from-primary/[0.07] to-transparent px-3 sm:h-16 sm:min-h-16 sm:px-4"
+      :class="{ 'lg:px-2': appOption.sidebarCollapsed }"
     >
       <div
         class="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-primary/[0.04] to-transparent"
         aria-hidden="true"
       />
       <div
-        class="relative flex items-center gap-3"
+        class="relative flex min-h-0 min-w-0 flex-1 items-center gap-2.5 sm:gap-3"
         :class="{ 'lg:justify-center': appOption.sidebarCollapsed }"
       >
         <div
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary font-display text-sm font-bold text-white shadow-md shadow-primary/25"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-b from-primary to-primary-container font-display text-sm font-bold text-white shadow-md shadow-primary/20 sm:h-9 sm:w-9 sm:rounded-xl"
           aria-hidden="true"
         >
           漢
         </div>
-        <div class="min-w-0 leading-tight" :class="{ 'lg:hidden': appOption.sidebarCollapsed }">
+        <div
+          class="min-w-0 leading-tight"
+          :class="{ 'lg:hidden': appOption.sidebarCollapsed }"
+        >
           <p class="font-display text-sm font-semibold tracking-tight text-onSurface">
             Scholarly Curator
           </p>
