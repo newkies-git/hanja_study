@@ -9,11 +9,12 @@ const auth = useAuthStore();
 
 <template>
   <header
-    class="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-outline-variant bg-surface-lowest/90 px-4 shadow-float backdrop-blur-md sm:h-16 sm:px-6 lg:px-8"
+    class="sticky top-0 z-30 flex h-14 min-h-14 shrink-0 items-center gap-2 border-b border-outline-variant bg-surface-lowest/90 px-3 shadow-float backdrop-blur-md sm:h-16 sm:min-h-16 sm:gap-3 sm:px-6 lg:px-8"
   >
+    <!-- 데스크톱(lg+): 사이드바 접기. 모바일에서는 숨김 — lg:flex만 쓰면 모바일에서도 버튼이 보여 햄버거가 이중 표시됨 -->
     <button
       type="button"
-      class="flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-md bg-surface-low lg:flex"
+      class="hidden h-10 w-10 shrink-0 flex-col items-center justify-center gap-1 rounded-md bg-surface-low lg:flex"
       aria-label="사이드바 접기"
       @click="appOption.toggleSidebarCollapsed"
     >
@@ -21,9 +22,10 @@ const auth = useAuthStore();
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
     </button>
+    <!-- 모바일: 오버레이 메뉴만 -->
     <button
       type="button"
-      class="flex h-10 w-10 flex-col items-center justify-center gap-1 rounded-md bg-surface-low lg:hidden"
+      class="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1 rounded-md bg-surface-low lg:hidden"
       aria-label="메뉴"
       @click="appOption.toggleSidebarMobile"
     >
@@ -34,16 +36,22 @@ const auth = useAuthStore();
 
     <RouterLink
       to="/"
-      class="font-display text-lg font-semibold tracking-tight text-onSurface"
+      class="font-display flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-onSurface no-underline sm:gap-2.5"
     >
       <span
-        class="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-b from-primary to-primary-container text-sm font-bold text-white"
+        class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-b from-primary to-primary-container text-sm font-bold text-white"
+        aria-hidden="true"
         >漢</span
       >
-      HANJA Admin
+      <span
+        class="truncate text-base font-semibold tracking-tight sm:text-lg"
+        >HANJA Admin</span
+      >
     </RouterLink>
 
-    <div class="ml-auto flex items-center gap-3">
+    <div
+      class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-3"
+    >
       <span
         v-if="auth.user"
         class="hidden max-w-[12rem] truncate text-sm text-onSurface-variant sm:inline"
@@ -53,10 +61,14 @@ const auth = useAuthStore();
       </span>
       <span
         v-if="auth.isAdmin"
-        class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+        class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary sm:px-2.5 sm:text-xs"
         >admin</span
       >
-      <button type="button" class="btn-secondary text-sm" @click="auth.logout">
+      <button
+        type="button"
+        class="btn-secondary shrink-0 whitespace-nowrap px-2.5 py-2 text-xs sm:px-3 sm:text-sm"
+        @click="auth.logout"
+      >
         로그아웃
       </button>
     </div>
