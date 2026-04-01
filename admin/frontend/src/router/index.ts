@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 
 const router = createRouter({
@@ -54,12 +55,15 @@ async function waitAuthReady() {
   const auth = useAuthStore();
   if (auth.ready) return;
   await new Promise<void>((resolve) => {
-    const id = window.setInterval(() => {
-      if (auth.ready) {
-        window.clearInterval(id);
-        resolve();
-      }
-    }, 16);
+    const stop = watch(
+      () => auth.ready,
+      (val) => {
+        if (val) {
+          stop();
+          resolve();
+        }
+      },
+    );
   });
 }
 

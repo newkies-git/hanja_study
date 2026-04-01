@@ -5,10 +5,6 @@ import { useAuthStore } from "@/stores/auth";
 
 const appOption = useAppOptionStore();
 const auth = useAuthStore();
-
-async function signOut() {
-  await auth.logout();
-}
 </script>
 
 <template>
@@ -60,7 +56,7 @@ async function signOut() {
         class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
         >admin</span
       >
-      <button type="button" class="btn-secondary text-sm" @click="signOut">
+      <button type="button" class="btn-secondary text-sm" @click="auth.logout">
         로그아웃
       </button>
     </div>

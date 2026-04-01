@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { RouterLink } from "vue-router";
 import { collection, getCountFromServer } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
+const firebaseConfigured = computed(() => isFirebaseConfigured());
 
 type CountCard = {
   key: string;
@@ -25,19 +26,21 @@ const loadError = ref<string | null>(null);
 const countsLoading = ref(false);
 
 async function loadCounts() {
-  if (!isFirebaseConfigured() || !auth.isAuthenticated) return;
+  if (!firebaseConfigured.value || !auth.isAuthenticated) return;
   loadError.value = null;
   countsLoading.value = true;
   const db = getFirestoreDb();
   try {
-    for (const card of countCards.value) {
-      try {
-        const snap = await getCountFromServer(collection(db, card.key));
-        card.value = snap.data().count;
-      } catch {
-        card.value = null;
-      }
-    }
+    await Promise.all(
+      countCards.value.map(async (card) => {
+        try {
+          const snap = await getCountFromServer(collection(db, card.key));
+          card.value = snap.data().count;
+        } catch {
+          card.value = null;
+        }
+      }),
+    );
   } finally {
     countsLoading.value = false;
   }
@@ -118,7 +121,7 @@ onMounted(loadCounts);
     </div>
 
     <div
-      v-if="!isFirebaseConfigured()"
+      v-if="!firebaseConfigured"
       class="rounded-xl border border-outline-variant/70 bg-surface-low px-4 py-3 text-sm text-onSurface-variant"
     >
       Firebase가 설정되지 않았습니다. <code class="rounded bg-surface-lowest px-1.5 py-0.5 font-mono text-xs">.env</code>를 확인하세요.
