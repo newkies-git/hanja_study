@@ -7,7 +7,7 @@ const holder =
 
 <template>
   <footer
-    class="shrink-0 border-t border-outline-variant/60 bg-surface-lowest/90 px-4 py-3 text-center text-[11px] leading-relaxed text-onSurface-variant backdrop-blur-sm sm:px-6 lg:px-10"
+    class="shrink-0 border-t border-outline-variant/50 bg-surface-lowest/90 px-4 py-2 text-center text-[11px] leading-none text-onSurface-variant backdrop-blur-sm sm:px-6 lg:px-10"
     role="contentinfo"
   >
     <p>
