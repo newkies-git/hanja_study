@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import {
   collection,
   doc,
@@ -11,6 +12,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  startAfter,
   writeBatch,
 } from "firebase/firestore";
 import StrokeOrderViewer from "@/components/dashboard/StrokeOrderViewer.vue";
@@ -42,8 +44,13 @@ const allDocs = ref<DocEntry[]>([]);
 const rows = ref<Row[]>([]);
 const ids = ref<string[]>([]);
 const loading = ref(false);
+/** `loadMoreBasis` 전용 (전체 화면 스피너와 분리) */
+const loadingMore = ref(false);
 const error = ref<string | null>(null);
 const filterWarning = ref<string | null>(null);
+/** 마지막으로 가져온 문서 (문서 ID 순 다음 페이지용) */
+const basisLastDoc = ref<QueryDocumentSnapshot<DocumentData> | null>(null);
+const basisHasMore = ref(false);
 
 const pageSize = ref<(typeof PAGE_SIZE_OPTIONS)[number]>(20);
 const currentPage = ref(0);
@@ -500,6 +507,11 @@ function closeStrokeModal() {
   strokeModalSvgPaths.value = [];
 }
 
+function basisLoadWarningMessage(loadedCount: number, hasMore: boolean): string | null {
+  if (!hasMore) return null;
+  return `한 번에 최대 ${FILTER_FETCH_CAP.toLocaleString("ko-KR")}건씩만 가져옵니다. 지금 ${loadedCount.toLocaleString("ko-KR")}건이 메모리에 있습니다. 더 있으면 「다음 ${FILTER_FETCH_CAP.toLocaleString("ko-KR")}건 불러오기」를 누르거나 Firebase 콘솔·보내기 스크립트로 전체를 확인하세요.`;
+}
+
 async function loadAll() {
   if (!isFirebaseConfigured()) {
     error.value = "Firebase가 설정되지 않았습니다.";
@@ -519,10 +531,10 @@ async function loadAll() {
       id: d.id,
       data: d.data() as Row,
     }));
-    filterWarning.value =
-      snap.docs.length >= FILTER_FETCH_CAP
-        ? `최대 ${FILTER_FETCH_CAP}건만 불러옵니다. 나머지는 콘솔·다른 도구로 확인하세요.`
-        : null;
+    basisLastDoc.value =
+      snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : null;
+    basisHasMore.value = snap.docs.length >= FILTER_FETCH_CAP;
+    filterWarning.value = basisLoadWarningMessage(allDocs.value.length, basisHasMore.value);
     currentPage.value = 0;
     syncSliceToRows();
   } catch (e) {
@@ -532,8 +544,48 @@ async function loadAll() {
     rows.value = [];
     ids.value = [];
     filterWarning.value = null;
+    basisLastDoc.value = null;
+    basisHasMore.value = false;
   } finally {
     loading.value = false;
+  }
+}
+
+async function loadMoreBasis() {
+  if (
+    !isFirebaseConfigured() ||
+    !basisHasMore.value ||
+    !basisLastDoc.value ||
+    loading.value ||
+    loadingMore.value
+  ) {
+    return;
+  }
+  loadingMore.value = true;
+  error.value = null;
+  try {
+    const db = getFirestoreDb();
+    const q = query(
+      collection(db, "hanja_basis"),
+      orderBy(documentId()),
+      startAfter(basisLastDoc.value),
+      limit(FILTER_FETCH_CAP),
+    );
+    const snap = await getDocs(q);
+    const next = snap.docs.map((d) => ({
+      id: d.id,
+      data: d.data() as Row,
+    }));
+    allDocs.value = [...allDocs.value, ...next];
+    basisLastDoc.value =
+      snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : basisLastDoc.value;
+    basisHasMore.value = snap.docs.length >= FILTER_FETCH_CAP;
+    filterWarning.value = basisLoadWarningMessage(allDocs.value.length, basisHasMore.value);
+  } catch (e) {
+    error.value =
+      e instanceof Error ? e.message : "추가 페이지를 불러오지 못했습니다.";
+  } finally {
+    loadingMore.value = false;
   }
 }
 
@@ -1057,9 +1109,24 @@ onMounted(() => {
 
     <div
       v-if="filterWarning"
-      class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
+      class="space-y-3 rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
     >
-      {{ filterWarning }}
+      <p class="leading-relaxed">
+        {{ filterWarning }}
+      </p>
+      <button
+        v-if="basisHasMore"
+        type="button"
+        class="btn-secondary text-xs sm:text-sm"
+        :disabled="loadingMore || loading"
+        @click="loadMoreBasis"
+      >
+        {{
+          loadingMore
+            ? "불러오는 중…"
+            : `다음 ${FILTER_FETCH_CAP.toLocaleString("ko-KR")}건 불러오기`
+        }}
+      </button>
     </div>
     <div
       v-if="error"

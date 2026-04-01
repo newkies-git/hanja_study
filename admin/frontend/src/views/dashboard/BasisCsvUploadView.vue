@@ -4,13 +4,16 @@ import { RouterLink } from "vue-router";
 import {
   collection,
   doc,
+  getDocs,
+  limit,
+  query,
   serverTimestamp,
   writeBatch,
 } from "firebase/firestore";
 import { getFirebaseAuth, getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
 
-/** Firestore 컬렉션 업로드 순서 (반드시 이 순서) */
+/** Firestore 컬렉션 권장 업로드 순서 (단계는 자유 선택 가능, 후속 단계는 선행 컬렉션 존재 시에만 반영) */
 const UPLOAD_STEPS = [
   {
     collection: "hanja_basis",
@@ -26,16 +29,17 @@ const UPLOAD_STEPS = [
     collection: "hanja_stroke",
     title: "3. hanja_stroke",
     description:
-      "획순 데이터 (JSON 권장, stroke_entities.json 그대로). svg_paths 배열이 있어야 관리 화면에서 글자 실루엣이 정상 표시됩니다.",
+      "획순 데이터 (JSON 권장). 여러 개의 JSON 배열 파일을 한 번에 선택해 업로드할 수 있습니다. svg_paths 가 있어야 실루엣이 표시됩니다.",
   },
   {
     collection: "hanja_word",
     title: "4. hanja_word",
-    description: "단어·용례 (JSON 권장)",
+    description:
+      "단어·용례 (JSON 권장). 여러 개의 JSON 배열 파일을 한 번에 선택해 업로드할 수 있습니다.",
   },
 ] as const;
 
-type StepIndex = 0 | 1 | 2 | 3 | 4;
+type StepIndex = 0 | 1 | 2 | 3;
 
 type CsvPreview = {
   kind: "csv";
@@ -49,10 +53,13 @@ type JsonPreview = {
   fileName: string;
   size: number;
   items: Record<string, unknown>[];
+  /** 멀티 JSON 업로드 시 파일별 건수 (미리보기·요약용) */
+  sourceParts?: { fileName: string; size: number; count: number }[];
 };
 
 const auth = useAuthStore();
-const file = ref<File | null>(null);
+/** 선택된 파일 (1~4단계). 3·4단계는 JSON일 때 복수 선택 가능 */
+const selectedFiles = ref<File[]>([]);
 const busy = ref(false);
 const message = ref<string | null>(null);
 const uploadError = ref<
@@ -61,6 +68,15 @@ const uploadError = ref<
   | null
 >(null);
 const lastImported = ref(0);
+
+/** 업로드 진행 (busy 동안만 의미 있음) */
+const uploadProgressPhase = ref<"idle" | "validate" | "upload">("idle");
+const uploadProgressTotal = ref(0);
+const uploadProgressDone = ref(0);
+const uploadBatchCurrent = ref(0);
+const uploadBatchTotal = ref(0);
+const uploadStartedAt = ref(0);
+const uploadElapsedMs = ref(0);
 
 const currentStepIndex = ref<StepIndex>(0);
 
@@ -74,11 +90,42 @@ const lastUploadSummary = ref<{
   dataRowCount: number;
   columnCount: number;
   importedRows: number;
+  durationMs: number;
 } | null>(null);
 
 const sessionCompleted = ref<
   { collection: string; fileName: string; importedRows: number }[]
 >([]);
+
+const sessionCoversAllSteps = computed(() =>
+  UPLOAD_STEPS.every((s) =>
+    sessionCompleted.value.some((c) => c.collection === s.collection),
+  ),
+);
+
+function stepSessionDone(stepIndex: number): boolean {
+  const s = UPLOAD_STEPS[stepIndex];
+  if (!s) return false;
+  return sessionCompleted.value.some((c) => c.collection === s.collection);
+}
+
+function selectStep(i: StepIndex) {
+  if (currentStepIndex.value === i) return;
+  currentStepIndex.value = i;
+  clearFileState();
+  message.value = null;
+  uploadError.value = null;
+  lastUploadSummary.value = null;
+  lastImported.value = 0;
+}
+
+/** 선행 단계 컬렉션에 문서가 1건 이상 있는지 (권장 의존 순서 검증) */
+async function collectionHasAnyDoc(collName: string): Promise<boolean> {
+  const db = getFirestoreDb();
+  const q = query(collection(db, collName), limit(1));
+  const snap = await getDocs(q);
+  return !snap.empty;
+}
 
 const currentStep = computed(() => {
   const i = currentStepIndex.value;
@@ -89,6 +136,9 @@ const currentStep = computed(() => {
 /** 2~4단계: ETL 산출 JSON이 표준. CSV도 호환 */
 const allowsJson = computed(() => currentStepIndex.value >= 1);
 
+/** hanja_stroke(2) · hanja_word(3): JSON 멀티 파일 선택 */
+const allowsMultiJsonFiles = computed(() => currentStepIndex.value >= 2);
+
 const fileInputId = computed(
   () => `data-file-input-${currentStepIndex.value}`,
 );
@@ -97,8 +147,7 @@ const canUpload = computed(() => {
   if (
     !isFirebaseConfigured() ||
     !auth.isAuthenticated ||
-    currentStepIndex.value >= UPLOAD_STEPS.length ||
-    !file.value ||
+    selectedFiles.value.length === 0 ||
     !uploadPreview.value ||
     busy.value
   ) {
@@ -157,6 +206,78 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const rs = s % 60;
+  if (m === 0) return `${s}초`;
+  return `${m}분 ${rs}초`;
+}
+
+function tickUploadElapsed() {
+  if (uploadStartedAt.value > 0) {
+    uploadElapsedMs.value = Math.round(performance.now() - uploadStartedAt.value);
+  }
+}
+
+const uploadProgressPercent = computed(() => {
+  const t = uploadProgressTotal.value;
+  if (t <= 0) return 0;
+  return Math.min(100, Math.round((uploadProgressDone.value / t) * 100));
+});
+
+const uploadProgressPhaseLabel = computed(() => {
+  if (uploadProgressPhase.value === "validate") return "문서 검증";
+  if (uploadProgressPhase.value === "upload") return "Firestore 반영";
+  return "";
+});
+
+const uploadThroughputLabel = computed(() => {
+  if (uploadProgressPhase.value !== "upload") return "";
+  const ms = uploadElapsedMs.value;
+  const done = uploadProgressDone.value;
+  if (ms < 200 || done < 1) return "";
+  const perSec = done / (ms / 1000);
+  if (perSec >= 100) return ` · 약 ${Math.round(perSec).toLocaleString("ko-KR")}건/초`;
+  if (perSec >= 1) return ` · 약 ${perSec.toFixed(1)}건/초`;
+  return ` · 약 ${(60 / perSec).toFixed(0)}초/건`;
+});
+
+let uploadElapsedTimer: ReturnType<typeof setInterval> | null = null;
+
+function stopUploadElapsedTicker() {
+  if (uploadElapsedTimer !== null) {
+    clearInterval(uploadElapsedTimer);
+    uploadElapsedTimer = null;
+  }
+}
+
+function resetUploadProgress() {
+  stopUploadElapsedTicker();
+  uploadProgressPhase.value = "idle";
+  uploadProgressTotal.value = 0;
+  uploadProgressDone.value = 0;
+  uploadBatchCurrent.value = 0;
+  uploadBatchTotal.value = 0;
+  uploadStartedAt.value = 0;
+  uploadElapsedMs.value = 0;
+}
+
+function beginUploadProgress() {
+  stopUploadElapsedTicker();
+  uploadStartedAt.value = performance.now();
+  uploadElapsedMs.value = 0;
+  uploadProgressDone.value = 0;
+  uploadProgressTotal.value = 0;
+  uploadBatchCurrent.value = 0;
+  uploadBatchTotal.value = 0;
+  uploadProgressPhase.value = "idle";
+  uploadElapsedTimer = setInterval(() => {
+    tickUploadElapsed();
+  }, 250);
 }
 
 function parseCsvLine(line: string): string[] {
@@ -316,31 +437,73 @@ function parseFirestoreUploadError(e: unknown) {
 }
 
 function clearFileState() {
-  file.value = null;
+  selectedFiles.value = [];
   uploadPreview.value = null;
   const el = document.getElementById(fileInputId.value) as HTMLInputElement | null;
   if (el) el.value = "";
 }
 
+async function parseJsonFileToItems(
+  f: File,
+): Promise<{ items: Record<string, unknown>[]; error: string | null }> {
+  const text = await f.text();
+  const nameLower = f.name.toLowerCase();
+  const tryJson =
+    nameLower.endsWith(".json") ||
+    text.trimStart().startsWith("[") ||
+    text.trimStart().startsWith("{");
+  if (!tryJson) {
+    return { items: [], error: `${f.name}: JSON이 아닙니다.` };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { items: [], error: `${f.name}: JSON 파싱에 실패했습니다.` };
+  }
+  const arr = Array.isArray(parsed) ? parsed : [parsed];
+  const items: Record<string, unknown>[] = [];
+  for (const el of arr) {
+    if (el && typeof el === "object" && !Array.isArray(el)) {
+      items.push(el as Record<string, unknown>);
+    }
+  }
+  if (items.length === 0) {
+    return {
+      items: [],
+      error: `${f.name}: 객체 문서가 없습니다. 최상위는 객체의 배열이어야 합니다.`,
+    };
+  }
+  return { items, error: null };
+}
+
 async function onFileChange(ev: Event) {
   const input = ev.target as HTMLInputElement;
-  const f = input.files?.[0] ?? null;
-  file.value = f;
+  const list = input.files ? Array.from(input.files) : [];
+  const stepIdx = currentStepIndex.value;
+  const multi = allowsMultiJsonFiles.value;
+
+  const files =
+    stepIdx === 0 || stepIdx === 1
+      ? list.slice(0, 1)
+      : multi
+        ? list
+        : list.slice(0, 1);
+
+  selectedFiles.value = files;
   uploadPreview.value = null;
   uploadError.value = null;
   message.value = null;
   lastUploadSummary.value = null;
   lastImported.value = 0;
 
-  if (!f) return;
-
-  const stepIdx = currentStepIndex.value;
-  const nameLower = f.name.toLowerCase();
+  if (files.length === 0) return;
 
   try {
-    const text = await f.text();
-
     if (stepIdx === 0) {
+      const f = files[0]!;
+      const nameLower = f.name.toLowerCase();
+      const text = await f.text();
       if (nameLower.endsWith(".json") || text.trimStart().startsWith("[")) {
         uploadError.value = {
           kind: "plain",
@@ -360,40 +523,64 @@ async function onFileChange(ev: Event) {
       return;
     }
 
+    if (multi && files.length > 1) {
+      const allItems: Record<string, unknown>[] = [];
+      const parts: { fileName: string; size: number; count: number }[] = [];
+      let totalSize = 0;
+      for (const f of files) {
+        const nameLower = f.name.toLowerCase();
+        if (!nameLower.endsWith(".json")) {
+          uploadError.value = {
+            kind: "plain",
+            message:
+              "여러 파일을 올릴 때는 모두 .json 배열 파일이어야 합니다. CSV는 파일 하나만 선택하세요.",
+          };
+          return;
+        }
+        const { items, error } = await parseJsonFileToItems(f);
+        if (error) {
+          uploadError.value = { kind: "plain", message: error };
+          return;
+        }
+        allItems.push(...items);
+        parts.push({ fileName: f.name, size: f.size, count: items.length });
+        totalSize += f.size;
+      }
+      const label =
+        files.length === 1
+          ? files[0]!.name
+          : `${files.length}개 파일 (${files.map((x) => x.name).join(", ")})`;
+      uploadPreview.value = {
+        kind: "json",
+        fileName: label,
+        size: totalSize,
+        items: allItems,
+        sourceParts: parts,
+      };
+      return;
+    }
+
+    const f = files[0]!;
+    const nameLower = f.name.toLowerCase();
+    const text = await f.text();
+
     const tryJson =
       nameLower.endsWith(".json") ||
       text.trimStart().startsWith("[") ||
       text.trimStart().startsWith("{");
 
     if (tryJson) {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = null;
-      }
-      if (parsed === null) {
-        uploadError.value = {
-          kind: "plain",
-          message: "JSON 파싱에 실패했습니다. 배열 형식인지 확인하세요.",
-        };
+      const { items, error } = await parseJsonFileToItems(f);
+      if (error) {
+        uploadError.value = { kind: "plain", message: error };
         return;
       }
-      const arr = Array.isArray(parsed) ? parsed : [parsed];
-      const items: Record<string, unknown>[] = [];
-      for (const el of arr) {
-        if (el && typeof el === "object" && !Array.isArray(el)) {
-          items.push(el as Record<string, unknown>);
-        }
-      }
-      if (items.length === 0) {
-        uploadError.value = {
-          kind: "plain",
-          message: "JSON에 객체 문서가 없습니다. 최상위는 객체의 배열이어야 합니다.",
-        };
-        return;
-      }
-      uploadPreview.value = { kind: "json", fileName: f.name, size: f.size, items };
+      uploadPreview.value = {
+        kind: "json",
+        fileName: f.name,
+        size: f.size,
+        items,
+      };
       return;
     }
 
@@ -415,14 +602,23 @@ async function onFileChange(ev: Event) {
   }
 }
 
+/** Firestore Commit 요청 상한(~11MiB) 대비: 획·단어 문서는 건당 크기가 커서 배치를 작게 */
+function batchChunkForCollection(coll: string): number {
+  if (coll === "hanja_stroke") return 20;
+  if (coll === "hanja_word") return 80;
+  return 400;
+}
+
 async function onUpload() {
   message.value = null;
   uploadError.value = null;
   const step = currentStep.value;
-  if (!step || !file.value || !canUpload.value || !uploadPreview.value) return;
+  if (!step || selectedFiles.value.length === 0 || !canUpload.value || !uploadPreview.value)
+    return;
 
   busy.value = true;
   lastImported.value = 0;
+  beginUploadProgress();
   try {
     await auth.syncIdTokenForFirestore();
     if (!auth.isAdmin) {
@@ -435,12 +631,25 @@ async function onUpload() {
     }
 
     const db = getFirestoreDb();
-    const chunk = 400;
+    const chunk = batchChunkForCollection(step.collection);
     let total = 0;
     const collName = step.collection;
 
     const current = getFirebaseAuth().currentUser;
     if (current) await current.getIdToken(true);
+
+    const stepIdx = currentStepIndex.value;
+    if (stepIdx > 0) {
+      const prevColl = UPLOAD_STEPS[stepIdx - 1]!.collection;
+      const prevOk = await collectionHasAnyDoc(prevColl);
+      if (!prevOk) {
+        uploadError.value = {
+          kind: "plain",
+          message: `이 단계를 반영하려면 먼저 Firestore에 ${prevColl} 문서가 있어야 합니다. (현재 0건으로 조회됨)`,
+        };
+        return;
+      }
+    }
 
     const preview = uploadPreview.value;
 
@@ -454,8 +663,15 @@ async function onUpload() {
         return;
       }
       const headers = rows[0].map((h) => h.replace(/^\ufeff/, "").trim() || "col");
+      const dataRows = rows.length - 1;
+      uploadProgressPhase.value = "upload";
+      uploadProgressTotal.value = dataRows;
+      uploadBatchTotal.value = Math.max(1, Math.ceil(dataRows / chunk));
+      let batchIdx = 0;
 
       for (let start = 1; start < rows.length; start += chunk) {
+        batchIdx += 1;
+        uploadBatchCurrent.value = batchIdx;
         const batch = writeBatch(db);
         const slice = rows.slice(start, start + chunk);
         slice.forEach((cells, j) => {
@@ -482,8 +698,12 @@ async function onUpload() {
         });
         await batch.commit();
         total += slice.length;
+        uploadProgressDone.value = total;
+        tickUploadElapsed();
       }
 
+      tickUploadElapsed();
+      const durationMs = Math.round(performance.now() - uploadStartedAt.value);
       lastImported.value = total;
       lastUploadSummary.value = {
         collection: collName,
@@ -493,16 +713,25 @@ async function onUpload() {
         dataRowCount: rows.length - 1,
         columnCount: headers.length,
         importedRows: total,
+        durationMs,
       };
       message.value =
         collName === "hanja_basis"
-          ? `${total}행을 ${collName}에 반영했습니다. (문서 ID: 한자 기준 H+16진, 필드 id 동기화)`
-          : `${total}행을 ${collName}에 반영했습니다. (문서 ID: 첫 번째 열)`;
+          ? `${total}행을 ${collName}에 반영했습니다. (${formatDuration(durationMs)} · 문서 ID: 한자 기준 H+16진, 필드 id 동기화)`
+          : `${total}행을 ${collName}에 반영했습니다. (${formatDuration(durationMs)} · 문서 ID: 첫 번째 열)`;
     } else {
       const items = preview.items;
       const headers = normalizedHeaders.value;
+      const n = items.length;
+      const validateStride = Math.max(1, Math.floor(n / 80));
 
-      for (let i = 0; i < items.length; i++) {
+      uploadProgressPhase.value = "validate";
+      uploadProgressTotal.value = n;
+      uploadProgressDone.value = 0;
+      uploadBatchTotal.value = 0;
+      uploadBatchCurrent.value = 0;
+
+      for (let i = 0; i < n; i++) {
         const id = docIdFromJsonItem(collName, items[i]);
         if (!id) {
           uploadError.value = {
@@ -511,9 +740,21 @@ async function onUpload() {
           };
           return;
         }
+        if (i % validateStride === 0 || i === n - 1) {
+          uploadProgressDone.value = i + 1;
+          tickUploadElapsed();
+        }
       }
 
+      uploadProgressPhase.value = "upload";
+      uploadProgressDone.value = 0;
+      uploadProgressTotal.value = n;
+      uploadBatchTotal.value = Math.max(1, Math.ceil(n / chunk));
+      let jsonBatchIdx = 0;
+
       for (let start = 0; start < items.length; start += chunk) {
+        jsonBatchIdx += 1;
+        uploadBatchCurrent.value = jsonBatchIdx;
         const batch = writeBatch(db);
         const slice = items.slice(start, start + chunk);
         slice.forEach((raw, j) => {
@@ -531,8 +772,12 @@ async function onUpload() {
         });
         await batch.commit();
         total += slice.length;
+        uploadProgressDone.value = total;
+        tickUploadElapsed();
       }
 
+      tickUploadElapsed();
+      const jsonDurationMs = Math.round(performance.now() - uploadStartedAt.value);
       lastImported.value = total;
       lastUploadSummary.value = {
         collection: collName,
@@ -542,6 +787,7 @@ async function onUpload() {
         dataRowCount: items.length,
         columnCount: headers.length,
         importedRows: total,
+        durationMs: jsonDurationMs,
       };
       const idHint =
         collName === "hanja_extend"
@@ -549,7 +795,7 @@ async function onUpload() {
           : collName === "hanja_stroke"
             ? "stroke_data_id"
             : "word_id";
-      message.value = `${total}건을 ${collName}에 반영했습니다. (문서 ID: ${idHint})`;
+      message.value = `${total}건을 ${collName}에 반영했습니다. (${formatDuration(jsonDurationMs)} · 문서 ID: ${idHint})`;
     }
 
     sessionCompleted.value = [
@@ -558,27 +804,21 @@ async function onUpload() {
     ];
 
     clearFileState();
-    const next = (currentStepIndex.value + 1) as StepIndex;
-    currentStepIndex.value = next;
   } catch (e) {
     uploadError.value = parseFirestoreUploadError(e);
   } finally {
     busy.value = false;
+    resetUploadProgress();
   }
 }
 
-function restartWizard() {
-  currentStepIndex.value = 0;
+/** 녹색 배너: 완료 체크(✓)만 초기화, 현재 단계·파일은 유지 */
+function clearSessionCompletedLog() {
   sessionCompleted.value = [];
-  clearFileState();
-  message.value = null;
-  uploadError.value = null;
-  lastUploadSummary.value = null;
-  lastImported.value = 0;
 }
 
 const BASIS_UPLOAD_HELP_TEXT =
-  "hanja_basis는 CSV(첫 줄 헤더). 문서 ID는 한자 열 첫 글자 기준 H+16진으로 저장되며, 필드 id도 같이 맞춥니다. 한자가 비어 있으면 id 또는 첫 열의 H… 형식을 사용합니다. hanja_extend · hanja_stroke · hanja_word는 ETL과 동일한 JSON 배열이 표준이며 CSV도 호환됩니다. 순서를 지키고, 동일 문서 ID는 merge됩니다.";
+  "단계 칩을 눌러 원하는 컬렉션부터 올릴 수 있습니다. 반영 시 Firestore에 선행 컬렉션 문서가 1건 이상 있는지만 검사합니다(extend→basis, stroke→extend, word→stroke). hanja_basis는 CSV. hanja_extend는 JSON·CSV. hanja_stroke·hanja_word는 JSON 다중 파일 가능. 동일 문서 ID는 merge됩니다.";
 
 const basisUploadHelpTriggerRef = ref<HTMLButtonElement | null>(null);
 const basisUploadHelpTooltipOpen = ref(false);
@@ -629,6 +869,7 @@ watch(basisUploadHelpTooltipOpen, (open) => {
 
 onUnmounted(() => {
   basisUploadHelpRemoveScrollListeners?.();
+  stopUploadElapsedTicker();
 });
 </script>
 
@@ -704,7 +945,7 @@ onUnmounted(() => {
       <p
         class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
       >
-        업로드 단계 (고정 순서)
+        업로드 대상 선택 · 권장 순서 basis → extend → stroke → word
       </p>
       <ol
         class="flex flex-nowrap items-stretch gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:thin] sm:gap-2.5 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant/60"
@@ -712,25 +953,31 @@ onUnmounted(() => {
         <li
           v-for="(s, i) in UPLOAD_STEPS"
           :key="s.collection"
-          class="flex min-w-[11rem] shrink-0 flex-col gap-1 rounded-xl border px-3 py-2 text-sm shadow-sm transition sm:min-w-0 sm:flex-1 sm:flex-row sm:items-center sm:gap-2"
-          :class="{
-            'border-primary/50 bg-primary/[0.08] text-onSurface ring-1 ring-primary/20':
-              i === currentStepIndex,
-            'border-outline-variant/80 bg-surface-low text-onSurface-variant':
-              i > currentStepIndex,
-            'border-green-600/35 bg-green-50/80 text-green-950 ring-1 ring-green-600/15':
-              i < currentStepIndex,
-          }"
+          class="min-w-[11rem] shrink-0 sm:min-w-0 sm:flex-1"
         >
-          <span class="font-display font-semibold leading-tight">{{ s.title }}</span>
-          <span class="text-[11px] leading-snug text-onSurface-variant sm:text-xs">
-            {{ s.description }}
-          </span>
-          <span
-            v-if="i < currentStepIndex"
-            class="ml-auto text-base font-semibold text-green-700 sm:ml-0"
-            aria-hidden="true"
-          >✓</span>
+          <button
+            type="button"
+            class="flex h-full w-full flex-col gap-1 rounded-xl border px-3 py-2 text-left text-sm shadow-sm outline-none ring-primary/25 transition hover:bg-surface-low/90 focus-visible:ring-2 sm:flex-row sm:items-center sm:gap-2"
+            :class="{
+              'border-primary/50 bg-primary/[0.08] text-onSurface ring-1 ring-primary/20':
+                i === currentStepIndex,
+              'border-green-600/35 bg-green-50/80 text-green-950 ring-1 ring-green-600/15':
+                stepSessionDone(i) && i !== currentStepIndex,
+              'border-outline-variant/80 bg-surface-low text-onSurface-variant':
+                !stepSessionDone(i) && i !== currentStepIndex,
+            }"
+            @click="selectStep(i as StepIndex)"
+          >
+            <span class="font-display font-semibold leading-tight">{{ s.title }}</span>
+            <span class="text-[11px] leading-snug text-onSurface-variant sm:text-xs">
+              {{ s.description }}
+            </span>
+            <span
+              v-if="stepSessionDone(i)"
+              class="ml-auto text-base font-semibold text-green-700 sm:ml-0"
+              aria-hidden="true"
+            >✓</span>
+          </button>
         </li>
       </ol>
     </div>
@@ -745,33 +992,29 @@ onUnmounted(() => {
         <span class="font-medium">admin</span> 클레임이 없으면 Firestore 쓰기가 거절됩니다.
       </div>
 
-      <!-- 전체 완료 -->
       <div
-        v-if="currentStepIndex >= UPLOAD_STEPS.length"
-        class="space-y-4 rounded-2xl border border-green-200/90 bg-gradient-to-br from-green-50/95 to-green-50/60 p-5 text-green-950 shadow-sm"
+        v-if="sessionCoversAllSteps"
+        class="space-y-3 rounded-xl border border-green-200/90 bg-gradient-to-br from-green-50/95 to-green-50/60 p-4 text-green-950 shadow-sm"
       >
-        <p class="font-display text-base font-semibold">
-          네 단계 모두 반영되었습니다.
+        <p class="font-display text-sm font-semibold">
+          이번 세션에서 네 컬렉션 모두 업로드 기록이 있습니다.
         </p>
-        <p class="text-sm text-green-900/90">
-          hanja_basis → hanja_extend → hanja_stroke → hanja_word 순서로 업로드가 완료되었습니다.
-        </p>
-        <ul class="list-disc space-y-1.5 pl-5 text-sm text-green-900/95">
+        <ul class="list-disc space-y-1 pl-5 text-xs text-green-900/95 sm:text-sm">
           <li v-for="(c, i) in sessionCompleted" :key="i">
             <strong>{{ c.collection }}</strong> — {{ c.fileName }} ({{ c.importedRows }}건)
           </li>
         </ul>
         <button
           type="button"
-          class="btn-primary shadow-md shadow-primary/15"
-          @click="restartWizard"
+          class="btn-secondary text-xs sm:text-sm"
+          @click="clearSessionCompletedLog"
         >
-          처음부터 다시 등록
+          이번 세션 완료 표시만 지우기
         </button>
       </div>
 
       <!-- 현재 단계 업로드 -->
-      <template v-else-if="currentStep">
+      <template v-if="currentStep">
         <div
           class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.06] via-surface-lowest to-surface-low px-4 py-3 ring-1 ring-black/[0.02]"
         >
@@ -792,6 +1035,16 @@ onUnmounted(() => {
               >{{ currentStep.collection }}</code>
               <span v-if="allowsJson"> · JSON 배열 또는 CSV</span>
             </p>
+            <p
+              v-if="currentStepIndex > 0"
+              class="mt-2 rounded-lg border border-amber-200/80 bg-amber-50/80 px-2.5 py-1.5 text-[11px] leading-snug text-amber-950"
+            >
+              반영 시 Firestore에
+              <code class="rounded bg-white/80 px-1 font-mono text-[10px] text-primary">{{
+                UPLOAD_STEPS[currentStepIndex - 1]!.collection
+              }}</code>
+              문서가 1건 이상 있는지 먼저 확인합니다. 없으면 업로드가 거절됩니다.
+            </p>
           </div>
         </div>
 
@@ -800,7 +1053,8 @@ onUnmounted(() => {
             class="mb-1.5 block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
             :for="fileInputId"
           >
-            <template v-if="allowsJson">파일 (JSON 또는 CSV)</template>
+            <template v-if="allowsMultiJsonFiles">JSON 여러 개 또는 CSV 1개</template>
+            <template v-else-if="allowsJson">파일 (JSON 또는 CSV)</template>
             <template v-else>CSV 파일</template>
             <span class="font-normal normal-case tracking-normal text-onSurface-variant">
               — {{ currentStep.collection }}
@@ -809,10 +1063,18 @@ onUnmounted(() => {
           <input
             :id="fileInputId"
             type="file"
+            :multiple="allowsMultiJsonFiles"
             :accept="allowsJson ? '.csv,.json,text/csv,application/json' : '.csv,text/csv'"
             class="block w-full text-sm text-onSurface-variant file:mr-4 file:rounded-lg file:border-0 file:bg-surface-low file:px-4 file:py-2 file:text-sm file:font-medium file:text-onSurface file:shadow-sm hover:file:bg-surface-bright"
             @change="onFileChange"
           />
+          <p
+            v-if="allowsMultiJsonFiles"
+            class="mt-1.5 text-xs text-onSurface-variant"
+          >
+            획·단어 JSON은 용량이 크면 ETL 분할 파일(<code class="rounded bg-surface-low px-1 font-mono text-[11px]">*.part000.json</code> 등)을
+            Shift 클릭으로 여러 개 선택해 한 번에 반영할 수 있습니다.
+          </p>
         </div>
 
         <div
@@ -827,7 +1089,22 @@ onUnmounted(() => {
             class="text-xs font-medium text-primary"
           >
             JSON 형식 · 객체 배열 (문서 수 {{ previewDocCount }}건)
+            <span
+              v-if="uploadPreview.sourceParts && uploadPreview.sourceParts.length > 1"
+              class="block pt-1 font-normal text-onSurface-variant"
+            >
+              {{ uploadPreview.sourceParts.length }}개 파일 합산
+            </span>
           </p>
+          <ul
+            v-if="uploadPreview.kind === 'json' && uploadPreview.sourceParts && uploadPreview.sourceParts.length > 1"
+            class="mt-2 space-y-1 rounded-lg border border-outline-variant/60 bg-surface-lowest/80 px-3 py-2 text-xs text-onSurface-variant"
+          >
+            <li v-for="(sp, si) in uploadPreview.sourceParts" :key="si">
+              <span class="font-mono text-[11px] text-onSurface">{{ sp.fileName }}</span>
+              · {{ sp.count }}건 · {{ formatBytes(sp.size) }}
+            </li>
+          </ul>
           <dl class="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt class="text-onSurface-variant">파일 이름</dt>
@@ -962,6 +1239,49 @@ onUnmounted(() => {
           {{ busy ? "업로드 중…" : `${currentStep.collection}에 반영` }}
         </button>
 
+        <div
+          v-if="busy && uploadProgressTotal > 0"
+          class="space-y-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-4 py-3 shadow-inner"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            class="flex flex-wrap items-baseline justify-between gap-2 text-xs text-onSurface"
+          >
+            <span class="font-semibold text-primary">
+              {{ uploadProgressPhaseLabel }}
+            </span>
+            <span class="tabular-nums text-onSurface-variant">
+              경과 {{ formatDuration(uploadElapsedMs) }}{{ uploadThroughputLabel }}
+            </span>
+          </div>
+          <div
+            class="h-2.5 overflow-hidden rounded-full bg-surface-low ring-1 ring-outline-variant/40"
+          >
+            <div
+              class="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
+              :style="{ width: `${uploadProgressPercent}%` }"
+            />
+          </div>
+          <p class="text-xs text-onSurface-variant">
+            <span class="font-medium tabular-nums text-onSurface">
+              {{ uploadProgressDone.toLocaleString("ko-KR") }}
+            </span>
+            /
+            <span class="tabular-nums text-onSurface">
+              {{ uploadProgressTotal.toLocaleString("ko-KR") }}
+            </span>
+            건 처리
+            <span
+              v-if="uploadProgressPhase === 'upload' && uploadBatchTotal > 1"
+              class="text-onSurface-variant"
+            >
+              · 배치 {{ uploadBatchCurrent.toLocaleString("ko-KR") }} /
+              {{ uploadBatchTotal.toLocaleString("ko-KR") }}
+            </span>
+          </p>
+        </div>
+
         <p
           v-if="message"
           class="rounded-lg border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm font-medium text-primary"
@@ -1033,6 +1353,12 @@ onUnmounted(() => {
           <dt class="text-xs text-onSurface-variant">반영</dt>
           <dd class="mt-0.5 font-medium tabular-nums text-onSurface">
             {{ lastUploadSummary.importedRows }} / {{ lastUploadSummary.dataRowCount }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs text-onSurface-variant">처리 시간</dt>
+          <dd class="mt-0.5 font-medium tabular-nums text-onSurface">
+            {{ formatDuration(lastUploadSummary.durationMs) }}
           </dd>
         </div>
         <div class="sm:col-span-2">
