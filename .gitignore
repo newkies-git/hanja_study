@@ -5,8 +5,6 @@ __pycache__/
 .venv/
 venv/
 .env
-# Vercel 배포용: admin 웹은 Vite 클라이언트 설정만 포함(비밀 서버 키 넣지 말 것)
-!admin/frontend/.env
 *.egg-info/
 .pytest_cache/
 

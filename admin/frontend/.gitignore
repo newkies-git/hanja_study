@@ -1,5 +1,6 @@
 node_modules
 dist
-# .env 는 저장소에 포함(Vercel). 로컬 덮어쓰기는 .env.local
+# 로컬 비밀값 — 커밋하지 말 것. Vercel은 대시보드 Environment Variables 사용
+.env
 .env.local
 *.local
