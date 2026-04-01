@@ -25,11 +25,21 @@ class HanjaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return const _HanjaAppBody();
+  }
+}
+
+class _HanjaAppBody extends ConsumerWidget {
+  const _HanjaAppBody();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(goRouterProvider);
     return MaterialApp.router(
       title: '추사 1817',
       debugShowCheckedModeBanner: false,
       theme: HanjaTheme.light(),
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }

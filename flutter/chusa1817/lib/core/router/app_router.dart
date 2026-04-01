@@ -1,4 +1,8 @@
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:chusa1817/features/auth/login_screen.dart';
 import 'package:chusa1817/features/auth/sign_up_screen.dart';
@@ -14,118 +18,130 @@ import 'package:chusa1817/features/onboarding/onboarding_screen.dart';
 import 'package:chusa1817/features/study/practice_result_screen.dart';
 import 'package:chusa1817/features/study/study_screen.dart';
 
+import '../auth/auth_providers.dart';
+
 /// 앱 전체 라우트 테이블.
 ///
 /// 모든 화면 이동은 이 GoRouter를 통해 선언적으로 처리한다.
 /// `context.go()` — replace, `context.push()` — stack push.
-/// 전역 인증 상태 (임시)
-bool isLoggedIn = false;
+final goRouterProvider = Provider<GoRouter>((ref) {
+  final isAuthenticated = ref.watch(isNonAnonymousUserProvider);
+  final authStateChanges = ref.watch(firebaseAuthProvider).authStateChanges();
 
-final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.landing,
-  redirect: (context, state) {
-    final bool isAuthRoute = state.uri.path == AppRoutes.landing ||
-        state.uri.path == AppRoutes.login ||
-        state.uri.path == AppRoutes.signUp ||
-        state.uri.path == AppRoutes.signUpSuccess ||
-        state.uri.path == AppRoutes.resetPassword ||
-        state.uri.path == AppRoutes.resetSent ||
-        state.uri.path == AppRoutes.onboarding;
+  return GoRouter(
+    initialLocation: AppRoutes.landing,
+    refreshListenable: _GoRouterRefreshNotifier(authStateChanges),
+    redirect: (context, state) {
+      final bool isAuthRoute = state.uri.path == AppRoutes.landing ||
+          state.uri.path == AppRoutes.login ||
+          state.uri.path == AppRoutes.signUp ||
+          state.uri.path == AppRoutes.signUpSuccess ||
+          state.uri.path == AppRoutes.resetPassword ||
+          state.uri.path == AppRoutes.resetSent ||
+          state.uri.path == AppRoutes.onboarding;
 
-    if (!isLoggedIn && !isAuthRoute) {
-      return AppRoutes.login;
-    }
-    return null;
-  },
-  routes: [
-    GoRoute(
-      path: AppRoutes.landing,
-      name: 'landing',
-      builder: (context, state) => const LandingScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.login,
-      name: 'login',
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.signUp,
-      name: 'signup',
-      builder: (context, state) => const SignUpScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.signUpSuccess,
-      name: 'signup-success',
-      builder: (context, state) => const SignUpSuccessScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.resetPassword,
-      name: 'reset-password',
-      builder: (context, state) => const ResetPasswordScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.resetSent,
-      name: 'reset-sent',
-      builder: (context, state) => const ResetSentScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.onboarding,
-      name: 'onboarding',
-      builder: (context, state) => const OnboardingScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.home,
-      name: 'home',
-      builder: (_, state) {
-        final int tab = int.tryParse(state.uri.queryParameters['tab'] ?? '0') ?? 0;
-        return AppShell(initialIndex: tab);
-      },
-    ),
-    GoRoute(
-      path: '${AppRoutes.hanjaDetail}/:id',
-      name: 'hanja-detail',
-      builder: (_, state) {
-        final String hanjaCharacter = state.pathParameters['id'] ?? '佳';
-        final String meaning = state.uri.queryParameters['meaning'] ?? '';
-        final String radical = state.uri.queryParameters['radical'] ?? '人';
-        final String radicalLabel = state.uri.queryParameters['radicalLabel'] ?? '';
-        final int totalStrokes =
-            int.tryParse(state.uri.queryParameters['totalStrokes'] ?? '8') ?? 8;
-        return HanjaDetailScreen(
-          hanja: hanjaCharacter,
-          meaning: meaning,
-          radical: radical,
-          radicalLabel: radicalLabel,
-          totalStrokes: totalStrokes,
-        );
-      },
-    ),
-    GoRoute(
-      path: '${AppRoutes.study}/:hanja',
-      name: 'study',
-      builder: (_, state) {
-        final String hanjaCharacter = state.pathParameters['hanja'] ?? '佳';
-        final String meaning = state.uri.queryParameters['meaning'] ?? '';
-        return StudyScreen(hanja: hanjaCharacter, meaning: meaning);
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.practiceResult,
-      name: 'practice-result',
-      builder: (context, state) => const PracticeResultScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.planSettings,
-      name: 'plan-settings',
-      builder: (context, state) => const PlanSettingsScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.review,
-      name: 'review',
-      builder: (context, state) => const ReviewScreen(),
-    ),
-  ],
-);
+      if (!isAuthenticated && !isAuthRoute) {
+        return AppRoutes.login;
+      }
+      if (isAuthenticated && state.uri.path == AppRoutes.login) {
+        return AppRoutes.home;
+      }
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: AppRoutes.landing,
+        name: 'landing',
+        builder: (context, state) => const LandingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signUp,
+        name: 'signup',
+        builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.signUpSuccess,
+        name: 'signup-success',
+        builder: (context, state) => const SignUpSuccessScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        name: 'reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetSent,
+        name: 'reset-sent',
+        builder: (context, state) => const ResetSentScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.home,
+        name: 'home',
+        builder: (_, state) {
+          final int tab =
+              int.tryParse(state.uri.queryParameters['tab'] ?? '0') ?? 0;
+          return AppShell(initialIndex: tab);
+        },
+      ),
+      GoRoute(
+        path: '${AppRoutes.hanjaDetail}/:id',
+        name: 'hanja-detail',
+        builder: (_, state) {
+          return HanjaDetailScreen(
+            hanjaId: state.pathParameters['id'] ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '${AppRoutes.study}/:id',
+        name: 'study',
+        builder: (_, state) {
+          final String meaning = state.uri.queryParameters['meaning'] ?? '';
+          return StudyScreen(hanjaId: state.pathParameters['id'] ?? '', meaning: meaning);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.practiceResult,
+        name: 'practice-result',
+        builder: (context, state) => const PracticeResultScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.planSettings,
+        name: 'plan-settings',
+        builder: (context, state) => const PlanSettingsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.review,
+        name: 'review',
+        builder: (context, state) => const ReviewScreen(),
+      ),
+    ],
+  );
+});
+
+final class _GoRouterRefreshNotifier extends ChangeNotifier {
+  _GoRouterRefreshNotifier(Stream<dynamic> stream) {
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
 
 /// 앱 라우트 경로 상수 모음.
 abstract class AppRoutes {

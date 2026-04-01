@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
@@ -11,42 +13,39 @@ import '../../core/router/app_router.dart';
 /// 오늘의 학습 진도 카드, 연속 학습일 스트릭 뱃지,
 /// 추천 복습 섹션을 더미 데이터로 표시한다.
 /// Phase 3에서 Drift DB 및 Riverpod Provider로 실데이터 교체.
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  // 더미 데이터
   static const int _todayGoal = 5;
-  static const int _todayDone = 3;
-  static const int _streakDays = 7;
-  static const List<Map<String, String>> _reviewHanja = [
-    {'hanja': '佳', 'meaning': '아름다울 가'},
-    {'hanja': '家', 'meaning': '집 가'},
-    {'hanja': '歌', 'meaning': '노래 가'},
-  ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final todayDoneAsync = ref.watch(todayCompletedCountProvider);
+    final streakDaysAsync = ref.watch(streakDaysProvider);
+    final reviewHanjaAsync = ref.watch(recommendedReviewHanjaProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        const EditorialTopBar(title: "추사 1817"),
+        const EditorialTopBar(title: '추사 1817'),
         const SizedBox(height: 14),
         _TodayProgressCard(
           goal: _todayGoal,
-          done: _todayDone,
+          done: todayDoneAsync.value ?? 0,
           textTheme: textTheme,
           onTap: () => context.go('${AppRoutes.home}?tab=1'),
         ),
         const SizedBox(height: 14),
-        _StreakBadge(streakDays: _streakDays, textTheme: textTheme),
+        _StreakBadge(streakDays: streakDaysAsync.value ?? 0, textTheme: textTheme),
         const SizedBox(height: 22),
         _RecommendedReviewSection(
-          hanjaList: _reviewHanja,
+          hanjaList: (reviewHanjaAsync.value ?? const [])
+              .map((row) => {'hanjaId': row.$1, 'hanja': row.$2, 'meaning': row.$3})
+              .toList(),
           textTheme: textTheme,
-          onStudyTap: (hanja, meaning) => context.push(
-            '${AppRoutes.study}/$hanja?meaning=${Uri.encodeComponent(meaning)}',
+          onStudyTap: (hanjaId, meaning) => context.push(
+            '${AppRoutes.study}/$hanjaId?meaning=${Uri.encodeComponent(meaning)}',
           ),
         ),
         const SizedBox(height: 22),
@@ -225,7 +224,7 @@ class _RecommendedReviewSection extends StatelessWidget {
 
   final List<Map<String, String>> hanjaList;
   final TextTheme textTheme;
-  final void Function(String hanja, String meaning) onStudyTap;
+  final void Function(String hanjaId, String meaning) onStudyTap;
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +246,7 @@ class _RecommendedReviewSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         ...hanjaList.map((item) {
+          final String hanjaId = item['hanjaId']!;
           final String hanja = item['hanja']!;
           final String meaning = item['meaning']!;
           return Padding(
@@ -255,7 +255,7 @@ class _RecommendedReviewSection extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               child: InkWell(
-                onTap: () => onStudyTap(hanja, meaning),
+                onTap: () => onStudyTap(hanjaId, meaning),
                 borderRadius: BorderRadius.circular(18),
                 child: Padding(
                   padding: const EdgeInsets.all(16),

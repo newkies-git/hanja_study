@@ -15,6 +15,7 @@ class WritingCanvasWidget extends StatefulWidget {
     required this.hanja,
     required this.controller,
     this.showGuide = true,
+    this.guideNormalizedStrokes,
   });
 
   final String hanja;
@@ -22,6 +23,9 @@ class WritingCanvasWidget extends StatefulWidget {
 
   /// true이면 반투명 가이드 한자를 배경에 표시한다.
   final bool showGuide;
+
+  /// 정답(가이드) 획 좌표 (0~1 정규화). 있으면 배경에 옅게 렌더링한다.
+  final List<List<Offset>>? guideNormalizedStrokes;
 
   @override
   State<WritingCanvasWidget> createState() => _WritingCanvasWidgetState();
@@ -101,6 +105,7 @@ class _WritingCanvasWidgetState extends State<WritingCanvasWidget> {
                   painter: _StrokePainter(
                     strokes: widget.controller.strokes,
                     currentStroke: widget.controller._currentStroke,
+                    guideNormalizedStrokes: widget.guideNormalizedStrokes,
                   ),
                 ),
               ),
@@ -159,10 +164,15 @@ class WritingCanvasController extends ChangeNotifier {
 
 /// stroke 경로를 캔버스에 그리는 [CustomPainter].
 class _StrokePainter extends CustomPainter {
-  _StrokePainter({required this.strokes, required this.currentStroke});
+  _StrokePainter({
+    required this.strokes,
+    required this.currentStroke,
+    required this.guideNormalizedStrokes,
+  });
 
   final List<List<Offset>> strokes;
   final List<Offset> currentStroke;
+  final List<List<Offset>>? guideNormalizedStrokes;
 
   static final Paint _strokePaint = Paint()
     ..color = HanjaColors.primary
@@ -171,8 +181,22 @@ class _StrokePainter extends CustomPainter {
     ..strokeJoin = StrokeJoin.round
     ..style = PaintingStyle.stroke;
 
+  static final Paint _guidePaint = Paint()
+    ..color = HanjaColors.primaryContainer.withValues(alpha: 0.22)
+    ..strokeWidth = 12
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..style = PaintingStyle.stroke;
+
   @override
   void paint(Canvas canvas, Size size) {
+    final guides = guideNormalizedStrokes;
+    if (guides != null && guides.isNotEmpty) {
+      for (final stroke in guides) {
+        _drawNormalizedStroke(canvas, stroke, size);
+      }
+    }
+
     for (final List<Offset> stroke in strokes) {
       _drawStroke(canvas, stroke);
     }
@@ -188,6 +212,16 @@ class _StrokePainter extends CustomPainter {
       path.lineTo(points[i].dx, points[i].dy);
     }
     canvas.drawPath(path, _strokePaint);
+  }
+
+  void _drawNormalizedStroke(Canvas canvas, List<Offset> points, Size size) {
+    if (points.length < 2) return;
+    final Path path = Path()
+      ..moveTo(points.first.dx * size.width, points.first.dy * size.height);
+    for (int i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx * size.width, points[i].dy * size.height);
+    }
+    canvas.drawPath(path, _guidePaint);
   }
 
   @override

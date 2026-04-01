@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_controller.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_text_field.dart';
 import '../../shared/widgets/form_field_label.dart';
@@ -12,18 +14,19 @@ import '../../core/router/app_router.dart';
 ///
 /// 폼 검증 후 [AppShell]로 이동한다.
 /// 소셜 로그인은 Phase 2에서 추가 예정.
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -32,13 +35,20 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _submitLoginForm() {
+  Future<void> _submitLoginForm() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_isSubmitting) return;
 
-    if (_emailController.text == 'admin@test.com' && _passwordController.text == 'admin!1') {
-      isLoggedIn = true;
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithEmailPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+      if (!mounted) return;
       context.go(AppRoutes.home);
-    } else {
+    } catch (_) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('아이디 또는 비밀번호가 올바르지 않습니다.'),
@@ -46,6 +56,8 @@ class _LoginScreenState extends State<LoginScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -147,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 12),
                         GradientPrimaryButton(
                           label: '로그인',
-                          onPressed: _submitLoginForm,
+                          onPressed: () => _submitLoginForm(),
                         ),
                         const SizedBox(height: 20),
                         Row(

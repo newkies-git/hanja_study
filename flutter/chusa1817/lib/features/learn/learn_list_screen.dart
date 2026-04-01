@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
@@ -9,23 +11,13 @@ import '../../core/router/app_router.dart';
 ///
 /// 현재는 더미 데이터 8개를 표시하며, Phase 2에서 SQLite/API 연동으로 전환된다.
 /// 정렬 필터(가나다순, 획수순, 랜덤)를 Pill 형태로 제공한다.
-class LearnListScreen extends StatelessWidget {
+class LearnListScreen extends ConsumerWidget {
   const LearnListScreen({super.key});
 
-  /// TODO: Phase 2 — SQLite HanjaRepository로 교체
-  static const List<(String hanja, String meaning)> _dummyHanjaList = [
-    ('佳', '아름다울'),
-    ('學', '배울'),
-    ('印', '도장'),
-    ('永', '길 영'),
-    ('人', '사람'),
-    ('木', '나무'),
-    ('水', '물'),
-    ('火', '불'),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hanjaListAsync = ref.watch(middleSchoolHanjaListProvider);
+
     return Column(
       children: [
         const EditorialTopBar(title: '추사 1817'),
@@ -45,27 +37,48 @@ class LearnListScreen extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              childAspectRatio: 1.1,
+          child: hanjaListAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Center(
+              child: Text(
+                '목록을 불러오지 못했습니다.\n$error',
+                textAlign: TextAlign.center,
+              ),
             ),
-            itemCount: _dummyHanjaList.length,
-            itemBuilder: (BuildContext context, int index) {
-              final (String hanja, String meaning) = _dummyHanjaList[index];
-              return _HanjaCard(
-                hanja: hanja,
-                meaning: meaning,
-                onTap: () => context.push(
-                  '${AppRoutes.hanjaDetail}/$hanja'
-                  '?meaning=${Uri.encodeComponent(meaning)}'
-                  '&radical=${Uri.encodeComponent('人')}'
-                  '&radicalLabel=${Uri.encodeComponent('사람인변')}'
-                  '&totalStrokes=8',
+            data: (hanjaList) {
+              if (hanjaList.isEmpty) {
+                return const Center(
+                  child: Text('학습할 한자가 아직 준비되지 않았습니다.'),
+                );
+              }
+
+              return GridView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  childAspectRatio: 1.1,
                 ),
+                itemCount: hanjaList.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final hanjaRow = hanjaList[index];
+                  final hanjaId = hanjaRow.id;
+                  final hanja = hanjaRow.character;
+                  final meaning = hanjaRow.meaning;
+
+                  return _HanjaCard(
+                    hanja: hanja,
+                    meaning: meaning,
+                    onTap: () => context.push(
+                      '${AppRoutes.hanjaDetail}/$hanjaId'
+                      '?meaning=${Uri.encodeComponent(meaning)}'
+                      '&radical=${Uri.encodeComponent(hanjaRow.radical)}'
+                      '&radicalLabel=${Uri.encodeComponent('')}'
+                      '&totalStrokes=${hanjaRow.totalStrokes}',
+                    ),
+                  );
+                },
               );
             },
           ),

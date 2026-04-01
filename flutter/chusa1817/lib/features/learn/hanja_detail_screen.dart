@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../shared/widgets/won_go_ji_grid.dart';
@@ -13,54 +15,89 @@ import '../study/widgets/stroke_animation_player.dart';
 ///     [HanjaDetailTab.words] 관련 단어
 ///
 /// 하단 고정 CTA로 쓰기 연습 화면([StudyScreen])으로 연결된다.
-class HanjaDetailScreen extends StatefulWidget {
+class HanjaDetailScreen extends ConsumerStatefulWidget {
   const HanjaDetailScreen({
     super.key,
-    required this.hanja,
-    required this.meaning,
-    required this.radical,
-    required this.radicalLabel,
-    required this.totalStrokes,
+    required this.hanjaId,
   });
 
-  final String hanja;
-  final String meaning;
-  final String radical;
-  final String radicalLabel;
-  final int totalStrokes;
+  final String hanjaId;
 
   @override
-  State<HanjaDetailScreen> createState() => _HanjaDetailScreenState();
+  ConsumerState<HanjaDetailScreen> createState() => _HanjaDetailScreenState();
 }
 
-class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
+class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
   HanjaDetailTab _activeTab = HanjaDetailTab.info;
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
 
-    return Scaffold(
-      backgroundColor: HanjaColors.surface,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            ListView(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-              children: [
-                _buildAppBar(context),
-                const SizedBox(height: 10),
-                _buildHeroSection(textTheme),
-                const SizedBox(height: 18),
-                _buildTabRow(),
-                const SizedBox(height: 18),
-                _buildTabContent(textTheme),
-              ],
+    return hanjaAsync.when(
+      loading: () => const Scaffold(
+        backgroundColor: HanjaColors.surface,
+        body: SafeArea(child: Center(child: CircularProgressIndicator())),
+      ),
+      error: (error, _) => Scaffold(
+        backgroundColor: HanjaColors.surface,
+        body: SafeArea(
+          child: Center(
+            child: Text(
+              '한자 정보를 불러오지 못했습니다.\n$error',
+              textAlign: TextAlign.center,
             ),
-            _buildStickyWritingButton(context),
-          ],
+          ),
         ),
       ),
+      data: (hanjaRow) {
+        if (hanjaRow == null) {
+          return const Scaffold(
+            backgroundColor: HanjaColors.surface,
+            body: SafeArea(
+              child: Center(child: Text('해당 한자를 찾을 수 없습니다.')),
+            ),
+          );
+        }
+
+        final hanja = hanjaRow.character;
+        final meaning = '${hanjaRow.meaning} (${hanjaRow.reading})';
+
+        return Scaffold(
+          backgroundColor: HanjaColors.surface,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+                  children: [
+                    _buildAppBar(context),
+                    const SizedBox(height: 10),
+                    _buildHeroSection(textTheme, hanja: hanja, meaning: meaning),
+                    const SizedBox(height: 18),
+                    _buildTabRow(),
+                    const SizedBox(height: 18),
+                    _buildTabContent(
+                      textTheme,
+                      hanjaId: hanjaRow.id,
+                      hanja: hanja,
+                      radical: hanjaRow.radical,
+                      radicalLabel: hanjaRow.radicalName,
+                      totalStrokes: hanjaRow.totalStrokes,
+                    ),
+                  ],
+                ),
+                _buildStickyWritingButton(
+                  context,
+                  hanjaId: hanjaRow.id,
+                  meaning: meaning,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -86,7 +123,11 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
     );
   }
 
-  Widget _buildHeroSection(TextTheme textTheme) {
+  Widget _buildHeroSection(
+    TextTheme textTheme, {
+    required String hanja,
+    required String meaning,
+  }) {
     return Column(
       children: [
         SizedBox(
@@ -110,7 +151,7 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
                   const Positioned.fill(child: WonGoJiGrid(opacity: 0.12)),
                   Center(
                     child: Text(
-                      widget.hanja,
+                      hanja,
                       style: textTheme.displayLarge?.copyWith(
                         fontSize: 120,
                         color: HanjaColors.primary,
@@ -139,7 +180,7 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          widget.meaning,
+          meaning,
           style: textTheme.displaySmall?.copyWith(
             fontSize: 40,
             color: HanjaColors.onSurface,
@@ -174,25 +215,56 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
     );
   }
 
-  Widget _buildTabContent(TextTheme textTheme) {
+  Widget _buildTabContent(
+    TextTheme textTheme, {
+    required String hanjaId,
+    required String hanja,
+    required String radical,
+    required String radicalLabel,
+    required int totalStrokes,
+  }) {
     switch (_activeTab) {
       case HanjaDetailTab.info:
-        return _buildInfoTab(textTheme);
+        return _buildInfoTab(
+          textTheme,
+          radical: radical,
+          radicalLabel: radicalLabel,
+          totalStrokes: totalStrokes,
+        );
       case HanjaDetailTab.strokes:
-        return _buildStrokesTab(textTheme);
+        return _buildStrokesTab(textTheme, hanjaId: hanjaId, hanja: hanja);
       case HanjaDetailTab.words:
-        return _buildWordsTab(textTheme);
+        return _buildWordsTab(textTheme, hanjaId: hanjaId);
     }
   }
 
-  Widget _buildInfoTab(TextTheme textTheme) {
+  Widget _buildInfoTab(
+    TextTheme textTheme, {
+    required String radical,
+    required String radicalLabel,
+    required int totalStrokes,
+  }) {
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _InfoCard(label: '부수', value: widget.radical, subLabel: widget.radicalLabel, valueColor: HanjaColors.secondary)),
+            Expanded(
+              child: _InfoCard(
+                label: '부수',
+                value: radical,
+                subLabel: radicalLabel,
+                valueColor: HanjaColors.secondary,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _InfoCard(label: '총획', value: '${widget.totalStrokes}', subLabel: '전체 획수', valueColor: HanjaColors.primary)),
+            Expanded(
+              child: _InfoCard(
+                label: '총획',
+                value: '$totalStrokes',
+                subLabel: '전체 획수',
+                valueColor: HanjaColors.primary,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 18),
@@ -219,18 +291,12 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
     );
   }
 
-  Widget _buildStrokesTab(TextTheme textTheme) {
-    // 佳 한자의 하드코딩 획 좌표 (정규화 0~1). Phase 3에서 SVG 파이프라인 데이터로 교체.
-    final List<List<Offset>> strokes = [
-      [const Offset(0.30, 0.20), const Offset(0.30, 0.55)],
-      [const Offset(0.28, 0.20), const Offset(0.70, 0.20)],
-      [const Offset(0.28, 0.38), const Offset(0.70, 0.38)],
-      [const Offset(0.55, 0.21), const Offset(0.55, 0.80)],
-      [const Offset(0.28, 0.55), const Offset(0.55, 0.55)],
-      [const Offset(0.30, 0.60), const Offset(0.70, 0.75)],
-      [const Offset(0.28, 0.72), const Offset(0.70, 0.72)],
-      [const Offset(0.28, 0.80), const Offset(0.70, 0.80)],
-    ];
+  Widget _buildStrokesTab(
+    TextTheme textTheme, {
+    required String hanjaId,
+    required String hanja,
+  }) {
+    final strokesAsync = ref.watch(hanjaStrokePointsProvider(hanjaId));
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -245,13 +311,40 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
             style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 16),
-          StrokeAnimationPlayer(hanja: widget.hanja, strokes: strokes),
+          strokesAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (error, _) => Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                '획순 데이터를 불러오지 못했습니다.\n$error',
+                textAlign: TextAlign.center,
+              ),
+            ),
+            data: (strokes) {
+              final usable = strokes.where((s) => s.length >= 2).toList();
+              if (usable.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('표시할 획순 데이터가 없습니다.'),
+                );
+              }
+              return StrokeAnimationPlayer(hanja: hanja, strokes: usable);
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildWordsTab(TextTheme textTheme) {
+  Widget _buildWordsTab(TextTheme textTheme, {required String hanjaId}) {
+    final wordsAsync = ref.watch(hanjaWordsProvider(hanjaId));
+    final idiomsAsync = ref.watch(hanjaIdiomsProvider(hanjaId));
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -266,24 +359,45 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
             style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 12),
-          RelatedWordTile(
-            hanja: '${widget.hanja}人',
-            meaning: '아름다운 사람',
-          ),
-          RelatedWordTile(
-            hanja: '${widget.hanja}作',
-            meaning: '좋은 작품',
-          ),
-          RelatedWordTile(
-            hanja: '${widget.hanja}話',
-            meaning: '아름다운 말',
-          ),
+          if (wordsAsync.isLoading || idiomsAsync.isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else ...[
+            ...wordsAsync.valueOrNull?.map(
+                  (w) => RelatedWordTile(
+                    hanja: w.word,
+                    meaning: '${w.meaning} (${w.reading})'.trim(),
+                  ),
+                ) ??
+                const [],
+            ...idiomsAsync.valueOrNull?.map(
+                  (i) => RelatedWordTile(
+                    hanja: i.idiom,
+                    meaning: '${i.meaning} (${i.reading})'.trim(),
+                  ),
+                ) ??
+                const [],
+            if ((wordsAsync.valueOrNull?.isEmpty ?? true) &&
+                (idiomsAsync.valueOrNull?.isEmpty ?? true))
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text('표시할 단어/성어 데이터가 없습니다.'),
+              ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildStickyWritingButton(BuildContext context) {
+  Widget _buildStickyWritingButton(
+    BuildContext context, {
+    required String hanjaId,
+    required String meaning,
+  }) {
     return Positioned(
       left: 0,
       right: 0,
@@ -295,8 +409,8 @@ class _HanjaDetailScreenState extends State<HanjaDetailScreen> {
           child: GradientPrimaryButton(
             label: '쓰기 연습 시작',
             onPressed: () => context.push(
-              '${AppRoutes.study}/${widget.hanja}'
-              '?meaning=${Uri.encodeComponent(widget.meaning)}',
+              '${AppRoutes.study}/$hanjaId'
+              '?meaning=${Uri.encodeComponent(meaning)}',
             ),
           ),
         ),

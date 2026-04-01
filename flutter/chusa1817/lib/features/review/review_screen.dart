@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
@@ -10,26 +12,15 @@ import '../../core/router/app_router.dart';
 /// SM-2 알고리즘 기반 복습 대상 한자를 보여주고,
 /// 쓰기 연습으로 바로 진입할 수 있다.
 /// Phase 3에서 Drift DB 및 Riverpod Provider로 실데이터 교체.
-class ReviewScreen extends StatelessWidget {
+class ReviewScreen extends ConsumerWidget {
   const ReviewScreen({super.key});
 
-  // 더미 데이터 — Phase 3에서 ProgressRepository.fetchDueForReview()으로 교체
-  static const List<_ReviewItem> _dummyReviewList = [
-    _ReviewItem(hanja: '學', meaning: '배울 학', dueLabel: '오늘 복습', accuracy: 0.60),
-    _ReviewItem(hanja: '永', meaning: '길 영', dueLabel: '오늘 복습', accuracy: 0.45),
-    _ReviewItem(hanja: '印', meaning: '도장 인', dueLabel: '3일 후 복습', accuracy: 0.80),
-    _ReviewItem(hanja: '人', meaning: '사람 인', dueLabel: '7일 후 복습', accuracy: 0.90),
-    _ReviewItem(hanja: '木', meaning: '나무 목', dueLabel: '14일 후 복습', accuracy: 0.95),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final dueAsync = ref.watch(dueForReviewHanjaProvider);
 
-    final List<_ReviewItem> dueToday =
-        _dummyReviewList.where((e) => e.dueLabel == '오늘 복습').toList();
-    final List<_ReviewItem> upcoming =
-        _dummyReviewList.where((e) => e.dueLabel != '오늘 복습').toList();
+    final dueToday = dueAsync.value ?? const <(String, String, String)>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -43,15 +34,23 @@ class ReviewScreen extends StatelessWidget {
           textTheme: textTheme,
         ),
         const SizedBox(height: 12),
-        if (dueToday.isEmpty)
+        if (dueAsync.isLoading)
+          const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+        else if (dueToday.isEmpty)
           _EmptyCard(textTheme: textTheme)
         else
           ...dueToday.map((item) => _ReviewCard(
-                item: item,
+                item: _ReviewItem(
+                  hanjaId: item.$1,
+                  hanja: item.$2,
+                  meaning: item.$3,
+                  dueLabel: '복습',
+                  accuracy: 0.0,
+                ),
                 textTheme: textTheme,
                 onStudyTap: () => context.push(
-                  '${AppRoutes.study}/${item.hanja}'
-                  '?meaning=${Uri.encodeComponent(item.meaning)}',
+                  '${AppRoutes.study}/${item.$1}'
+                  '?meaning=${Uri.encodeComponent(item.$3)}',
                 ),
               )),
         const SizedBox(height: 22),
@@ -62,15 +61,7 @@ class ReviewScreen extends StatelessWidget {
           textTheme: textTheme,
         ),
         const SizedBox(height: 12),
-        ...upcoming.map((item) => _ReviewCard(
-              item: item,
-              textTheme: textTheme,
-              isUpcoming: true,
-              onStudyTap: () => context.push(
-                '${AppRoutes.study}/${item.hanja}'
-                '?meaning=${Uri.encodeComponent(item.meaning)}',
-              ),
-            )),
+        _EmptyCard(textTheme: textTheme),
       ],
     );
   }
@@ -79,12 +70,14 @@ class ReviewScreen extends StatelessWidget {
 /// 복습 항목 데이터 모델 (더미).
 class _ReviewItem {
   const _ReviewItem({
+    required this.hanjaId,
     required this.hanja,
     required this.meaning,
     required this.dueLabel,
     required this.accuracy,
   });
 
+  final String hanjaId;
   final String hanja;
   final String meaning;
   final String dueLabel;
@@ -134,13 +127,11 @@ class _ReviewCard extends StatelessWidget {
     required this.item,
     required this.textTheme,
     required this.onStudyTap,
-    this.isUpcoming = false,
   });
 
   final _ReviewItem item;
   final TextTheme textTheme;
   final VoidCallback onStudyTap;
-  final bool isUpcoming;
 
   Color get _accuracyColor {
     if (item.accuracy >= 0.85) return const Color(0xFF2E7D32); // 초록
@@ -156,7 +147,7 @@ class _ReviewCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         child: InkWell(
-          onTap: isUpcoming ? null : onStudyTap,
+          onTap: onStudyTap,
           borderRadius: BorderRadius.circular(22),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -167,18 +158,14 @@ class _ReviewCard extends StatelessWidget {
                   width: 62,
                   height: 62,
                   decoration: BoxDecoration(
-                    color: isUpcoming
-                        ? HanjaColors.surfaceContainerLow
-                        : HanjaColors.primaryFixed,
+                    color: HanjaColors.primaryFixed,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
                     child: Text(
                       item.hanja,
                       style: textTheme.headlineMedium?.copyWith(
-                        color: isUpcoming
-                            ? HanjaColors.onSurfaceVariant
-                            : HanjaColors.primaryContainer,
+                        color: HanjaColors.primaryContainer,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -245,18 +232,17 @@ class _ReviewCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 // 연습 버튼
-                if (!isUpcoming)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: HanjaColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      onPressed: onStudyTap,
-                      icon: const Icon(Icons.edit, color: Colors.white, size: 18),
-                      tooltip: '쓰기 연습',
-                    ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: HanjaColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: IconButton(
+                    onPressed: onStudyTap,
+                    icon: const Icon(Icons.edit, color: Colors.white, size: 18),
+                    tooltip: '쓰기 연습',
+                  ),
+                ),
               ],
             ),
           ),

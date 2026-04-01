@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/ghost_button.dart';
 import '../../core/router/app_router.dart';
@@ -12,17 +14,21 @@ import 'widgets/writing_canvas_widget.dart';
 /// [WritingCanvasWidget]으로 실제 터치 입력을 받고,
 /// [WritingCanvasController]를 통해 초기화·되돌리기를 제어한다.
 /// 획 판정은 Phase 2 엔진 연동 전까지 Mock으로 처리한다.
-class StudyScreen extends StatefulWidget {
-  const StudyScreen({super.key, this.hanja = '佳', this.meaning = '아름다울 (가)'});
+class StudyScreen extends ConsumerStatefulWidget {
+  const StudyScreen({
+    super.key,
+    required this.hanjaId,
+    this.meaning = '',
+  });
 
-  final String hanja;
+  final String hanjaId;
   final String meaning;
 
   @override
-  State<StudyScreen> createState() => _StudyScreenState();
+  ConsumerState<StudyScreen> createState() => _StudyScreenState();
 }
 
-class _StudyScreenState extends State<StudyScreen> {
+class _StudyScreenState extends ConsumerState<StudyScreen> {
   final WritingCanvasController _canvasController = WritingCanvasController();
   static const int _totalStrokes = 8;
 
@@ -38,6 +44,12 @@ class _StudyScreenState extends State<StudyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
+    final hanja = hanjaAsync.value?.character ?? '';
+    final guideStrokesAsync = ref.watch(hanjaStrokePointsProvider(widget.hanjaId));
+    final guideStrokes =
+        guideStrokesAsync.valueOrNull?.where((s) => s.length >= 2).toList();
+
     return Scaffold(
       backgroundColor: HanjaColors.surface,
       body: SafeArea(
@@ -61,8 +73,9 @@ class _StudyScreenState extends State<StudyScreen> {
                   AspectRatio(
                     aspectRatio: 1,
                     child: WritingCanvasWidget(
-                      hanja: widget.hanja,
+                      hanja: hanja,
                       controller: _canvasController,
+                      guideNormalizedStrokes: guideStrokes,
                     ),
                   ),
                   const SizedBox(height: 22),
@@ -78,6 +91,11 @@ class _StudyScreenState extends State<StudyScreen> {
 
   Widget _buildHanjaInfoRow(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
+    final hanja = hanjaAsync.value?.character ?? '';
+    final meaning = hanjaAsync.value == null
+        ? widget.meaning
+        : '${hanjaAsync.value!.meaning} (${hanjaAsync.value!.reading})';
 
     return Row(
       children: [
@@ -88,7 +106,7 @@ class _StudyScreenState extends State<StudyScreen> {
                 alignment: Alignment.center,
                 children: [
                   Text(
-                    widget.hanja,
+                    hanja,
                     style: textTheme.displayMedium?.copyWith(
                       color: HanjaColors.onSurface.withValues(alpha: 0.08),
                       fontStyle: FontStyle.italic,
@@ -108,7 +126,7 @@ class _StudyScreenState extends State<StudyScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.meaning, style: textTheme.headlineSmall),
+                  Text(meaning, style: textTheme.headlineSmall),
                   const SizedBox(height: 6),
                   ListenableBuilder(
                     listenable: _canvasController,
