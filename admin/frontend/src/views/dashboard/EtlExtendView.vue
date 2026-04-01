@@ -5,6 +5,10 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
 import { contains, usePaginatedCollection } from "@/composables/usePaginatedCollection";
+import {
+  extractSvgPaths,
+  preferLongerSvgPaths,
+} from "@/utils/firestoreStrokeMerge";
 
 const auth = useAuthStore();
 
@@ -198,13 +202,6 @@ function downloadHanjaBasisCsv() {
 
 // ── hanja_stroke JSON 패널 ────────────────────────────────────────────────────
 
-function hanjaCollectionDocId(row: Record<string, unknown>): string | null {
-  const raw = String(row["한자"] ?? "").trim();
-  const cp = raw.codePointAt(0);
-  if (cp === undefined) return null;
-  return `hanja_${cp.toString(16).toUpperCase().padStart(5, "0")}`;
-}
-
 function leadingHanjaChar(row: Record<string, unknown>): string {
   const raw = String(row["한자"] ?? "").trim();
   const cp = raw.codePointAt(0);
@@ -298,6 +295,7 @@ async function saveHanjaStrokeJson() {
   try {
     await auth.syncIdTokenForFirestore();
     const db = getFirestoreDb();
+    // setDoc 기본 동작: 문서 전체 덮어쓰기(필드 병합 아님)
     await setDoc(doc(db, "hanja_stroke", docId), parsed as Record<string, unknown>);
     strokeJsonBaseline.value = strokeJsonEditorText.value;
     await loadStrokesFromFirestore();
@@ -324,8 +322,8 @@ async function loadStrokesFromFirestore() {
     return;
   }
 
-  const hanjaId = hanjaCollectionDocId(row);
-  if (!hanjaId) {
+  const basisDocId = selectedEtlDocId.value;
+  if (!basisDocId) {
     if (token !== strokeLoadToken) return;
     strokeFirestoreDocId.value = null;
     strokeJsonEditorText.value = "";
@@ -340,22 +338,10 @@ async function loadStrokesFromFirestore() {
   try {
     const db = getFirestoreDb();
 
-    function extractSvgPaths(data: Record<string, unknown>): string[] {
-      const raw = data.svg_paths;
-      if (!Array.isArray(raw)) return [];
-      return (raw as unknown[])
-        .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
-        .map((x) => x.trim());
-    }
-
-    function preferLonger(a: string[], b: string[]): string[] {
-      return b.length > a.length ? b : a;
-    }
-
-    // stroke_data_id === hanjaId이므로 두 컬렉션을 동시에 조회합니다 (2-RTT → 1-RTT).
-    const [hanjaSnap, strokeSnap] = await Promise.all([
-      getDoc(doc(db, "hanja", hanjaId)),
-      getDoc(doc(db, "hanja_stroke", hanjaId)),
+    // hanja_stroke 문서 ID = hanja_basis 문서 ID(선택 행). 두 컬렉션 동시 조회.
+    const [basisSnap, strokeSnap] = await Promise.all([
+      getDoc(doc(db, "hanja_basis", basisDocId)),
+      getDoc(doc(db, "hanja_stroke", basisDocId)),
     ]);
 
     if (token !== strokeLoadToken) return;
@@ -365,13 +351,13 @@ async function loadStrokesFromFirestore() {
     let strokesRaw: unknown;
     let svgPathsBest: string[] = [];
 
-    if (hanjaSnap.exists()) {
-      const d = hanjaSnap.data() as Record<string, unknown>;
+    if (basisSnap.exists()) {
+      const d = basisSnap.data() as Record<string, unknown>;
       charDoc = String(d.char ?? d.character ?? "");
       if (typeof d.total_strokes === "number") totalStrokes = d.total_strokes;
       else if (typeof d.stroke_count === "number") totalStrokes = d.stroke_count;
       strokesRaw = d.strokes;
-      svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(d));
+      svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(d));
     }
 
     const strokeSnapData = strokeSnap.exists()
@@ -379,7 +365,7 @@ async function loadStrokesFromFirestore() {
       : null;
 
     if (strokeSnapData) {
-      svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(strokeSnapData));
+      svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(strokeSnapData));
       if (!Array.isArray(strokesRaw) || strokesRaw.length === 0) {
         strokesRaw = strokeSnapData.strokes;
         if (!charDoc) charDoc = String(strokeSnapData.char ?? "");
@@ -392,13 +378,13 @@ async function loadStrokesFromFirestore() {
 
     if (strokeSnapData) {
       // hanja_stroke 문서 있음 → 직접 표시
-      strokeFirestoreDocId.value = hanjaId;
+      strokeFirestoreDocId.value = basisDocId;
       const jsonText = docDataToJsonText(strokeSnapData);
       strokeJsonEditorText.value = jsonText;
       strokeJsonBaseline.value = jsonText;
-    } else if (hanjaSnap.exists()) {
-      // hanja 있음 + hanja_stroke 없음 → seed 생성
-      strokeFirestoreDocId.value = hanjaId;
+    } else if (basisSnap.exists()) {
+      // hanja_basis 있음 + hanja_stroke 없음 → seed 생성
+      strokeFirestoreDocId.value = basisDocId;
       const seed: Record<string, unknown> = {
         char: charDoc || leadingHanjaChar(row),
         total_strokes: totalStrokes,
@@ -512,7 +498,7 @@ onMounted(() => { void loadAll(); });
                 ref="etlHelpTriggerRef"
                 type="button"
                 class="flex h-6 w-6 items-center justify-center rounded-full border border-primary/35 bg-primary/12 text-xs font-bold leading-none text-primary shadow-sm outline-none ring-primary/20 transition hover:bg-primary/18 focus-visible:ring-2"
-                aria-label="획 데이터는 hanja 의 strokes 또는 hanja_stroke 에서 읽습니다. 목록에서 행을 눌러 한 건을 선택하면 우측 hanja_stroke JSON에 반영됩니다. 추가 수집은 admin/python/hanja_pipeline.py 를 사용합니다."
+                aria-label="획 데이터는 hanja_basis·hanja_stroke(동일 문서 ID)에서 읽습니다. 목록에서 행을 눌러 선택하면 우측 hanja_stroke JSON에 반영됩니다. 저장은 문서 전체 덮어쓰기입니다. 추가 수집은 admin/python/hanja_pipeline.py 를 사용합니다."
                 :aria-describedby="etlHelpTooltipOpen ? 'etl-help-tooltip-text' : undefined"
                 @mouseenter="openEtlHelpTooltip"
                 @mouseleave="closeEtlHelpTooltip"
@@ -563,7 +549,7 @@ onMounted(() => { void loadAll(); });
               type="button"
               class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
               :disabled="loading"
-              @click="loadAll"
+              @click="() => void loadAll()"
             >
               새로고침
             </button>
@@ -846,7 +832,12 @@ onMounted(() => { void loadAll(); });
               <div class="min-w-0 flex-1">
                 <h2 class="text-sm font-semibold text-onSurface">hanja_stroke · JSON</h2>
                 <p class="mt-0.5 text-[11px] text-onSurface-variant">
-                  Firestore 문서를 직접 편집합니다. 저장 시 merge로 반영됩니다.
+                  Firestore 문서를 직접 편집합니다. 저장 시 문서 전체를 덮어씁니다.
+                </p>
+                <p class="mt-1.5 text-[10px] leading-snug text-onSurface-variant/90">
+                  hanja_basis 는 보통 CSV 마스터 필드(한자·음·훈 등)만 있고, 획·실루엣은
+                  <code class="rounded bg-surface-low px-0.5 font-mono text-[9px] text-primary">hanja_stroke</code>
+                  에 둡니다. 아래 JSON은 동일 문서 ID의 획 문서입니다.
                 </p>
               </div>
               <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -889,11 +880,11 @@ onMounted(() => { void loadAll(); });
                   v-if="!strokeFirestoreDocId"
                   class="rounded-xl border border-amber-200/80 bg-amber-50/80 px-3 py-3 text-xs leading-relaxed text-amber-950"
                 >
-                  레거시
-                  <code class="rounded bg-white/90 px-1 font-mono text-[10px]">hanja</code>
-                  문서에
-                  <code class="rounded bg-white/90 px-1 font-mono text-[10px]">stroke_data_id</code>
-                  가 없습니다. ID를 연결한 뒤 다시 선택하거나, 파이프라인으로 문서를 만든 후 사용하세요.
+                  선택 ID에 해당하는
+                  <code class="rounded bg-white/90 px-1 font-mono text-[10px]">hanja_basis</code>
+                  또는
+                  <code class="rounded bg-white/90 px-1 font-mono text-[10px]">hanja_stroke</code>
+                  를 찾을 수 없습니다. 목록 새로고침 후 다시 선택하거나, 동일 문서 ID로 문서를 만든 뒤 사용하세요.
                 </p>
                 <textarea
                   v-else
@@ -922,7 +913,7 @@ onMounted(() => { void loadAll(); });
                     type="button"
                     class="btn-primary px-3 py-1.5 text-xs shadow-sm shadow-primary/15 sm:text-sm"
                     :disabled="!strokeJsonDirty || !canMutateStrokeDoc || strokeJsonSaving || strokeLoading"
-                    title="admin · 로그인 필요"
+                    title="admin · 로그인 필요 · 저장 시 hanja_stroke 문서 전체 덮어쓰기"
                     @click="saveHanjaStrokeJson"
                   >
                     {{ strokeJsonSaving ? "저장 중…" : "Firestore에 저장" }}
@@ -947,14 +938,13 @@ onMounted(() => { void loadAll(); });
         role="tooltip"
       >
         획 데이터는
-        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">hanja</code>
-        의
-        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">strokes</code>
-        또는
+        <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">hanja_basis</code>
+        ·
         <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">hanja_stroke</code>
-        에서 읽습니다. 목록에서
+        (동일 문서 ID)에서 읽습니다. 목록에서
         <strong class="font-medium text-onSurface">행을 눌러 한 건</strong>을 선택하면 우측
-        <strong class="font-medium text-onSurface">hanja_stroke JSON</strong>에 반영됩니다. 추가 수집은
+        <strong class="font-medium text-onSurface">hanja_stroke JSON</strong>에 반영됩니다. 저장은
+        <strong class="font-medium text-onSurface">문서 전체 덮어쓰기</strong>입니다. 추가 수집은
         <code class="mx-0.5 rounded bg-primary/10 px-1 py-px font-mono text-[10px] text-primary">admin/python/hanja_pipeline.py</code>
         를 사용합니다.
       </div>

@@ -1,4 +1,9 @@
-import { createRouter, createWebHistory } from "vue-router";
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalized,
+  type RouteRecordNormalized,
+} from "vue-router";
 import { watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 
@@ -24,16 +29,19 @@ const router = createRouter({
         {
           path: "basis",
           name: "basis",
+          meta: { requiresAdmin: true },
           component: () => import("@/views/dashboard/BasisManageView.vue"),
         },
         {
           path: "basis/upload",
           name: "basis-upload",
+          meta: { requiresAdmin: true },
           component: () => import("@/views/dashboard/BasisCsvUploadView.vue"),
         },
         {
           path: "etl",
           name: "etl",
+          meta: { requiresAdmin: true },
           component: () => import("@/views/dashboard/EtlExtendView.vue"),
         },
         {
@@ -67,7 +75,7 @@ async function waitAuthReady() {
   });
 }
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to: RouteLocationNormalized) => {
   await waitAuthReady();
   const auth = useAuthStore();
   const isPublic = to.meta.public === true;
@@ -78,6 +86,14 @@ router.beforeEach(async (to) => {
   if (to.name === "login" && auth.isAuthenticated) {
     return { path: "/" };
   }
+
+  const needsAdmin = to.matched.some(
+    (r: RouteRecordNormalized) => r.meta.requiresAdmin === true,
+  );
+  if (needsAdmin && !auth.isAdmin) {
+    return { name: "dashboard", query: { needAdmin: "1" } };
+  }
+
   return true;
 });
 

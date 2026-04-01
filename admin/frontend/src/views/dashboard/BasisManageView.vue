@@ -184,7 +184,7 @@ async function deleteSelectedBasis() {
 
 // 도움말 툴팁
 const BASIS_MANAGE_HELP_TEXT =
-  "그리드 위 조회 · 획순은 카드를 눌러 한 개만 선택한 뒤 사용합니다. 조회는 hanja_extend, 획순은 hanja_extend → hanja_stroke → 레거시 hanja 순으로 획 데이터를 불러옵니다. 행 추가·수정·삭제는 Firestore hanja_basis 에 직접 반영됩니다.";
+  "그리드 위 조회 · 획순은 카드를 눌러 한 개만 선택한 뒤 사용합니다. 조회는 hanja_extend, 획순은 hanja_extend → hanja_stroke → hanja_basis 순으로 획 데이터를 불러옵니다. 행 추가·수정·삭제는 Firestore hanja_basis 에 직접 반영됩니다.";
 
 const basisManageHelpTriggerRef = ref<HTMLButtonElement | null>(null);
 const basisManageHelpTooltipOpen = ref(false);
@@ -342,7 +342,7 @@ onMounted(() => { void loadAll(); });
               type="button"
               class="btn-secondary min-h-[2.75rem] px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
               :disabled="loading"
-              @click="loadAll"
+              @click="() => void loadAll()"
             >
               새로고침
             </button>

@@ -868,7 +868,7 @@ function clearSessionCompletedLog() {
 }
 
 const BASIS_UPLOAD_HELP_TEXT =
-  "단계 칩을 눌러 원하는 컬렉션부터 올릴 수 있습니다. 반영 시 Firestore에 선행 컬렉션 문서가 1건 이상 있는지만 검사합니다(extend→basis, stroke→extend, word→stroke). hanja_basis는 CSV. hanja_extend는 JSON·CSV. hanja_stroke·hanja_word는 JSON 다중 파일 가능. 동일 문서 ID가 있으면 업로드 내용으로 문서 전체를 교체합니다(병합 아님·페이로드에 없는 필드는 제거). 한 파일 안에서 같은 문서 ID가 여러 행·객체에 있으면 업로드하지 않습니다.";
+  "단계 칩을 눌러 원하는 컬렉션부터 올릴 수 있습니다. 반영 시 Firestore에 선행 컬렉션 문서가 1건 이상 있는지만 검사합니다(extend→basis, stroke→extend, word→stroke). hanja_basis는 CSV. hanja_extend는 JSON·CSV. hanja_stroke·hanja_word는 JSON 다중 파일 가능. 동일 문서 ID가 있으면 업로드 내용으로 문서 전체를 교체합니다(병합 아님·페이로드에 없는 필드는 제거). 한 파일 안에서 같은 문서 ID가 여러 행·객체에 있으면 업로드하지 않습니다. ETL·확장 화면에서 획 JSON을 열려면 hanja_stroke 문서 ID를 해당 글자의 hanja_basis 문서 ID(보통 H+16진 코드포인트)와 맞추는 것을 권장합니다.";
 
 const basisUploadHelpTriggerRef = ref<HTMLButtonElement | null>(null);
 const basisUploadHelpTooltipOpen = ref(false);

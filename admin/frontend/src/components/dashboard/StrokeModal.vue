@@ -2,6 +2,10 @@
 import { onUnmounted, ref, watch } from "vue";
 import { doc, getDoc } from "firebase/firestore";
 import { getFirestoreDb } from "@/firebase";
+import {
+  extractSvgPaths,
+  preferLongerSvgPaths,
+} from "@/utils/firestoreStrokeMerge";
 import StrokeOrderViewer from "@/components/dashboard/StrokeOrderViewer.vue";
 import type { StrokeShape } from "@/components/dashboard/StrokeOrderViewer.vue";
 
@@ -53,25 +57,6 @@ function normalizeStrokes(raw: unknown): StrokeShape[] {
   return list.sort((a, b) => a.order - b.order);
 }
 
-function extractSvgPaths(data: Record<string, unknown>): string[] {
-  const raw = data.svg_paths;
-  if (!Array.isArray(raw)) return [];
-  return (raw as unknown[])
-    .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
-    .map((x) => x.trim());
-}
-
-function preferLonger(current: string[], candidate: string[]): string[] {
-  return candidate.length > current.length ? candidate : current;
-}
-
-function hanjaCollectionDocId(row: Row): string | null {
-  const raw = String(row["한자"] ?? "").trim();
-  const cp = raw.codePointAt(0);
-  if (cp === undefined) return null;
-  return `hanja_${cp.toString(16).toUpperCase().padStart(5, "0")}`;
-}
-
 async function fetchData() {
   const entry = props.entry;
   if (!entry) return;
@@ -106,7 +91,7 @@ async function fetchData() {
       if (typeof d.total_strokes === "number") totalStrokes = d.total_strokes;
       else if (typeof d.stroke_count === "number") totalStrokes = d.stroke_count;
       strokesRaw = d.strokes;
-      svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(d));
+      svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(d));
     }
 
     if ((!Array.isArray(strokesRaw) || strokesRaw.length === 0) && strokeDataId) {
@@ -116,30 +101,27 @@ async function fetchData() {
         strokesRaw = sd.strokes;
         if (!charDoc) charDoc = String(sd.char ?? "");
         if (totalStrokes === undefined && typeof sd.total_strokes === "number") totalStrokes = sd.total_strokes;
-        svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(sd));
+        svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(sd));
       }
     }
 
     if (!Array.isArray(strokesRaw) || strokesRaw.length === 0) {
-      const hanjaId = hanjaCollectionDocId(row);
-      if (hanjaId) {
-        const hSnap = await getDoc(doc(db, "hanja", hanjaId));
-        if (hSnap.exists()) {
-          const hd = hSnap.data() as Record<string, unknown>;
-          if (!charDoc) charDoc = String(hd.char ?? hd.character ?? "");
-          if (typeof hd.stroke_data_id === "string" && !strokeDataId) {
-            strokeDataId = hd.stroke_data_id.trim() || undefined;
-          }
-          strokesRaw = hd.strokes;
-          svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(hd));
-          if ((!Array.isArray(strokesRaw) || strokesRaw.length === 0) && strokeDataId) {
-            const stSnap2 = await getDoc(doc(db, "hanja_stroke", strokeDataId));
-            if (stSnap2.exists()) {
-              const sd = stSnap2.data() as Record<string, unknown>;
-              strokesRaw = sd.strokes;
-              if (!charDoc) charDoc = String(sd.char ?? "");
-              svgPathsBest = preferLonger(svgPathsBest, extractSvgPaths(sd));
-            }
+      const basisSnap = await getDoc(doc(db, "hanja_basis", entry.id));
+      if (basisSnap.exists()) {
+        const bd = basisSnap.data() as Record<string, unknown>;
+        if (!charDoc) charDoc = String(bd.char ?? bd.character ?? "");
+        if (typeof bd.stroke_data_id === "string" && !strokeDataId) {
+          strokeDataId = bd.stroke_data_id.trim() || undefined;
+        }
+        strokesRaw = bd.strokes;
+        svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(bd));
+        if ((!Array.isArray(strokesRaw) || strokesRaw.length === 0) && strokeDataId) {
+          const stSnap2 = await getDoc(doc(db, "hanja_stroke", strokeDataId));
+          if (stSnap2.exists()) {
+            const sd = stSnap2.data() as Record<string, unknown>;
+            strokesRaw = sd.strokes;
+            if (!charDoc) charDoc = String(sd.char ?? "");
+            svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(sd));
           }
         }
       }
@@ -159,7 +141,7 @@ async function fetchData() {
       .join(" | ");
 
     if (resolved.length === 0 && svgPathsBest.length === 0) {
-      error.value = "표시할 획 데이터가 없습니다. hanja_extend · hanja_stroke · hanja(레거시)를 확인하세요.";
+      error.value = "표시할 획 데이터가 없습니다. hanja_extend · hanja_stroke · hanja_basis를 확인하세요.";
     }
   } catch (e) {
     error.value = e instanceof Error ? e.message : "획 데이터를 불러오지 못했습니다.";

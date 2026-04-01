@@ -2,11 +2,27 @@ import globals from "globals";
 import pluginVue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
 import prettierConfig from "eslint-config-prettier";
+import vueParser from "vue-eslint-parser";
 
 export default tseslint.config(
-  { languageOptions: { globals: { ...globals.browser } } },
-  ...pluginVue.configs["flat/recommended"],
+  { ignores: ["dist", "node_modules"] },
+  {
+    languageOptions: { globals: { ...globals.browser } },
+  },
   ...tseslint.configs.recommended,
+  ...pluginVue.configs["flat/recommended"],
+  {
+    files: ["**/*.vue"],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tseslint.parser,
+        ecmaVersion: "latest",
+        extraFileExtensions: [".vue"],
+        sourceType: "module",
+      },
+    },
+  },
   prettierConfig,
   {
     rules: {

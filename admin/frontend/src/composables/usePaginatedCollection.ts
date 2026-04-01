@@ -23,18 +23,8 @@ export function contains(hay: string, needle: string): boolean {
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
-// ── 모듈 레벨 컬렉션 캐시 ──────────────────────────────────────────────────
-//
-// 동일한 collectionName을 사용하는 여러 뷰(예: BasisManageView, EtlExtendView)가
-// 공통 캐시 엔트리를 공유합니다.
-//   · allDocs / lastDoc / hasMore / filterWarning : 컬렉션 원본 상태 → 공유
-//   · loadedAt                                    : TTL 판단 기준 → 공유
-//   · loadingPromise                              : in-flight 중복 방지 → 공유
-//
-// 인스턴스별 상태(loading, loadingMore, error, pageSize, currentPage, rows, ids)는
-// 각 usePaginatedCollection 호출 내부에 유지됩니다.
-
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5분
+/** 동일 collectionName 뷰 간 공유: allDocs·페이지 커서·TTL·in-flight 단일화. 인스턴스별: loading·페이지·rows. */
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 type CacheEntry = {
   allDocs: Ref<DocEntry[]>;
@@ -61,8 +51,6 @@ function getOrCreateCache(name: string): CacheEntry {
   return _collectionCache.get(name)!;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 /**
  * Firestore 컬렉션을 클라이언트 메모리에 불러온 뒤
  * 필터·페이지네이션을 처리하는 공용 composable.
@@ -84,7 +72,6 @@ export function usePaginatedCollection(
 
   const cache = getOrCreateCache(collectionName);
 
-  // ── 인스턴스 로컬 상태 (필터·페이지네이션·로딩) ──────────────────────────
   const loading = ref(false);
   const loadingMore = ref(false);
   const error = ref<string | null>(null);
@@ -93,7 +80,6 @@ export function usePaginatedCollection(
   const rows = ref<Record<string, unknown>[]>([]);
   const ids = ref<string[]>([]);
 
-  // ── 공유 캐시에서 파생되는 computed ─────────────────────────────────────
   const filteredDocs = computed(() => cache.allDocs.value.filter(filterFn));
 
   const totalPages = computed(() =>

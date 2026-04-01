@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRoute } from "vue-router";
 import { isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
+const route = useRoute();
+const showAdminGateNotice = computed(() => route.query.needAdmin === "1");
 const firebaseConfigured = computed(() => isFirebaseConfigured());
 
 type DashCard = {
@@ -19,18 +21,11 @@ type DashCard = {
 
 const dashCards: DashCard[] = [
   {
-    key: "hanja",
-    label: "레거시 한자",
-    hint: "hanja",
-    icon: "字",
-    blurb: "전용 화면 없음. 문서 수·목록은 Firebase Console → Firestore에서 확인하세요.",
-  },
-  {
-    key: "words",
+    key: "hanja_word",
     label: "단어·성어",
-    hint: "words",
+    hint: "hanja_word",
     icon: "詞",
-    blurb: "전용 화면 없음. 문서 수·목록은 Firebase Console → Firestore에서 확인하세요.",
+    blurb: "전용 화면 없음. 문서 수·목록은 Firebase Console → Firestore 컬렉션 hanja_word 에서 확인하세요.",
   },
   {
     key: "hanja_basis",
@@ -137,11 +132,16 @@ const cardStaticClass = "cursor-default opacity-[0.98]";
     </div>
 
     <div
-      v-if="!auth.isAdmin"
-      class="rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
+      v-if="auth.ready && !auth.isAdmin"
+      class="space-y-2 rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm text-amber-950 shadow-sm"
     >
-      <strong class="font-medium">admin</strong> 클레임이 없으면 Firestore 쓰기가 거절됩니다.
-      CSV 업로드 등은 클레임 부여 후 설정 → 인증에서 토큰을 갱신하세요.
+      <p v-if="showAdminGateNotice">
+        기준 데이터·마스터 등록·ETL 은 <strong class="font-medium">admin</strong> 클레임이 있는 계정만 열 수 있습니다.
+      </p>
+      <p>
+        <strong class="font-medium">admin</strong> 클레임이 없으면 Firestore 쓰기도 거절됩니다.
+        클레임 부여 후 <strong class="font-medium">설정 → 인증</strong>에서 토큰을 갱신하세요.
+      </p>
     </div>
 
     <div
