@@ -16,13 +16,22 @@ const isLoginSubmitting = ref(false);
 
 const configured = computed(() => isFirebaseConfigured());
 
+/** 로그인 후 이동: 앱 내부 상대 경로만 허용(오픈 리다이렉트 완화). */
+function safeRedirectAfterLogin(raw: unknown): string {
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof first !== "string") return "/";
+  const path = first.trim();
+  if (!path || path.includes("://") || path.includes("\\")) return "/";
+  if (!path.startsWith("/") || path.startsWith("//")) return "/";
+  return path;
+}
+
 async function onSubmit() {
   error.value = null;
   isLoginSubmitting.value = true;
   try {
     await auth.login(email.value.trim(), password.value);
-    const redirect = (route.query.redirect as string) || "/";
-    await router.replace(redirect);
+    await router.replace(safeRedirectAfterLogin(route.query.redirect));
   } catch (e) {
     error.value =
       e instanceof Error ? e.message : "로그인에 실패했습니다.";
