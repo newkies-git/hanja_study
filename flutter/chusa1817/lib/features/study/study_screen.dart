@@ -71,7 +71,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
 
   Future<void> _gradeAndSave() async {
     final guideStrokesAsync = ref.read(hanjaStrokePointsProvider(widget.hanjaId));
-    final guideStrokes = guideStrokesAsync.valueOrNull?.where((s) => s.length >= 2).toList() ?? const [];
+    final guideStrokes = guideStrokesAsync.value?.where((s) => s.length >= 2).toList() ?? const [];
 
     final int expected = guideStrokes.length;
     final int actual = _canvasController.strokeCount;
@@ -143,7 +143,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
 
     final hanja = hanjaRow.character;
     final guideStrokes =
-        guideStrokesAsync.valueOrNull?.where((s) => s.length >= 2).toList();
+        guideStrokesAsync.value?.where((s) => s.length >= 2).toList();
     final int totalStrokes = guideStrokes?.length ?? hanjaRow.totalStrokes;
 
     return Scaffold(

@@ -6,11 +6,11 @@ import '../providers/app_providers.dart';
 import 'firestore_content_sync.dart';
 
 final contentSyncControllerProvider =
-    AutoDisposeAsyncNotifierProvider<ContentSyncController, ContentSyncResult?>(
+    AsyncNotifierProvider.autoDispose<ContentSyncController, ContentSyncResult?>(
   ContentSyncController.new,
 );
 
-class ContentSyncController extends AutoDisposeAsyncNotifier<ContentSyncResult?> {
+class ContentSyncController extends AsyncNotifier<ContentSyncResult?> {
   @override
   Future<ContentSyncResult?> build() async => null;
 

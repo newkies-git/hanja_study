@@ -2,21 +2,82 @@
 
 from __future__ import annotations
 
+import warnings
+from math import isfinite
 from typing import List
 
-from svgpathtools import parse_path
+from svgpathtools import Path, parse_path
+
+_MIN_ARC_LENGTH = 1e-9
 
 
 class StrokeGeometryCalculator:
     """SVG path `d` 문자열을 샘플링하고 정규화한다."""
 
     def sample_path_points(self, path_d: str, sample_count: int = 24) -> List[List[float]]:
-        path = parse_path(path_d)
+        try:
+            path = parse_path(path_d)
+        except Exception:
+            return []
+        if len(path) == 0:
+            return []
+
+        points = self._try_sample_points_by_arclength(path, sample_count)
+        if points is not None:
+            return points
+        return self._sample_points_by_segment_parameter(path, sample_count)
+
+    def _try_sample_points_by_arclength(
+        self, path: Path, sample_count: int
+    ) -> List[List[float]] | None:
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                total_length = path.length()
+        except Exception:
+            return None
+        if not isfinite(total_length) or total_length < _MIN_ARC_LENGTH:
+            return None
+
+        points: List[List[float]] = []
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                for sample_index in range(sample_count):
+                    interpolation_t = sample_index / max(sample_count - 1, 1)
+                    point = path.point(interpolation_t)
+                    x, y = float(point.real), float(point.imag)
+                    if not (isfinite(x) and isfinite(y)):
+                        return None
+                    points.append([round(x, 3), round(y, 3)])
+        except (RuntimeError, ValueError, ZeroDivisionError, ArithmeticError):
+            return None
+        return points
+
+    def _sample_points_by_segment_parameter(
+        self, path: Path, sample_count: int
+    ) -> List[List[float]]:
+        """전체 호장 길이가 0이거나 Path.point가 실패할 때, 세그먼트별 t를 균등 분배."""
+        segments = list(path)
+        segment_count = len(segments)
         points: List[List[float]] = []
         for sample_index in range(sample_count):
-            interpolation_t = sample_index / max(sample_count - 1, 1)
-            point = path.point(interpolation_t)
-            points.append([round(float(point.real), 3), round(float(point.imag), 3)])
+            pos = sample_index / max(sample_count - 1, 1)
+            if pos >= 1.0:
+                complex_point = segments[-1].point(1.0)
+            else:
+                scaled = pos * segment_count
+                segment_index = min(segment_count - 1, int(scaled))
+                local_t = scaled - segment_index
+                if segment_index == segment_count - 1:
+                    local_t = min(1.0, max(0.0, local_t))
+                complex_point = segments[segment_index].point(local_t)
+            points.append(
+                [
+                    round(float(complex_point.real), 3),
+                    round(float(complex_point.imag), 3),
+                ]
+            )
         return points
 
     def normalize_to_unit_square(self, points: List[List[float]]) -> List[List[float]]:
