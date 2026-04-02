@@ -120,3 +120,4 @@ LazyDatabase _openConnection() {
     return NativeDatabase.createInBackground(dbFile);
   });
 }
+

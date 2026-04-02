@@ -50,3 +50,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # 지원 타깃: iOS·Android만 (웹은 Drift 네이티브 SQLite / dart:ffi 미지원).
