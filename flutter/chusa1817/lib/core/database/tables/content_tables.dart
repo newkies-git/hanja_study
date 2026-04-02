@@ -52,6 +52,21 @@ class HanjaStrokeTable extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Firestore `hanja_stroke` 문서의 `svg_paths` (글자 전체 좌표계, viewer와 동일).
+///
+/// `points`는 획별 로컬 0~1(`stroke_geometry.normalize_to_unit_square`)이라
+/// 단순 합성 시 겹쳐 보이므로, 획순 표시는 이 경로를 우선한다.
+class HanjaStrokeSvgPathsTable extends Table {
+  @override
+  String get tableName => 'hanja_stroke_svg_paths';
+
+  TextColumn get hanjaId => text()();
+  TextColumn get pathsJson => text()();
+
+  @override
+  Set<Column> get primaryKey => {hanjaId};
+}
+
 /// Firestore `hanja_extend` 문서 스냅샷 (원본 JSON 보존).
 class HanjaExtendTable extends Table {
   @override

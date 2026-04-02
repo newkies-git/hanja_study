@@ -5,8 +5,16 @@ import 'package:drift/drift.dart' hide Query;
 import 'package:firebase_core/firebase_core.dart';
 
 import '../database/app_database.dart';
+import 'content_sync_progress.dart';
+import 'firestore_json_encode.dart';
 import 'firestore_mappers.dart';
 import 'firestore_paths.dart';
+
+/// [syncAllContent] 진행 알림 (컬렉션 단계 + 선택적 상세 문구).
+typedef ContentSyncProgressCallback = void Function(
+  ContentSyncStage stage,
+  String? detail,
+);
 
 /// Firestore 동기화 결과 집계.
 class ContentSyncResult {
@@ -63,8 +71,17 @@ class FirestoreContentSyncService {
   ///
   /// 콘텐츠 테이블(`hanja_basis`·`hanja_extend`·`hanja_stroke`·`hanja_word`·`hanja_idiom`)은
   /// 서버 스냅샷으로 갱신한다. 사용자 진도(`user_progress` 등)는 건드리지 않는다.
-  Future<ContentSyncResult> syncAllContent({int pageSize = 400}) async {
+  Future<ContentSyncResult> syncAllContent({
+    int pageSize = 400,
+    ContentSyncProgressCallback? onProgress,
+  }) async {
     _ensureFirebase();
+
+    void report(ContentSyncStage stage, [String? detail]) {
+      onProgress?.call(stage, detail);
+    }
+
+    report(ContentSyncStage.resetLocal, null);
 
     final int? remoteVersion = await fetchRemoteContentVersion();
 
@@ -72,12 +89,15 @@ class FirestoreContentSyncService {
     int extendCount = 0;
 
     await _database.transaction(() async {
+      await _database.delete(_database.hanjaStrokeSvgPathsTable).go();
       await _database.delete(_database.hanjaStrokeTable).go();
       await _database.delete(_database.hanjaWordTable).go();
       await _database.delete(_database.hanjaIdiomTable).go();
       await _database.delete(_database.hanjaExtendTable).go();
       await _database.delete(_database.hanjaTable).go();
     });
+
+    report(ContentSyncStage.hanjaBasis, null);
 
     Query<Map<String, dynamic>> basisQuery = _firestore
         .collection(FirestorePaths.hanjaBasisCollection)
@@ -101,6 +121,7 @@ class FirestoreContentSyncService {
           basisCount++;
         }
       });
+      report(ContentSyncStage.hanjaBasis, '$basisCount건');
 
       if (page.docs.length < pageSize) break;
       basisQuery = _firestore
@@ -108,6 +129,8 @@ class FirestoreContentSyncService {
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
     }
+
+    report(ContentSyncStage.hanjaExtend, null);
 
     Query<Map<String, dynamic>> extendQuery = _firestore
         .collection(FirestorePaths.hanjaExtendCollection)
@@ -125,7 +148,7 @@ class FirestoreContentSyncService {
           await _database.into(_database.hanjaExtendTable).insertOnConflictUpdate(
                 HanjaExtendTableCompanion.insert(
                   id: docSnapshot.id,
-                  payloadJson: jsonEncode(data),
+                  payloadJson: jsonEncodeFirestoreMap(data),
                   syncedAt: Value(DateTime.now()),
                 ),
               );
@@ -138,6 +161,7 @@ class FirestoreContentSyncService {
           extendCount++;
         }
       });
+      report(ContentSyncStage.hanjaExtend, '$extendCount건');
 
       if (page.docs.length < pageSize) break;
       extendQuery = _firestore
@@ -145,6 +169,8 @@ class FirestoreContentSyncService {
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
     }
+
+    report(ContentSyncStage.hanjaStroke, null);
 
     final Map<String, String> charToHanjaId = await _loadCharacterToHanjaIdMap();
     final Set<String> hanjaIds = await _loadHanjaIds();
@@ -169,8 +195,13 @@ class FirestoreContentSyncService {
             data,
             hanjaIds,
             charToHanjaId,
+            docSnapshot.id,
           );
           if (hanjaId == null) continue;
+
+          // `svg_paths`는 `strokes` 매핑 성공 여부와 무관하게 저장해야 한다.
+          // (이전에는 strokes 비어 있음 / 매핑 실패 시 continue 로 svg_paths까지 도달하지 못함)
+          await _syncSvgPathsIfPresent(hanjaId, data);
 
           final List<dynamic>? strokes = data['strokes'] as List<dynamic>?;
           if (strokes == null || strokes.isEmpty) continue;
@@ -187,6 +218,10 @@ class FirestoreContentSyncService {
           }
         }
       });
+      report(
+        ContentSyncStage.hanjaStroke,
+        '문서 $strokeDocCount · 획 $strokeRowCount',
+      );
 
       if (page.docs.length < pageSize) break;
       strokeQuery = _firestore
@@ -194,6 +229,8 @@ class FirestoreContentSyncService {
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
     }
+
+    report(ContentSyncStage.hanjaWord, null);
 
     int wordCount = 0;
     int idiomCount = 0;
@@ -248,6 +285,10 @@ class FirestoreContentSyncService {
           }
         }
       });
+      report(
+        ContentSyncStage.hanjaWord,
+        '단어 $wordCount · 성어 $idiomCount',
+      );
 
       if (page.docs.length < pageSize) break;
       wordQuery = _firestore
@@ -255,6 +296,8 @@ class FirestoreContentSyncService {
           .orderBy(FieldPath.documentId)
           .startAfterDocument(page.docs.last);
     }
+
+    report(ContentSyncStage.savingVersion, null);
 
     // 중요: 실제 콘텐츠 테이블 동기화가 끝난 뒤에만 버전을 기록한다.
     await _database.into(_database.contentConfigTable).insertOnConflictUpdate(
@@ -264,6 +307,8 @@ class FirestoreContentSyncService {
             syncedAt: Value(DateTime.now()),
           ),
         );
+
+    report(ContentSyncStage.done, null);
 
     return ContentSyncResult(
       basisCount: basisCount,
@@ -286,10 +331,12 @@ class FirestoreContentSyncService {
   }
 
   /// `stroke_data_id` → 한자 행 id. 없으면 `char`로 역참조.
+  /// [firestoreDocumentId]: 문서 ID가 `hanja_basis.id`와 같을 때(예: `H4E00`) 매칭에 사용.
   String? _resolveHanjaIdForStroke(
     Map<String, dynamic> data,
     Set<String> hanjaIds,
     Map<String, String> charToHanjaId,
+    String firestoreDocumentId,
   ) {
     final String strokeDataId = data['stroke_data_id']?.toString().trim() ?? '';
     if (strokeDataId.isNotEmpty && hanjaIds.contains(strokeDataId)) {
@@ -301,8 +348,28 @@ class FirestoreContentSyncService {
       final String? hanjaIdByChar = charToHanjaId[character];
       if (hanjaIdByChar != null) return hanjaIdByChar;
     }
+    if (hanjaIds.contains(firestoreDocumentId)) return firestoreDocumentId;
     if (strokeDataId.isNotEmpty) return strokeDataId;
     return null;
+  }
+
+  Future<void> _syncSvgPathsIfPresent(
+    String hanjaId,
+    Map<String, dynamic> data,
+  ) async {
+    final List<dynamic>? svgPathsRaw = data['svg_paths'] as List<dynamic>?;
+    if (svgPathsRaw == null || svgPathsRaw.isEmpty) return;
+    final List<String> svgPaths = svgPathsRaw
+        .map((e) => e.toString().trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (svgPaths.isEmpty) return;
+    await _database.into(_database.hanjaStrokeSvgPathsTable).insertOnConflictUpdate(
+          HanjaStrokeSvgPathsTableCompanion.insert(
+            hanjaId: hanjaId,
+            pathsJson: jsonEncode(svgPaths),
+          ),
+        );
   }
 
   Future<Set<String>> _loadHanjaIds() async {

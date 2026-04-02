@@ -9,6 +9,7 @@ import '../database/repositories/local_repositories.dart';
 import '../database/repositories/repository_interfaces.dart';
 import '../settings/app_settings_keys.dart';
 import '../utils/normalized_points_parser.dart';
+import '../utils/stroke_svg_render.dart' show HanjaStrokeVisual, layoutPerStrokeLocalPointsAsGrid, sampleSvgPathsToNormalizedPolylines;
 
 /// 앱 전역 단일 [AppDatabase].
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -39,18 +40,45 @@ final totalHanjaCountProvider = FutureProvider<int>((ref) {
   return ref.watch(hanjaRepositoryProvider).fetchTotalCount();
 });
 
-final middleSchoolHanjaListProvider = FutureProvider<List<HanjaTableData>>((ref) {
-  return ref.watch(hanjaRepositoryProvider).fetchByLevel('middle');
+/// 학습 탭 그리드. Firestore `구분`에 따라 `schoolLevel`이 middle/high/both로 갈리므로
+/// 중학만 필터하면 데이터가 비는 경우가 있다 — 동기화된 전체 한자를 쓴다.
+final learnHanjaListProvider = FutureProvider<List<HanjaTableData>>((ref) {
+  return ref.watch(hanjaRepositoryProvider).fetchAllOrderedByReading();
 });
 
 final hanjaByIdProvider = FutureProvider.family<HanjaTableData?, String>((ref, id) {
   return ref.watch(hanjaRepositoryProvider).fetchById(id);
 });
 
+/// 획순·쓰기 가이드용. `svg_paths`가 있으면 [viewer/stroke_entities_viewer.html] 과 동일 좌표계,
+/// 없으면 획별 로컬 0~1 좌표를 타일 그리드로 배치한다 (`normalize_to_unit_square` 획마다 독립).
+final hanjaStrokeVisualProvider =
+    FutureProvider.family<HanjaStrokeVisual, String>((ref, hanjaId) async {
+  final HanjaRepository repo = ref.watch(hanjaRepositoryProvider);
+  final List<String>? svg = await repo.fetchStrokeSvgPaths(hanjaId);
+  if (svg != null && svg.isNotEmpty) {
+    return HanjaStrokeVisual(
+      svgPaths: svg,
+      polylineStrokes: sampleSvgPathsToNormalizedPolylines(svg),
+    );
+  }
+  final rows = await repo.fetchStrokes(hanjaId);
+  final parsed = rows
+      .map((row) => parseNormalizedPoints(row.normalizedPoints))
+      .where((s) => s.length >= 2)
+      .toList();
+  return HanjaStrokeVisual(
+    svgPaths: null,
+    polylineStrokes: layoutPerStrokeLocalPointsAsGrid(parsed),
+  );
+});
+
+/// [HanjaStrokeVisual.polylineStrokes]만 필요한 위젯용.
 final hanjaStrokePointsProvider =
     FutureProvider.family<List<List<Offset>>, String>((ref, hanjaId) async {
-  final rows = await ref.watch(hanjaRepositoryProvider).fetchStrokes(hanjaId);
-  return rows.map((row) => parseNormalizedPoints(row.normalizedPoints)).toList();
+  final HanjaStrokeVisual v =
+      await ref.watch(hanjaStrokeVisualProvider(hanjaId).future);
+  return v.polylineStrokes;
 });
 
 final hanjaWordsProvider =

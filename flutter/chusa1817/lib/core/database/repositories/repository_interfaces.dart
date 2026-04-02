@@ -12,6 +12,9 @@ abstract class HanjaRepository {
   /// 학교급 (middle | high) 기준으로 목록을 반환한다.
   Future<List<HanjaTableData>> fetchByLevel(String level);
 
+  /// 로컬에 동기화된 한자 전체(가나다순 정렬). 학습 탭 목록용.
+  Future<List<HanjaTableData>> fetchAllOrderedByReading();
+
   /// 음/뜻으로 검색한다.
   Future<List<HanjaTableData>> search(String query);
 
@@ -20,6 +23,9 @@ abstract class HanjaRepository {
 
   /// 해당 한자의 획순 좌표 목록을 획 순서대로 반환한다.
   Future<List<HanjaStrokeTableData>> fetchStrokes(String hanjaId);
+
+  /// Firestore `svg_paths` 동기화본. 없으면 null.
+  Future<List<String>?> fetchStrokeSvgPaths(String hanjaId);
 
   /// 관련 단어 목록을 반환한다.
   Future<List<HanjaWordTableData>> fetchWords(String hanjaId);

@@ -25,7 +25,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hanjaListAsync = ref.watch(middleSchoolHanjaListProvider);
+    final hanjaListAsync = ref.watch(learnHanjaListProvider);
 
     return Column(
       children: [

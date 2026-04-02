@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
@@ -23,6 +25,12 @@ class LocalHanjaRepository implements HanjaRepository {
           .get();
 
   @override
+  Future<List<HanjaTableData>> fetchAllOrderedByReading() =>
+      (_db.select(_db.hanjaTable)
+            ..orderBy([(t) => OrderingTerm.asc(t.reading)]))
+          .get();
+
+  @override
   Future<List<HanjaTableData>> search(String query) {
     final String q = '%$query%';
     return (_db.select(_db.hanjaTable)
@@ -40,6 +48,21 @@ class LocalHanjaRepository implements HanjaRepository {
             ..where((t) => t.hanjaId.equals(hanjaId))
             ..orderBy([(t) => OrderingTerm.asc(t.strokeIndex)]))
           .get();
+
+  @override
+  Future<List<String>?> fetchStrokeSvgPaths(String hanjaId) async {
+    final HanjaStrokeSvgPathsTableData? row =
+        await (_db.select(_db.hanjaStrokeSvgPathsTable)
+              ..where((t) => t.hanjaId.equals(hanjaId)))
+            .getSingleOrNull();
+    if (row == null || row.pathsJson.isEmpty) return null;
+    try {
+      final List<dynamic> decoded = jsonDecode(row.pathsJson) as List<dynamic>;
+      return decoded.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<List<HanjaWordTableData>> fetchWords(String hanjaId) =>

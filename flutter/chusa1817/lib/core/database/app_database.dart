@@ -19,7 +19,8 @@ part 'app_database.g.dart';
 /// **DB 스키마 버전 이력 (PRD6)**:
 /// - v1: `hanja`, `hanja_stroke`, `hanja_word`, `hanja_idiom` + 사용자 테이블 (콘텐츠 FK)
 /// - v2: `hanja` → `hanja_basis` 이름 변경, `hanja_extend`·`content_config` 추가, 콘텐츠 FK 제거
-/// - v3+: (예정) 오답노트, 학습 통계, 동기화 메타 강화
+/// - v3: 사용자 스코프 필드 (`user_progress.user_id`)
+/// - v4: `hanja_stroke_svg_paths` (Firestore `svg_paths` 캐시, 획순 뷰어 좌표계)
 ///
 /// **중요**: migration은 "삭제-재생성" 방식을 절대 사용하지 않는다.
 /// 사용자의 학습 진도, 오답, 북마크는 핵심 자산이므로 파괴적 변경 금지.
@@ -31,6 +32,7 @@ part 'app_database.g.dart';
   HanjaExtendTable,
   ContentConfigTable,
   HanjaStrokeTable,
+  HanjaStrokeSvgPathsTable,
   HanjaWordTable,
   HanjaIdiomTable,
   // 사용자 데이터
@@ -50,7 +52,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -80,8 +82,13 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(userProgressTable, userProgressTable.userId);
           }
 
-          // v3 → v4: 학습 통계 테이블 추가 (예정)
-          // if (from < 4) {
+          // v3 → v4: 획순 SVG 경로 캐시 (stroke_entities_viewer.html / svg_paths)
+          if (from < 4) {
+            await m.createTable(hanjaStrokeSvgPathsTable);
+          }
+
+          // v4 → v5: 학습 통계 테이블 추가 (예정)
+          // if (from < 5) {
           //   await m.createTable(studyStatsTable);
           // }
 

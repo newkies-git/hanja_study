@@ -22,7 +22,8 @@ dependencies:
 
   # ── 로컬 DB (Drift / SQLite) ──────────────────────────────────────────────
   drift: ^2.23.1
-  sqlite3_flutter_libs: ^0.6.0+eol
+  # 0.6.0+eol은 코드/바이너리가 제거된 EOL 버전이라 Android에서 libsqlite3.so가 포함되지 않는다.
+  sqlite3_flutter_libs: ^0.5.41
   path_provider: ^2.1.5
   path: ^1.9.1
 
@@ -36,6 +37,7 @@ dependencies:
   firebase_core: ^4.6.0
   cloud_firestore: ^6.2.0
   firebase_auth: ^6.3.0
+  path_drawing: ^1.0.1
 
 dev_dependencies:
   flutter_test:

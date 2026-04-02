@@ -1829,6 +1829,238 @@ class HanjaStrokeTableCompanion extends UpdateCompanion<HanjaStrokeTableData> {
   }
 }
 
+class $HanjaStrokeSvgPathsTableTable extends HanjaStrokeSvgPathsTable
+    with
+        TableInfo<
+          $HanjaStrokeSvgPathsTableTable,
+          HanjaStrokeSvgPathsTableData
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $HanjaStrokeSvgPathsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _hanjaIdMeta = const VerificationMeta(
+    'hanjaId',
+  );
+  @override
+  late final GeneratedColumn<String> hanjaId = GeneratedColumn<String>(
+    'hanja_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pathsJsonMeta = const VerificationMeta(
+    'pathsJson',
+  );
+  @override
+  late final GeneratedColumn<String> pathsJson = GeneratedColumn<String>(
+    'paths_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [hanjaId, pathsJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'hanja_stroke_svg_paths';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<HanjaStrokeSvgPathsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('hanja_id')) {
+      context.handle(
+        _hanjaIdMeta,
+        hanjaId.isAcceptableOrUnknown(data['hanja_id']!, _hanjaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hanjaIdMeta);
+    }
+    if (data.containsKey('paths_json')) {
+      context.handle(
+        _pathsJsonMeta,
+        pathsJson.isAcceptableOrUnknown(data['paths_json']!, _pathsJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pathsJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {hanjaId};
+  @override
+  HanjaStrokeSvgPathsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return HanjaStrokeSvgPathsTableData(
+      hanjaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hanja_id'],
+      )!,
+      pathsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}paths_json'],
+      )!,
+    );
+  }
+
+  @override
+  $HanjaStrokeSvgPathsTableTable createAlias(String alias) {
+    return $HanjaStrokeSvgPathsTableTable(attachedDatabase, alias);
+  }
+}
+
+class HanjaStrokeSvgPathsTableData extends DataClass
+    implements Insertable<HanjaStrokeSvgPathsTableData> {
+  final String hanjaId;
+  final String pathsJson;
+  const HanjaStrokeSvgPathsTableData({
+    required this.hanjaId,
+    required this.pathsJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['hanja_id'] = Variable<String>(hanjaId);
+    map['paths_json'] = Variable<String>(pathsJson);
+    return map;
+  }
+
+  HanjaStrokeSvgPathsTableCompanion toCompanion(bool nullToAbsent) {
+    return HanjaStrokeSvgPathsTableCompanion(
+      hanjaId: Value(hanjaId),
+      pathsJson: Value(pathsJson),
+    );
+  }
+
+  factory HanjaStrokeSvgPathsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return HanjaStrokeSvgPathsTableData(
+      hanjaId: serializer.fromJson<String>(json['hanjaId']),
+      pathsJson: serializer.fromJson<String>(json['pathsJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'hanjaId': serializer.toJson<String>(hanjaId),
+      'pathsJson': serializer.toJson<String>(pathsJson),
+    };
+  }
+
+  HanjaStrokeSvgPathsTableData copyWith({String? hanjaId, String? pathsJson}) =>
+      HanjaStrokeSvgPathsTableData(
+        hanjaId: hanjaId ?? this.hanjaId,
+        pathsJson: pathsJson ?? this.pathsJson,
+      );
+  HanjaStrokeSvgPathsTableData copyWithCompanion(
+    HanjaStrokeSvgPathsTableCompanion data,
+  ) {
+    return HanjaStrokeSvgPathsTableData(
+      hanjaId: data.hanjaId.present ? data.hanjaId.value : this.hanjaId,
+      pathsJson: data.pathsJson.present ? data.pathsJson.value : this.pathsJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HanjaStrokeSvgPathsTableData(')
+          ..write('hanjaId: $hanjaId, ')
+          ..write('pathsJson: $pathsJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(hanjaId, pathsJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is HanjaStrokeSvgPathsTableData &&
+          other.hanjaId == this.hanjaId &&
+          other.pathsJson == this.pathsJson);
+}
+
+class HanjaStrokeSvgPathsTableCompanion
+    extends UpdateCompanion<HanjaStrokeSvgPathsTableData> {
+  final Value<String> hanjaId;
+  final Value<String> pathsJson;
+  final Value<int> rowid;
+  const HanjaStrokeSvgPathsTableCompanion({
+    this.hanjaId = const Value.absent(),
+    this.pathsJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  HanjaStrokeSvgPathsTableCompanion.insert({
+    required String hanjaId,
+    required String pathsJson,
+    this.rowid = const Value.absent(),
+  }) : hanjaId = Value(hanjaId),
+       pathsJson = Value(pathsJson);
+  static Insertable<HanjaStrokeSvgPathsTableData> custom({
+    Expression<String>? hanjaId,
+    Expression<String>? pathsJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (hanjaId != null) 'hanja_id': hanjaId,
+      if (pathsJson != null) 'paths_json': pathsJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  HanjaStrokeSvgPathsTableCompanion copyWith({
+    Value<String>? hanjaId,
+    Value<String>? pathsJson,
+    Value<int>? rowid,
+  }) {
+    return HanjaStrokeSvgPathsTableCompanion(
+      hanjaId: hanjaId ?? this.hanjaId,
+      pathsJson: pathsJson ?? this.pathsJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (hanjaId.present) {
+      map['hanja_id'] = Variable<String>(hanjaId.value);
+    }
+    if (pathsJson.present) {
+      map['paths_json'] = Variable<String>(pathsJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('HanjaStrokeSvgPathsTableCompanion(')
+          ..write('hanjaId: $hanjaId, ')
+          ..write('pathsJson: $pathsJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $HanjaWordTableTable extends HanjaWordTable
     with TableInfo<$HanjaWordTableTable, HanjaWordTableData> {
   @override
@@ -5611,6 +5843,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $HanjaStrokeTableTable hanjaStrokeTable = $HanjaStrokeTableTable(
     this,
   );
+  late final $HanjaStrokeSvgPathsTableTable hanjaStrokeSvgPathsTable =
+      $HanjaStrokeSvgPathsTableTable(this);
   late final $HanjaWordTableTable hanjaWordTable = $HanjaWordTableTable(this);
   late final $HanjaIdiomTableTable hanjaIdiomTable = $HanjaIdiomTableTable(
     this,
@@ -5634,6 +5868,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     hanjaExtendTable,
     contentConfigTable,
     hanjaStrokeTable,
+    hanjaStrokeSvgPathsTable,
     hanjaWordTable,
     hanjaIdiomTable,
     userProgressTable,
@@ -6626,6 +6861,168 @@ typedef $$HanjaStrokeTableTableProcessedTableManager =
         >,
       ),
       HanjaStrokeTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$HanjaStrokeSvgPathsTableTableCreateCompanionBuilder =
+    HanjaStrokeSvgPathsTableCompanion Function({
+      required String hanjaId,
+      required String pathsJson,
+      Value<int> rowid,
+    });
+typedef $$HanjaStrokeSvgPathsTableTableUpdateCompanionBuilder =
+    HanjaStrokeSvgPathsTableCompanion Function({
+      Value<String> hanjaId,
+      Value<String> pathsJson,
+      Value<int> rowid,
+    });
+
+class $$HanjaStrokeSvgPathsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $HanjaStrokeSvgPathsTableTable> {
+  $$HanjaStrokeSvgPathsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pathsJson => $composableBuilder(
+    column: $table.pathsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$HanjaStrokeSvgPathsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $HanjaStrokeSvgPathsTableTable> {
+  $$HanjaStrokeSvgPathsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pathsJson => $composableBuilder(
+    column: $table.pathsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$HanjaStrokeSvgPathsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $HanjaStrokeSvgPathsTableTable> {
+  $$HanjaStrokeSvgPathsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
+
+  GeneratedColumn<String> get pathsJson =>
+      $composableBuilder(column: $table.pathsJson, builder: (column) => column);
+}
+
+class $$HanjaStrokeSvgPathsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $HanjaStrokeSvgPathsTableTable,
+          HanjaStrokeSvgPathsTableData,
+          $$HanjaStrokeSvgPathsTableTableFilterComposer,
+          $$HanjaStrokeSvgPathsTableTableOrderingComposer,
+          $$HanjaStrokeSvgPathsTableTableAnnotationComposer,
+          $$HanjaStrokeSvgPathsTableTableCreateCompanionBuilder,
+          $$HanjaStrokeSvgPathsTableTableUpdateCompanionBuilder,
+          (
+            HanjaStrokeSvgPathsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $HanjaStrokeSvgPathsTableTable,
+              HanjaStrokeSvgPathsTableData
+            >,
+          ),
+          HanjaStrokeSvgPathsTableData,
+          PrefetchHooks Function()
+        > {
+  $$HanjaStrokeSvgPathsTableTableTableManager(
+    _$AppDatabase db,
+    $HanjaStrokeSvgPathsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$HanjaStrokeSvgPathsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$HanjaStrokeSvgPathsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$HanjaStrokeSvgPathsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> hanjaId = const Value.absent(),
+                Value<String> pathsJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => HanjaStrokeSvgPathsTableCompanion(
+                hanjaId: hanjaId,
+                pathsJson: pathsJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String hanjaId,
+                required String pathsJson,
+                Value<int> rowid = const Value.absent(),
+              }) => HanjaStrokeSvgPathsTableCompanion.insert(
+                hanjaId: hanjaId,
+                pathsJson: pathsJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$HanjaStrokeSvgPathsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $HanjaStrokeSvgPathsTableTable,
+      HanjaStrokeSvgPathsTableData,
+      $$HanjaStrokeSvgPathsTableTableFilterComposer,
+      $$HanjaStrokeSvgPathsTableTableOrderingComposer,
+      $$HanjaStrokeSvgPathsTableTableAnnotationComposer,
+      $$HanjaStrokeSvgPathsTableTableCreateCompanionBuilder,
+      $$HanjaStrokeSvgPathsTableTableUpdateCompanionBuilder,
+      (
+        HanjaStrokeSvgPathsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $HanjaStrokeSvgPathsTableTable,
+          HanjaStrokeSvgPathsTableData
+        >,
+      ),
+      HanjaStrokeSvgPathsTableData,
       PrefetchHooks Function()
     >;
 typedef $$HanjaWordTableTableCreateCompanionBuilder =
@@ -8851,6 +9248,11 @@ class $AppDatabaseManager {
       $$ContentConfigTableTableTableManager(_db, _db.contentConfigTable);
   $$HanjaStrokeTableTableTableManager get hanjaStrokeTable =>
       $$HanjaStrokeTableTableTableManager(_db, _db.hanjaStrokeTable);
+  $$HanjaStrokeSvgPathsTableTableTableManager get hanjaStrokeSvgPathsTable =>
+      $$HanjaStrokeSvgPathsTableTableTableManager(
+        _db,
+        _db.hanjaStrokeSvgPathsTable,
+      );
   $$HanjaWordTableTableTableManager get hanjaWordTable =>
       $$HanjaWordTableTableTableManager(_db, _db.hanjaWordTable);
   $$HanjaIdiomTableTableTableManager get hanjaIdiomTable =>

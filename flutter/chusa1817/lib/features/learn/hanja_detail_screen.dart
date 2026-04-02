@@ -317,7 +317,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     required String hanjaId,
     required String hanja,
   }) {
-    final strokesAsync = ref.watch(hanjaStrokePointsProvider(hanjaId));
+    final strokesAsync = ref.watch(hanjaStrokeVisualProvider(hanjaId));
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -346,15 +346,21 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            data: (strokes) {
-              final usable = strokes.where((s) => s.length >= 2).toList();
-              if (usable.isEmpty) {
+            data: (visual) {
+              if (visual.polylineStrokes.isEmpty &&
+                  (visual.svgPaths == null || visual.svgPaths!.isEmpty)) {
                 return const Padding(
                   padding: EdgeInsets.all(12),
                   child: Text('표시할 획순 데이터가 없습니다.'),
                 );
               }
-              return StrokeAnimationPlayer(hanja: hanja, strokes: usable);
+              return StrokeAnimationPlayer(
+                key: ValueKey(
+                  '$hanjaId:${visual.svgPaths?.length ?? 0}:${visual.polylineStrokes.length}',
+                ),
+                hanja: hanja,
+                visual: visual,
+              );
             },
           ),
         ],

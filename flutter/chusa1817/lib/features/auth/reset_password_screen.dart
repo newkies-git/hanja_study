@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/router/app_router.dart';
@@ -8,6 +9,7 @@ import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_text_field.dart';
 import '../../shared/widgets/form_field_label.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
+import '../../core/auth/firebase_auth_error_message.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -38,11 +40,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           );
       if (!mounted) return;
       context.push(AppRoutes.resetSent);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
+      if (kDebugMode) {
+        debugPrint('비밀번호 재설정 메일 발송 실패: $error');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+        SnackBar(
+          content: Text(firebaseAuthErrorMessage(error)),
           backgroundColor: HanjaColors.error,
           behavior: SnackBarBehavior.floating,
         ),

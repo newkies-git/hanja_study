@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -9,6 +10,7 @@ import '../../shared/widgets/form_field_label.dart';
 import '../../shared/widgets/ghost_divider.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
+import '../../core/auth/firebase_auth_error_message.dart';
 
 /// 이메일/비밀번호 로그인 화면.
 ///
@@ -29,6 +31,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    // 디버그 빌드에서만 이메일 기본값 (비밀번호는 저장소에 넣지 않음)
+    if (kDebugMode) {
+      _emailController.text = 'rladbxor@gmail.com';
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -47,11 +58,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
       if (!mounted) return;
       context.go(AppRoutes.home);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
+      if (kDebugMode) {
+        debugPrint('로그인 실패: $error');
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('아이디 또는 비밀번호가 올바르지 않습니다.'),
+          content: Text(firebaseAuthErrorMessage(error)),
           backgroundColor: HanjaColors.error,
           behavior: SnackBarBehavior.floating,
         ),

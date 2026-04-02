@@ -25,7 +25,8 @@ import '../auth/auth_providers.dart';
 /// 모든 화면 이동은 이 GoRouter를 통해 선언적으로 처리한다.
 /// `context.go()` — replace, `context.push()` — stack push.
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final isAuthenticated = ref.watch(isNonAnonymousUserProvider);
+  final isSignedIn = ref.watch(isSignedInProvider);
+  final isNonAnonymousUser = ref.watch(isNonAnonymousUserProvider);
   final authStateChanges = ref.watch(firebaseAuthProvider).authStateChanges();
 
   return GoRouter(
@@ -40,10 +41,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           state.uri.path == AppRoutes.resetSent ||
           state.uri.path == AppRoutes.onboarding;
 
-      if (!isAuthenticated && !isAuthRoute) {
-        return AppRoutes.login;
+      // 로그인 여부는 "익명 포함" 사용자 세션 기준으로 판단한다.
+      // (Firestore 규칙의 request.auth 만족을 위해 익명 세션을 기본 유지)
+      if (!isSignedIn && !isAuthRoute) {
+        return AppRoutes.landing;
       }
-      if (isAuthenticated && state.uri.path == AppRoutes.login) {
+
+      // 이메일/비밀번호로 이미 로그인한 사용자라면 로그인 화면으로 가지 않도록 한다.
+      if (isNonAnonymousUser && state.uri.path == AppRoutes.login) {
         return AppRoutes.home;
       }
       return null;

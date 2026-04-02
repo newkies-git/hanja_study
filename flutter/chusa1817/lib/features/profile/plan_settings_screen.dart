@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/settings/app_settings_keys.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -259,7 +260,12 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                   AppSettingsKeys.selectedDays,
                   '[${_selectedDays.map((e) => e.toString()).join(',')}]',
                 );
-                if (context.mounted) context.pop();
+                if (!context.mounted) return;
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go(AppRoutes.home);
+                }
               },
             ),
           ),

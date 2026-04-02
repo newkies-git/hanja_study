@@ -31,7 +31,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          middleSchoolHanjaListProvider.overrideWith((ref) async => fakeHanjaRows),
+          learnHanjaListProvider.overrideWith((ref) async => fakeHanjaRows),
         ],
         child: MaterialApp(
           home: const Scaffold(body: LearnListScreen()),
