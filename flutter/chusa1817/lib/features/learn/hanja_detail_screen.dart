@@ -81,13 +81,18 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                   children: [
                     _buildAppBar(context, hanjaId: hanjaRow.id),
                     const SizedBox(height: 10),
-                    HanjaHeroSection(hanja: hanja, meaning: meaning),
-                    const SizedBox(height: 18),
+                    HanjaHeroSection(
+                      hanja: hanja,
+                      meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
+                      radical: hanjaRow.radical,
+                      totalStrokes: hanjaRow.totalStrokes,
+                    ),
+                    const SizedBox(height: 24),
                     HanjaTabBar(
                       activeTab: _activeTab,
                       onTabChanged: (tab) => setState(() => _activeTab = tab),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
                     _buildTabContent(
                       hanjaId: hanjaRow.id,
                       hanja: hanja,
@@ -101,7 +106,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                 _buildStickyWritingButton(
                   context,
                   hanjaId: hanjaRow.id,
-                  meaning: meaning,
+                  meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
                 ),
               ],
             ),

@@ -13,13 +13,11 @@ class PracticeActionTile extends StatelessWidget {
   const PracticeActionTile({
     super.key,
     required this.icon,
-    required this.label,
     required this.onTap,
     this.variant = PracticeActionTileVariant.neutral,
   });
 
   final IconData icon;
-  final String label;
   final VoidCallback onTap;
   final PracticeActionTileVariant variant;
 
@@ -27,8 +25,6 @@ class PracticeActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-
     return Material(
       color: _isPrimary ? null : HanjaColors.surfaceContainerLow,
       borderRadius: BorderRadius.circular(20),
@@ -46,23 +42,11 @@ class PracticeActionTile extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: _isPrimary ? Colors.white : HanjaColors.onSurface,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: _isPrimary ? Colors.white : HanjaColors.onSurface,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-              ],
+            child: Center(
+              child: Icon(
+                icon,
+                color: _isPrimary ? Colors.white : HanjaColors.onSurface,
+              ),
             ),
           ),
         ),

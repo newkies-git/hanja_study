@@ -56,28 +56,29 @@ class _DetailTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color foregroundColor = isSelected
-        ? HanjaColors.primaryContainer
-        : const Color(0xFF9A9DA0);
+        ? HanjaColors.primary
+        : const Color(0xFFC3C5D7); // 옅은 회색/파란색 톤
 
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
               color: isSelected
-                  ? HanjaColors.primaryContainer
-                  : HanjaColors.outlineVariant.withValues(alpha: 0.15),
-              width: isSelected ? 2 : 1,
+                  ? HanjaColors.primary
+                  : Colors.transparent,
+              width: 3,
             ),
           ),
         ),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: foregroundColor,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
+                fontSize: 15,
               ),
         ),
       ),

@@ -34,7 +34,7 @@ class StudyScreen extends ConsumerStatefulWidget {
 class _StudyScreenState extends ConsumerState<StudyScreen> {
   final WritingCanvasController _canvasController = WritingCanvasController();
   String? _sessionId;
-  bool _showAnswerOverlay = true;
+  bool _showAnswerOverlay = false;
 
   @override
   void initState() {
@@ -173,6 +173,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
                     child: WritingCanvasWidget(
                       hanja: hanja,
                       controller: _canvasController,
+                      showGuide: false,
                       guideNormalizedStrokes: _showAnswerOverlay ? guideStrokes : null,
                     ),
                   ),
@@ -208,64 +209,41 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
 
     return Row(
       children: [
+        _HanjaThumbnail(hanja: hanja),
+        const SizedBox(width: 16),
         Expanded(
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Text(
-                    hanja,
-                    style: textTheme.displayMedium?.copyWith(
-                      color: HanjaColors.onSurface.withValues(alpha: 0.08),
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text('참조', style: textTheme.labelSmall),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 18),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(meaning, style: textTheme.headlineSmall),
+              Text(meaning, style: textTheme.headlineSmall),
                   const SizedBox(height: 6),
-                  ListenableBuilder(
-                    listenable: _canvasController,
-                    builder: (context, child) => Row(
-                      children: [
-                        const Icon(
-                          Icons.draw,
-                          size: 16,
-                          color: HanjaColors.primaryContainer,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '획 ${_canvasController.strokeCount} / ${totalStrokes == 0 ? '-' : totalStrokes}',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: HanjaColors.primaryContainer,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+              ListenableBuilder(
+                listenable: _canvasController,
+                builder: (context, child) => Row(
+                  children: [
+                    const Icon(
+                      Icons.draw,
+                      size: 16,
+                      color: HanjaColors.primaryContainer,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Text(
+                      '획 ${_canvasController.strokeCount} / ${totalStrokes == 0 ? '-' : totalStrokes}',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: HanjaColors.primaryContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
         ),
         GhostButton(
-          label: '힌트',
-          icon: Icons.lightbulb_outline,
-          onPressed: _showHint,
+          label: '정답 보기',
+          icon: _showAnswerOverlay ? Icons.visibility : Icons.visibility_off,
+          onPressed: _toggleAnswerOverlay,
         ),
       ],
     );
@@ -281,26 +259,55 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
       children: [
         PracticeActionTile(
           icon: Icons.restart_alt,
-          label: '초기화',
           onTap: _canvasController.reset,
         ),
         PracticeActionTile(
           icon: Icons.undo,
-          label: '되돌리기',
           onTap: _canvasController.undo,
         ),
         PracticeActionTile(
-          icon: Icons.visibility,
-          label: '정답 보기',
-          onTap: _toggleAnswerOverlay,
+          icon: Icons.lightbulb_outline,
+          onTap: _showHint,
         ),
         PracticeActionTile(
           icon: Icons.arrow_forward,
-          label: '완료',
           variant: PracticeActionTileVariant.primary,
           onTap: _gradeAndSave,
         ),
       ],
+    );
+  }
+}
+
+/// 학습 화면 상단 한자 썸네일 카드.
+class _HanjaThumbnail extends StatelessWidget {
+  const _HanjaThumbnail({required this.hanja});
+
+  final String hanja;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: HanjaColors.primaryFixed.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: HanjaColors.primary.withValues(alpha: 0.1),
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          hanja,
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: HanjaColors.primary,
+          ),
+        ),
+      ),
     );
   }
 }

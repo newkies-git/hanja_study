@@ -80,8 +80,16 @@ class HanjaCard extends StatelessWidget {
                   runSpacing: 4,
                   alignment: WrapAlignment.center,
                   children: [
-                    _InfoChip(label: '$totalStrokes획'),
-                    _InfoChip(label: '부수 $radical'),
+                    _InfoChip(
+                      label: '$totalStrokes',
+                      backgroundColor: const Color(0xFFFFE8B4), // 연한 노란색
+                      textColor: const Color(0xFFE65100), // 오렌지/노란색 계열
+                    ),
+                    _InfoChip(
+                      label: radical,
+                      backgroundColor: HanjaColors.primaryFixed.withValues(alpha: 0.5), // 연한 파란색
+                      textColor: HanjaColors.primaryContainer, // 파란색 계열
+                    ),
                   ],
                 ),
               ],
@@ -94,23 +102,30 @@ class HanjaCard extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label});
+  const _InfoChip({
+    required this.label,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
   final String label;
+  final Color backgroundColor;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: HanjaColors.primaryFixed.withValues(alpha: 0.3),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 9,
           fontWeight: FontWeight.bold,
-          color: HanjaColors.primaryContainer,
+          color: textColor,
         ),
       ),
     );
