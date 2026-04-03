@@ -13,6 +13,7 @@ import 'widgets/hanja_tab_bar.dart';
 import 'widgets/hanja_info_tab.dart';
 import 'widgets/hanja_strokes_tab.dart';
 import 'widgets/hanja_words_tab.dart';
+import '../../shared/widgets/hanja_brush_icon.dart';
 
 /// 한자 상세 정보 화면.
 ///
@@ -211,15 +212,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
         elevation: 8,
         highlightElevation: 12,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: Container(
-          width: 32,
-          height: 32,
-          padding: const EdgeInsets.all(2),
-          child: Image.asset(
-            'assets/images/brush_icon.png',
-            fit: BoxFit.contain,
-          ),
-        ),
+        icon: const HanjaBrushIcon(size: 28, color: Colors.white),
         label: Text(
           '쓰기',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -232,3 +225,4 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     );
   }
 }
+
