@@ -112,13 +112,13 @@ final weeklyStudyCountsProvider = FutureProvider<List<int>>((ref) async {
 });
 
 final upcomingReviewHanjaProvider =
-    FutureProvider<List<(String hanjaId, String hanja, String meaning, DateTime nextReviewAt)>>(
+    FutureProvider<List<(String hanjaId, String hanja, String meaning, DateTime nextReviewAt, double accuracy)>>(
         (ref) async {
   final progressRepository = ref.watch(progressRepositoryProvider);
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
   final upcoming = await progressRepository.fetchUpcomingForReview(limit: 20);
-  final results = <(String, String, String, DateTime)>[];
+  final results = <(String, String, String, DateTime, double)>[];
   for (final row in upcoming) {
     final hanjaRow = await hanjaRepository.fetchById(row.hanjaId);
     if (hanjaRow == null) continue;
@@ -129,6 +129,7 @@ final upcomingReviewHanjaProvider =
       hanjaRow.character,
       '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
       nextReviewAt,
+      row.accuracyRate ?? 0.0,
     ));
   }
   return results;
@@ -168,12 +169,12 @@ final recommendedReviewHanjaProvider =
 });
 
 final dueForReviewHanjaProvider =
-    FutureProvider<List<(String hanjaId, String hanja, String meaning)>>((ref) async {
+    FutureProvider<List<(String hanjaId, String hanja, String meaning, double accuracy)>>((ref) async {
   final progressRepository = ref.watch(progressRepositoryProvider);
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
   final dueList = await progressRepository.fetchDueForReview();
-  final results = <(String, String, String)>[];
+  final results = <(String, String, String, double)>[];
 
   for (final due in dueList) {
     final hanjaRow = await hanjaRepository.fetchById(due.hanjaId);
@@ -182,6 +183,7 @@ final dueForReviewHanjaProvider =
       hanjaRow.id,
       hanjaRow.character,
       '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
+      due.accuracyRate ?? 0.0,
     ));
   }
   return results;

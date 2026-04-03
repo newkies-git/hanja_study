@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
+import '../../shared/widgets/filter_pill.dart';
+import '../../shared/widgets/hanja_card.dart';
 import '../../core/router/app_router.dart';
 import '../../core/database/app_database.dart';
 
@@ -90,19 +92,19 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _FilterPill(
+                FilterPill(
                   label: '가나다순',
                   isSelected: _sort == _LearnSort.koreanOrder,
                   onTap: () => setState(() => _sort = _LearnSort.koreanOrder),
                 ),
                 const SizedBox(width: 10),
-                _FilterPill(
+                FilterPill(
                   label: '획수순',
                   isSelected: _sort == _LearnSort.strokeCount,
                   onTap: () => setState(() => _sort = _LearnSort.strokeCount),
                 ),
                 const SizedBox(width: 10),
-                _FilterPill(
+                FilterPill(
                   label: '랜덤',
                   isSelected: _sort == _LearnSort.random,
                   onTap: () => setState(() => _sort = _LearnSort.random),
@@ -174,7 +176,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                         final hanja = hanjaRow.character;
                         final meaning = hanjaRow.meaning;
 
-                        return _HanjaCard(
+                        return HanjaCard(
                           hanja: hanja,
                           meaning: meaning,
                           onTap: () => context.push(
@@ -243,108 +245,3 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
 }
 
 enum _LearnSort { koreanOrder, strokeCount, random }
-
-/// 정렬 필터 Pill 버튼.
-class _FilterPill extends StatelessWidget {
-  const _FilterPill({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: isSelected
-          ? HanjaColors.primaryFixed
-          : HanjaColors.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: isSelected
-                      ? HanjaColors.primaryContainer
-                      : HanjaColors.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 한자 그리드 카드.
-class _HanjaCard extends StatelessWidget {
-  const _HanjaCard({
-    required this.hanja,
-    required this.meaning,
-    required this.onTap,
-  });
-
-  final String hanja;
-  final String meaning;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(28),
-        child: InkWell(
-          onTap: () {
-            // 리플(터치) 애니메이션이 보일 수 있도록 아주 짧은 지연시간 부여
-            Future.delayed(const Duration(milliseconds: 150), onTap);
-          },
-          borderRadius: BorderRadius.circular(28),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hanja,
-                  style: textTheme.displaySmall?.copyWith(
-                    fontSize: 44,
-                    height: 1.0,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  meaning,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: HanjaColors.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

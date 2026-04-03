@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/auth/auth_controller.dart';
+import '../../core/auth/auth_providers.dart';
 import '../../core/firebase/content_sync_controller.dart';
 import '../../core/firebase/content_sync_progress.dart';
 import '../../core/firebase/firestore_content_sync.dart';
@@ -22,13 +24,15 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final totalHanjaCount = ref.watch(totalHanjaCountProvider);
+    final authState = ref.watch(authStateChangesProvider);
+    final authUser = authState.asData?.value;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       children: [
         const EditorialTopBar(title: '내 정보'),
         const SizedBox(height: 14),
-        _buildProfileCard(textTheme),
+        _buildProfileCard(textTheme, authUser),
         const SizedBox(height: 14),
         _buildHanjaCountCard(textTheme, totalHanjaCount),
         const SizedBox(height: 14),
@@ -37,7 +41,7 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileCard(TextTheme textTheme) {
+  Widget _buildProfileCard(TextTheme textTheme, User? authUser) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -55,10 +59,13 @@ class ProfileScreen extends ConsumerWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Scholar', style: textTheme.headlineSmall),
+              Text(
+                authUser?.displayName ?? (authUser?.isAnonymous == false ? '추사 1817 학습자' : '게스트 사용자'), 
+                style: textTheme.headlineSmall,
+              ),
               const SizedBox(height: 4),
               Text(
-                'scholar@example.com',
+                (authUser?.isAnonymous ?? true) ? '데이터가 기기에 임시 저장됩니다' : (authUser?.email ?? '이메일 정보 없음'),
                 style: textTheme.bodyMedium?.copyWith(
                   color: HanjaColors.onSurfaceVariant,
                 ),

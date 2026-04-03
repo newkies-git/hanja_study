@@ -6,9 +6,13 @@ import 'package:flutter/services.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
-import '../../shared/widgets/won_go_ji_grid.dart';
 import '../../core/router/app_router.dart';
-import '../study/widgets/stroke_animation_player.dart';
+
+import 'widgets/hanja_hero_section.dart';
+import 'widgets/hanja_tab_bar.dart';
+import 'widgets/hanja_info_tab.dart';
+import 'widgets/hanja_strokes_tab.dart';
+import 'widgets/hanja_words_tab.dart';
 
 /// 한자 상세 정보 화면.
 ///
@@ -33,7 +37,6 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
     final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
 
     return hanjaAsync.when(
@@ -72,16 +75,20 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
             child: Stack(
               children: [
                 ListView(
+                  // 안드로이드 12 이상 등에서 화면 위/아래 끝 도달 시 고무줄처럼 늘어나는(Stretch) 효과를 방지하기 위함
+                  physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
                   children: [
                     _buildAppBar(context, hanjaId: hanjaRow.id),
                     const SizedBox(height: 10),
-                    _buildHeroSection(textTheme, hanja: hanja, meaning: meaning),
+                    HanjaHeroSection(hanja: hanja, meaning: meaning),
                     const SizedBox(height: 18),
-                    _buildTabRow(),
+                    HanjaTabBar(
+                      activeTab: _activeTab,
+                      onTabChanged: (tab) => setState(() => _activeTab = tab),
+                    ),
                     const SizedBox(height: 18),
                     _buildTabContent(
-                      textTheme,
                       hanjaId: hanjaRow.id,
                       hanja: hanja,
                       radical: hanjaRow.radical,
@@ -139,100 +146,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     );
   }
 
-  Widget _buildHeroSection(
-    TextTheme textTheme, {
-    required String hanja,
-    required String meaning,
-  }) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 320,
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0D000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  const Positioned.fill(child: WonGoJiGrid(opacity: 0.12)),
-                  Center(
-                    child: Text(
-                      hanja,
-                      style: textTheme.displayLarge?.copyWith(
-                        fontSize: 120,
-                        color: HanjaColors.primary,
-                        height: 1,
-                      ),
-                    ),
-                  ),
-                  const Positioned(
-                    top: 14,
-                    right: 14,
-                    child: Icon(Icons.star, color: HanjaColors.tertiary),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          '뜻과 음',
-          style: textTheme.labelSmall?.copyWith(
-            color: const Color(0xFF9A9DA0),
-            letterSpacing: 3.2,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          meaning,
-          style: textTheme.displaySmall?.copyWith(
-            fontSize: 40,
-            color: HanjaColors.onSurface,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabRow() {
-    return Row(
-      children: [
-        _DetailTab(
-          label: '기본 정보',
-          isSelected: _activeTab == HanjaDetailTab.info,
-          onTap: () => setState(() => _activeTab = HanjaDetailTab.info),
-        ),
-        const Spacer(),
-        _DetailTab(
-          label: '획순 보기',
-          isSelected: _activeTab == HanjaDetailTab.strokes,
-          onTap: () => setState(() => _activeTab = HanjaDetailTab.strokes),
-        ),
-        const Spacer(),
-        _DetailTab(
-          label: '관련 단어',
-          isSelected: _activeTab == HanjaDetailTab.words,
-          onTap: () => setState(() => _activeTab = HanjaDetailTab.words),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabContent(
-    TextTheme textTheme, {
+  Widget _buildTabContent({
     required String hanjaId,
     required String hanja,
     required String radical,
@@ -242,190 +156,17 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
   }) {
     switch (_activeTab) {
       case HanjaDetailTab.info:
-        return _buildInfoTab(
-          textTheme,
+        return HanjaInfoTab(
           radical: radical,
           radicalLabel: radicalLabel,
           totalStrokes: totalStrokes,
           originText: originText,
         );
       case HanjaDetailTab.strokes:
-        return _buildStrokesTab(textTheme, hanjaId: hanjaId, hanja: hanja);
+        return HanjaStrokesTab(hanjaId: hanjaId, hanja: hanja);
       case HanjaDetailTab.words:
-        return _buildWordsTab(textTheme, hanjaId: hanjaId);
+        return HanjaWordsTab(hanjaId: hanjaId);
     }
-  }
-
-  Widget _buildInfoTab(
-    TextTheme textTheme, {
-    required String radical,
-    required String radicalLabel,
-    required int totalStrokes,
-    required String originText,
-  }) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _InfoCard(
-                label: '부수',
-                value: radical,
-                subLabel: radicalLabel,
-                valueColor: HanjaColors.secondary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _InfoCard(
-                label: '총획',
-                value: '$totalStrokes',
-                subLabel: '전체 획수',
-                valueColor: HanjaColors.primary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: HanjaColors.outlineVariant.withValues(alpha: 0.05),
-            ),
-          ),
-          child: Text(
-            originText.isNotEmpty
-                ? originText
-                : '아직 유래 설명이 준비되지 않았습니다.',
-            textAlign: TextAlign.center,
-            style: textTheme.titleMedium?.copyWith(
-              color: HanjaColors.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStrokesTab(
-    TextTheme textTheme, {
-    required String hanjaId,
-    required String hanja,
-  }) {
-    final strokesAsync = ref.watch(hanjaStrokeVisualProvider(hanjaId));
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '획순 보기',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 16),
-          strokesAsync.when(
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            ),
-            error: (error, _) => Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                '획순 데이터를 불러오지 못했습니다.\n$error',
-                textAlign: TextAlign.center,
-              ),
-            ),
-            data: (visual) {
-              if (visual.polylineStrokes.isEmpty &&
-                  (visual.svgPaths == null || visual.svgPaths!.isEmpty)) {
-                return const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('표시할 획순 데이터가 없습니다.'),
-                );
-              }
-              return StrokeAnimationPlayer(
-                key: ValueKey(
-                  '$hanjaId:${visual.svgPaths?.length ?? 0}:${visual.polylineStrokes.length}',
-                ),
-                hanja: hanja,
-                visual: visual,
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWordsTab(TextTheme textTheme, {required String hanjaId}) {
-    final wordsAsync = ref.watch(hanjaWordsProvider(hanjaId));
-    final idiomsAsync = ref.watch(hanjaIdiomsProvider(hanjaId));
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '관련 단어',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 12),
-          if (wordsAsync.isLoading || idiomsAsync.isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (wordsAsync.hasError || idiomsAsync.hasError)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                '관련 단어를 불러오지 못했습니다.\n'
-                '${wordsAsync.error ?? ''}\n'
-                '${idiomsAsync.error ?? ''}',
-                textAlign: TextAlign.center,
-              ),
-            )
-          else ...[
-            ...((wordsAsync.value ?? const []).map(
-              (w) => RelatedWordTile(
-                hanja: w.word,
-                meaning: '${w.meaning} (${w.reading})'.trim(),
-              ),
-            )),
-            ...((idiomsAsync.value ?? const []).map(
-              (i) => RelatedWordTile(
-                hanja: i.idiom,
-                meaning: '${i.meaning} (${i.reading})'.trim(),
-              ),
-            )),
-            if ((wordsAsync.value?.isEmpty ?? true) &&
-                (idiomsAsync.value?.isEmpty ?? true))
-              const Padding(
-                padding: EdgeInsets.all(12),
-                child: Text('표시할 단어/성어 데이터가 없습니다.'),
-              ),
-          ],
-        ],
-      ),
-    );
   }
 
   Widget _buildStickyWritingButton(
@@ -448,159 +189,6 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
               '?meaning=${Uri.encodeComponent(meaning)}',
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 한자 상세 화면 탭 열거형.
-enum HanjaDetailTab { info, strokes, words }
-
-/// 탭 선택 버튼.
-class _DetailTab extends StatelessWidget {
-  const _DetailTab({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color foregroundColor = isSelected
-        ? HanjaColors.primaryContainer
-        : const Color(0xFF9A9DA0);
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected
-                  ? HanjaColors.primaryContainer
-                  : HanjaColors.outlineVariant.withValues(alpha: 0.15),
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: foregroundColor,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-              ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 정보 카드 (부수, 총획 등 단일 속성 표시).
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.label,
-    required this.value,
-    required this.subLabel,
-    required this.valueColor,
-  });
-
-  final String label;
-  final String value;
-  final String subLabel;
-  final Color valueColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: HanjaColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: textTheme.labelSmall?.copyWith(
-              color: const Color(0xFF9A9DA0),
-              letterSpacing: 2.2,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: textTheme.headlineSmall?.copyWith(
-              color: valueColor,
-              fontSize: 30,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subLabel,
-            style: textTheme.bodySmall?.copyWith(
-              color: HanjaColors.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 관련 단어 목록 타일.
-///
-/// 기존 private `_RelatedWordTile`을 public으로 승격하여
-/// 단어 목록 화면(Phase 2)에서도 재사용 가능하게 한다.
-class RelatedWordTile extends StatelessWidget {
-  const RelatedWordTile({
-    super.key,
-    required this.hanja,
-    required this.meaning,
-  });
-
-  final String hanja;
-  final String meaning;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: HanjaColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            Text(
-              hanja,
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                meaning,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: HanjaColors.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: HanjaColors.outline),
-          ],
         ),
       ),
     );

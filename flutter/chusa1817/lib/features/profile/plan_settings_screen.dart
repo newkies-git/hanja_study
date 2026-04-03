@@ -7,6 +7,9 @@ import '../../core/providers/app_providers.dart';
 import '../../core/settings/app_settings_keys.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
+import '../../shared/widgets/selectable_value_card.dart';
+import '../../shared/widgets/list_radio_row.dart';
+import 'widgets/plan_day_selector.dart';
 
 /// 학습 계획 설정 화면.
 ///
@@ -143,8 +146,9 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
             return Expanded(
               child: Padding(
                 padding: EdgeInsets.only(right: isLast ? 0 : 10),
-                child: _DailyGoalCard(
-                  goalValue: goalValue,
+                child: SelectableValueCard(
+                  valueLabel: '$goalValue',
+                  unitLabel: 'CHARS',
                   isSelected: isSelected,
                   onTap: () => setState(() => _dailyGoal = goalValue),
                 ),
@@ -165,14 +169,14 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 12),
-        _OrderRadioRow(
+        ListRadioRow(
           isSelected: _orderIndex == 0,
           icon: Icons.format_list_numbered,
           label: '가나다순',
           onTap: () => setState(() => _orderIndex = 0),
         ),
         const SizedBox(height: 10),
-        _OrderRadioRow(
+        ListRadioRow(
           isSelected: _orderIndex == 1,
           icon: Icons.shuffle,
           label: '랜덤',
@@ -191,47 +195,12 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
           style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 12),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: List.generate(7, (index) {
-              final bool isSelected = _selectedDays[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: InkWell(
-                  onTap: () =>
-                      setState(() => _selectedDays[index] = !_selectedDays[index]),
-                  borderRadius: BorderRadius.circular(999),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? HanjaColors.primaryContainer
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: isSelected
-                            ? HanjaColors.primaryContainer
-                            : HanjaColors.outlineVariant,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _dayLabels[index],
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: isSelected
-                              ? Colors.white
-                              : const Color(0xFF9A9DA0),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
+        PlanDaySelector(
+          selectedDays: _selectedDays,
+          dayLabels: _dayLabels,
+          onDayToggled: (index) {
+            setState(() => _selectedDays[index] = !_selectedDays[index]);
+          },
         ),
       ],
     );
@@ -268,121 +237,6 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                 }
               },
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 하루 학습량 선택 카드.
-class _DailyGoalCard extends StatelessWidget {
-  const _DailyGoalCard({
-    required this.goalValue,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final int goalValue;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-
-    return Material(
-      color: isSelected ? null : Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          height: 84,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: HanjaColors.outlineVariant),
-            gradient: isSelected
-                ? const LinearGradient(
-                    colors: [HanjaColors.primary, HanjaColors.primaryContainer],
-                  )
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '$goalValue',
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: isSelected ? Colors.white : HanjaColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'CHARS',
-                style: textTheme.labelSmall?.copyWith(
-                  letterSpacing: 2.2,
-                  color: isSelected
-                      ? Colors.white.withValues(alpha: 0.85)
-                      : const Color(0xFF9A9DA0),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 학습 순서 라디오 행.
-class _OrderRadioRow extends StatelessWidget {
-  const _OrderRadioRow({
-    required this.isSelected,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final bool isSelected;
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, color: HanjaColors.primaryContainer),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Icon(
-                isSelected
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
-                color: isSelected
-                    ? HanjaColors.primaryContainer
-                    : HanjaColors.outline,
-              ),
-            ],
           ),
         ),
       ),

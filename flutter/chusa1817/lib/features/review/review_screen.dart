@@ -21,9 +21,9 @@ class ReviewScreen extends ConsumerWidget {
     final dueAsync = ref.watch(dueForReviewHanjaProvider);
     final upcomingAsync = ref.watch(upcomingReviewHanjaProvider);
 
-    final dueToday = dueAsync.value ?? const <(String, String, String)>[];
+    final dueToday = dueAsync.value ?? const <(String, String, String, double)>[];
     final upcoming = upcomingAsync.value ??
-        const <(String hanjaId, String hanja, String meaning, DateTime nextReviewAt)>[];
+        const <(String hanjaId, String hanja, String meaning, DateTime nextReviewAt, double accuracy)>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -56,7 +56,7 @@ class ReviewScreen extends ConsumerWidget {
                   hanja: item.$2,
                   meaning: item.$3,
                   dueLabel: '복습',
-                  accuracy: 0.0,
+                  accuracy: item.$4,
                 ),
                 textTheme: textTheme,
                 onStudyTap: () => context.push(
@@ -96,7 +96,7 @@ class ReviewScreen extends ConsumerWidget {
                   hanja: item.$2,
                   meaning: item.$3,
                   dueLabel: _formatUpcomingLabel(item.$4),
-                  accuracy: 0.0,
+                  accuracy: item.$5,
                 ),
                 textTheme: textTheme,
                 onStudyTap: () => context.push(
