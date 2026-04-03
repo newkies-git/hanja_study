@@ -42,7 +42,10 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
 
     return Column(
       children: [
-        const EditorialTopBar(title: '추사 1817'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: const EditorialTopBar(title: '추사 1817'),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: TextField(

@@ -212,7 +212,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
         elevation: 8,
         highlightElevation: 12,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        icon: const HanjaBrushIcon(size: 28, color: Colors.white),
+        icon: const HanjaBrushIcon(size: 28),
         label: Text(
           '쓰기',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(

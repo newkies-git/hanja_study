@@ -154,7 +154,6 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
             ListenableBuilder(
               listenable: _canvasController,
               builder: (context, child) => _PracticeTopBar(
-                lessonLabel: '제 4강',
                 title: '추사 1817',
                 progress: totalStrokes == 0
                     ? 0.0
@@ -209,14 +208,12 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
 
     return Row(
       children: [
-        _HanjaThumbnail(hanja: hanja),
-        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(meaning, style: textTheme.headlineSmall),
-                  const SizedBox(height: 6),
+              const SizedBox(height: 6),
               ListenableBuilder(
                 listenable: _canvasController,
                 builder: (context, child) => Row(
@@ -280,48 +277,14 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
 }
 
 /// 학습 화면 상단 한자 썸네일 카드.
-class _HanjaThumbnail extends StatelessWidget {
-  const _HanjaThumbnail({required this.hanja});
-
-  final String hanja;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: HanjaColors.primaryFixed.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: HanjaColors.primary.withValues(alpha: 0.1),
-          width: 2,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          hanja,
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: HanjaColors.primary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// 쓰기 연습 상단 바 (진도 프로그레스 바 포함).
 class _PracticeTopBar extends StatelessWidget {
   const _PracticeTopBar({
-    required this.lessonLabel,
     required this.title,
     required this.progress,
     required this.onBack,
   });
 
-  final String lessonLabel;
   final String title;
   final double progress;
   final VoidCallback onBack;
@@ -345,21 +308,18 @@ class _PracticeTopBar extends StatelessWidget {
                     icon: const Icon(Icons.arrow_back),
                   ),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          lessonLabel,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: HanjaColors.onSurfaceVariant,
-                            letterSpacing: 1.2,
-                          ),
+                    child: Center(
+                      child: Text(
+                        title,
+                        style: textTheme.titleLarge?.copyWith(
+                          color: HanjaColors.primary,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
                         ),
-                        Text(title, style: textTheme.titleLarge),
-                      ],
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 48), // 좌측 하단 버튼과 균형을 맞추기 위한 여백
                 ],
               ),
             ),
