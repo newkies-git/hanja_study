@@ -22,19 +22,22 @@ class EditorialTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
+      padding: const EdgeInsets.fromLTRB(0, 10, 0, 8),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          IconButton(
-            onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
-            icon: const Icon(Icons.menu),
-            color: HanjaColors.neutralIcon,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            tooltip: '메뉴',
+          Transform.translate(
+            offset: const Offset(-8, 0),
+            child: IconButton(
+              onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
+              icon: const Icon(Icons.menu),
+              color: HanjaColors.neutralIcon,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: '메뉴',
+            ),
           ),
-          const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
@@ -45,15 +48,17 @@ class EditorialTopBar extends StatelessWidget {
                   ),
             ),
           ),
-          const SizedBox(width: 12),
-          IconButton(
-            onPressed: onAvatarPressed ?? () => context.go('${AppRoutes.home}?tab=4'),
-            icon: const Icon(Icons.account_circle),
-            color: HanjaColors.neutralIcon,
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            tooltip: '프로필',
+          Transform.translate(
+            offset: const Offset(8, 0),
+            child: IconButton(
+              onPressed: onAvatarPressed ?? () => context.go('${AppRoutes.home}?tab=4'),
+              icon: const Icon(Icons.account_circle),
+              color: HanjaColors.neutralIcon,
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              tooltip: '프로필',
+            ),
           ),
         ],
       ),

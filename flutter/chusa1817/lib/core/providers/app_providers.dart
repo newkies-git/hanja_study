@@ -206,3 +206,10 @@ final nextHanjaToLearnProvider = FutureProvider<HanjaTableData?>((ref) async {
   final repo = ref.watch(hanjaRepositoryProvider);
   return repo.fetchNextToLearn();
 });
+
+/// 특정 한자의 학습 진도(북마크 포함)를 가져온다.
+final hanjaProgressProvider =
+    FutureProvider.family<UserProgressTableData?, String>((ref, hanjaId) async {
+  final repo = ref.watch(progressRepositoryProvider);
+  return repo.fetchProgress(hanjaId);
+});

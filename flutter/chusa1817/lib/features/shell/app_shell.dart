@@ -8,6 +8,8 @@ import '../learn/learn_list_screen.dart';
 import '../review/review_screen.dart';
 import '../statistics/statistics_screen.dart';
 import '../profile/profile_screen.dart';
+import 'widgets/editorial_drawer.dart';
+import '../../core/auth/auth_providers.dart';
 
 /// 앱 메인 셸 (바텀 내비게이션 기반 화면 컨테이너).
 ///
@@ -64,67 +66,26 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(firebaseAuthProvider).currentUser;
+
     return Scaffold(
       backgroundColor: HanjaColors.surface,
       appBar: null, // EditorialTopBar는 각 페이지 내부에 위치함
-      drawer: Drawer(
-        backgroundColor: HanjaColors.surface,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                color: HanjaColors.primaryFixed,
-              ),
-              child: Center(
-                child: Text(
-                  '추사 1817',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: HanjaColors.primaryContainer,
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-              ),
-            ),
-            _buildDrawerItem(Icons.home, '홈', 0),
-            _buildDrawerItem(Icons.menu_book, '학습', 1),
-            _buildDrawerItem(Icons.replay_circle_filled, '복습', 2),
-            _buildDrawerItem(Icons.analytics, '통계', 3),
-            _buildDrawerItem(Icons.person, '내 정보', 4),
-            const Divider(height: 32),
-            ListTile(
-              leading: const Icon(Icons.logout, color: HanjaColors.error),
-              title: const Text('로그아웃', style: TextStyle(color: HanjaColors.error)),
-              onTap: () async {
-                Navigator.pop(context);
-                await ref.read(authControllerProvider.notifier).signOut();
-              },
-            ),
-          ],
-        ),
+      drawer: EditorialDrawer(
+        selectedIndex: _selectedIndex,
+        onItemSelected: _onNavigationItemTap,
+        onLogout: () async {
+          Navigator.pop(context);
+          await ref.read(authControllerProvider.notifier).signOut();
+        },
+        userName: user?.displayName ?? '추사학도',
+        userEmail: user?.email ?? 'scholar@chusa1817.app',
       ),
       body: SafeArea(child: _pages[_selectedIndex]),
       bottomNavigationBar: EditorialBottomNav(
         selectedIndex: _selectedIndex,
         onItemSelected: (index) => setState(() => _selectedIndex = index),
       ),
-    );
-  }
-
-  Widget _buildDrawerItem(IconData icon, String label, int index) {
-    final bool isSelected = _selectedIndex == index;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? HanjaColors.primary : HanjaColors.outline),
-      title: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? HanjaColors.primary : HanjaColors.onSurface,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
-      ),
-      selected: isSelected,
-      onTap: () => _onNavigationItemTap(index),
     );
   }
 }

@@ -371,12 +371,12 @@ class _ControlButton extends StatelessWidget {
         color: isPrimary
             ? HanjaColors.primaryContainer
             : HanjaColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(16), // 타원형 느낌을 위해 반경 조정
         child: InkWell(
           onTap: onPressed,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8), // 높이 축소 및 가로 확장
             child: Icon(
               icon,
               color: isPrimary

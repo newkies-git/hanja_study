@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/hanja_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// 추천 복습 한자 섹션.
 class RecommendedReviewSection extends StatelessWidget {
@@ -30,7 +31,11 @@ class RecommendedReviewSection extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           '오늘의 추천 복습',
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          style: textTheme.headlineSmall?.copyWith(
+            fontSize: 22, // DESIGN.md: Title-LG (1.375rem = 22px)
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 12),
         ...hanjaList.map((item) {
@@ -59,9 +64,11 @@ class RecommendedReviewSection extends StatelessWidget {
                         child: Center(
                           child: Text(
                             hanja,
-                            style: textTheme.titleLarge?.copyWith(
-                              color: HanjaColors.primaryContainer,
-                              fontWeight: FontWeight.w900,
+                            style: GoogleFonts.notoSerif(
+                              textStyle: textTheme.titleLarge?.copyWith(
+                                color: HanjaColors.primaryContainer,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
                         ),

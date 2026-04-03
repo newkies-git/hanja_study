@@ -219,13 +219,20 @@ class LocalProgressRepository implements ProgressRepository {
   @override
   Future<void> toggleBookmark(String hanjaId) async {
     final existing = await fetchProgress(hanjaId);
-    if (existing == null) return;
-    await (_db.update(_db.userProgressTable)
-          ..where((t) => t.hanjaId.equals(hanjaId)))
-        .write(UserProgressTableCompanion(
-      isBookmarked: Value(!existing.isBookmarked),
-      updatedAt: Value(DateTime.now()),
-    ));
+    final DateTime now = DateTime.now();
+
+    final bool newBookmarkStatus = !(existing?.isBookmarked ?? false);
+
+    await _db.into(_db.userProgressTable).insertOnConflictUpdate(
+          UserProgressTableCompanion(
+            id: Value(existing?.id ?? _uuid.v4()),
+            hanjaId: Value(hanjaId),
+            isBookmarked: Value(newBookmarkStatus),
+            updatedAt: Value(now),
+            // 기존 데이터가 없을 경우 기본값들
+            status: Value(existing?.status ?? 'unseen'),
+          ),
+        );
   }
 
   @override

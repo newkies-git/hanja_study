@@ -22,7 +22,7 @@ class HanjaWordsTab extends ConsumerWidget {
     final idiomsAsync = ref.watch(hanjaIdiomsProvider(hanjaId));
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -30,19 +30,6 @@ class HanjaWordsTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: Text(
-              '관련 단어',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-                color: HanjaColors.primary,
-                fontSize: 18,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
           if (wordsAsync.isLoading || idiomsAsync.isLoading)
             const Center(
               child: Padding(
@@ -66,6 +53,7 @@ class HanjaWordsTab extends ConsumerWidget {
                 reading: w.reading,
                 meaning: w.meaning,
                 category: '단어',
+                isCompact: true,
               ),
             )),
             ...((idiomsAsync.value ?? const []).map(
@@ -74,6 +62,7 @@ class HanjaWordsTab extends ConsumerWidget {
                 reading: i.reading,
                 meaning: i.meaning,
                 category: '성어',
+                isCompact: true,
               ),
             )),
             if ((wordsAsync.value?.isEmpty ?? true) &&

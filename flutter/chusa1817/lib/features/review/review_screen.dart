@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -169,7 +170,11 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           title,
-          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          style: textTheme.headlineSmall?.copyWith(
+            fontSize: 22, // DESIGN.md: Title-LG (1.375rem = 22px)
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
       ],
     );
@@ -219,9 +224,11 @@ class _ReviewCard extends StatelessWidget {
                   child: Center(
                     child: Text(
                       item.hanja,
-                      style: textTheme.headlineMedium?.copyWith(
-                        color: HanjaColors.primaryContainer,
-                        fontWeight: FontWeight.w900,
+                      style: GoogleFonts.notoSerif(
+                        textStyle: textTheme.headlineMedium?.copyWith(
+                          color: HanjaColors.primaryContainer,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),

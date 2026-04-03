@@ -1,6 +1,9 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'auth_providers.dart';
 import '../providers/app_providers.dart';
@@ -26,20 +29,42 @@ class AuthController extends AsyncNotifier<void> {
   Future<void> signInWithGoogle() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      // 1. Google 로그인 흐름 시작
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return; // 사용자가 취소함
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
 
-      // 2. 인증 상세 정보 획득
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      // 3. Firebase 자격 증명 생성
-      final OAuthCredential credential = GoogleAuthProvider.credential(
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // 4. Firebase 로그인
+      await ref.read(firebaseAuthProvider).signInWithCredential(credential);
+    });
+  }
+
+  Future<void> signInWithApple() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      // 1. Generate a random nonce for security
+      final rawNonce = _generateNonce();
+      final hashedNonce = _sha256ofString(rawNonce);
+
+      // 2. Start Apple ID Authentication
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+
+      // 3. Create Firebase Credential
+      final OAuthCredential credential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      // 4. Sign in to Firebase
       await ref.read(firebaseAuthProvider).signInWithCredential(credential);
     });
   }
@@ -68,22 +93,29 @@ class AuthController extends AsyncNotifier<void> {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final auth = ref.read(firebaseAuthProvider);
-      
-      // Google 로그아웃도 함께 수행
       await GoogleSignIn().signOut();
       await auth.signOut();
       
-      // 로그아웃 시 '온보딩 완료' 플래그를 초기화하여 랜딩 스크린으로 돌아갈 수 있게 함.
       final settings = ref.read(settingsRepositoryProvider);
       await settings.set(AppSettingsKeys.onboardingCompleted, 'false');
       
-      // 상태 변경을 라우터가 즉시 인지하도록 프로바이더 무효화
       ref.invalidate(onboardingCompletedProvider);
-
-      // 로그아웃 상태에서도 Firestore 규칙(`request.auth`)을 만족시키기 위해
-      // 익명 세션은 유지한다 (비로그인은 isNonAnonymousUserProvider로 판단).
       await auth.signInAnonymously();
     });
+  }
+
+  /// Generates a cryptographically secure random nonce.
+  String _generateNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_';
+    final random = DateTime.now().millisecondsSinceEpoch;
+    return List.generate(length, (index) => charset[(random + index) % charset.length]).join();
+  }
+
+  /// Hashes a string using SHA256.
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 }
 

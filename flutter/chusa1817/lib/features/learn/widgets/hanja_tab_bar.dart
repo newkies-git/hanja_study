@@ -62,7 +62,7 @@ class _DetailTab extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(bottom: 8), // 10 -> 8 축소
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(

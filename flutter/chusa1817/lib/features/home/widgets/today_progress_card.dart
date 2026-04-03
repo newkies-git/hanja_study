@@ -73,7 +73,9 @@ class TodayProgressCard extends StatelessWidget {
               '오늘의 학습',
               style: textTheme.headlineSmall?.copyWith(
                 color: Colors.white,
+                fontSize: 22, // DESIGN.md: Title-LG (1.375rem = 22px)
                 fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 4),

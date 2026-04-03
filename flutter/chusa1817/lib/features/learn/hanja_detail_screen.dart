@@ -34,6 +34,7 @@ class HanjaDetailScreen extends ConsumerStatefulWidget {
 
 class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
   HanjaDetailTab _activeTab = HanjaDetailTab.info;
+  Offset? _fabPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -69,47 +70,86 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
         final meaning = '${hanjaRow.meaning} (${hanjaRow.reading})';
         final originText = (hanjaRow.origin ?? '').trim();
 
+        // ── 진도 및 북마크 상태 구독 ──────────────────────────────────────────
+        final progressAsync = ref.watch(hanjaProgressProvider(hanjaRow.id));
+        final bool isBookmarked = progressAsync.value?.isBookmarked ?? false;
+
         return Scaffold(
           backgroundColor: HanjaColors.surface,
           body: SafeArea(
-            child: Stack(
-              children: [
-                ListView(
-                  // 안드로이드 12 이상 등에서 화면 위/아래 끝 도달 시 고무줄처럼 늘어나는(Stretch) 효과를 방지하기 위함
-                  physics: const ClampingScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // 초기 위치 설정 (우하단)
+                if (_fabPosition == null) {
+                  _fabPosition = Offset(
+                    constraints.maxWidth - 100, // 대략적인 버튼 폭 고려
+                    constraints.maxHeight - 80,
+                  );
+                }
+
+                return Stack(
                   children: [
-                    _buildAppBar(context, hanjaId: hanjaRow.id),
-                    const SizedBox(height: 10),
-                    HanjaHeroSection(
-                      hanja: hanja,
-                      meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
-                      radical: hanjaRow.radical,
-                      totalStrokes: hanjaRow.totalStrokes,
+                    ListView(
+                      // 안드로이드 12 이상 등에서 화면 위/아래 끝 도달 시 고무줄처럼 늘어나는(Stretch) 효과를 방지하기 위함
+                      physics: const ClampingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 6, 20, 120),
+                      children: [
+                        _buildAppBar(context, hanjaId: hanjaRow.id),
+                        const SizedBox(height: 10),
+                        HanjaHeroSection(
+                          hanja: hanja,
+                          meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
+                          radical: hanjaRow.radical,
+                          totalStrokes: hanjaRow.totalStrokes,
+                          isBookmarked: isBookmarked,
+                          onBookmarkToggle: () async {
+                            await ref.read(progressRepositoryProvider).toggleBookmark(hanjaRow.id);
+                            // 상태 갱신
+                            ref.invalidate(hanjaProgressProvider(hanjaRow.id));
+                            // 가벼운 진동 피드백 (선택사항)
+                            HapticFeedback.lightImpact();
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        HanjaTabBar(
+                          activeTab: _activeTab,
+                          onTabChanged: (tab) => setState(() => _activeTab = tab),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildTabContent(
+                          hanjaId: hanjaRow.id,
+                          hanja: hanja,
+                          originText: originText,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    HanjaTabBar(
-                      activeTab: _activeTab,
-                      onTabChanged: (tab) => setState(() => _activeTab = tab),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildTabContent(
-                      hanjaId: hanjaRow.id,
-                      hanja: hanja,
-                      radical: hanjaRow.radical,
-                      radicalLabel: hanjaRow.radicalName,
-                      totalStrokes: hanjaRow.totalStrokes,
-                      originText: originText,
+                    // ── 자유롭게 이동 가능한 FAB ────────────────────────────────
+                    Positioned(
+                      left: _fabPosition!.dx,
+                      top: _fabPosition!.dy,
+                      child: GestureDetector(
+                        onPanUpdate: (details) {
+                          setState(() {
+                            // 이동 거리 합산
+                            _fabPosition = _fabPosition! + details.delta;
+                            
+                            // 경계값 처리 (화면 밖으로 나가지 않게)
+                            final double x = _fabPosition!.dx.clamp(0.0, constraints.maxWidth - 80); // 버튼 예상 최소 폭
+                            final double y = _fabPosition!.dy.clamp(0.0, constraints.maxHeight - 60); // 버튼 예상 최소 높이
+                            _fabPosition = Offset(x, y);
+                          });
+                        },
+                        child: _buildFAB(
+                          context,
+                          hanjaId: hanjaRow.id,
+                          meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
+                        ),
+                      ),
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
-          ),
-          floatingActionButton: _buildFAB(
-            context,
-            hanjaId: hanjaRow.id,
-            meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
           ),
         );
       },
@@ -133,20 +173,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                 ),
           ),
         ),
-        IconButton(
-          tooltip: '공유 링크 복사',
-          onPressed: () async {
-            await Clipboard.setData(ClipboardData(text: '${AppRoutes.hanjaDetail}/$hanjaId'));
-            if (!context.mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('링크를 복사했습니다.'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-          icon: const Icon(Icons.share, color: HanjaColors.onSurface),
-        ),
+        const SizedBox(width: 48), // 타이틀 중앙 정렬 유지를 위한 더미 공간
       ],
     );
   }
@@ -154,17 +181,11 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
   Widget _buildTabContent({
     required String hanjaId,
     required String hanja,
-    required String radical,
-    required String radicalLabel,
-    required int totalStrokes,
     required String originText,
   }) {
     switch (_activeTab) {
       case HanjaDetailTab.info:
         return HanjaInfoTab(
-          radical: radical,
-          radicalLabel: radicalLabel,
-          totalStrokes: totalStrokes,
           originText: originText,
         );
       case HanjaDetailTab.strokes:
@@ -200,7 +221,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
           ),
         ),
         label: Text(
-          '쓰기 연습',
+          '쓰기',
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,

@@ -11,12 +11,16 @@ class HanjaHeroSection extends StatelessWidget {
     required this.meaning,
     required this.radical,
     required this.totalStrokes,
+    this.isBookmarked = false,
+    this.onBookmarkToggle,
   });
 
   final String hanja;
   final String meaning;
   final String radical;
   final int totalStrokes;
+  final bool isBookmarked;
+  final VoidCallback? onBookmarkToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +32,9 @@ class HanjaHeroSection extends StatelessWidget {
         children: [
           // ── 좌측: 한자 카드 ──────────────────────────────────────────
           Expanded(
-            flex: 5,
+            flex: 4, // 폭 축소 (5 -> 4)
             child: AspectRatio(
-              aspectRatio: 1,
+              aspectRatio: 1.0, // 1:1 비율 복구
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -51,16 +55,30 @@ class HanjaHeroSection extends StatelessWidget {
                       child: Text(
                         hanja,
                         style: textTheme.displayLarge?.copyWith(
-                          fontSize: 90,
+                          fontSize: 80, 
                           color: HanjaColors.primary,
                           height: 1,
                         ),
                       ),
                     ),
-                    const Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Icon(Icons.star, color: HanjaColors.tertiary, size: 20),
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onBookmarkToggle,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 0, right: 0, left: 12, bottom: 12),
+                            child: Icon(
+                              isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                              color: isBookmarked ? HanjaColors.tertiary : HanjaColors.outlineVariant,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -70,7 +88,7 @@ class HanjaHeroSection extends StatelessWidget {
           const SizedBox(width: 12),
           // ── 우측: 정보 그리드 ──────────────────────────────────────────
           Expanded(
-            flex: 5,
+            flex: 6, // 폭 확대 (5 -> 6)
             child: Column(
               children: [
                 // 뜻과 음 상자
@@ -79,13 +97,14 @@ class HanjaHeroSection extends StatelessWidget {
                   child: _InfoBox(
                     label: '뜻과 음',
                     value: meaning,
-                    valueStyle: textTheme.headlineSmall?.copyWith(
+                    valueStyle: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: HanjaColors.onSurface,
+                      fontSize: 18, // 2단계 축소 (24 -> 18)
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 // 부수 / 총획 (2열 분할)
                 Expanded(
                   flex: 2,
@@ -95,9 +114,10 @@ class HanjaHeroSection extends StatelessWidget {
                         child: _InfoBox(
                           label: '부수',
                           value: radical,
-                          valueStyle: textTheme.headlineSmall?.copyWith(
+                          valueStyle: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                             color: HanjaColors.onSurface,
+                            fontSize: 18,
                           ),
                         ),
                       ),
@@ -106,9 +126,10 @@ class HanjaHeroSection extends StatelessWidget {
                         child: _InfoBox(
                           label: '총획',
                           value: '$totalStrokes',
-                          valueStyle: textTheme.headlineSmall?.copyWith(
+                          valueStyle: textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                             color: HanjaColors.onSurface,
+                            fontSize: 18,
                           ),
                         ),
                       ),
@@ -151,7 +172,7 @@ class _InfoBox extends StatelessWidget {
           // 레이블 영역 (연회색 배경)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             decoration: const BoxDecoration(
               color: Color(0xFFF3F4F5), // HanjaColors.surfaceContainerLow 추천
               borderRadius: BorderRadius.vertical(top: Radius.circular(15)),

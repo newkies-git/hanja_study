@@ -22,7 +22,7 @@ class HanjaStrokesTab extends ConsumerWidget {
     final strokesAsync = ref.watch(hanjaStrokeVisualProvider(hanjaId));
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -30,11 +30,6 @@ class HanjaStrokesTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '획순 보기',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 16),
           strokesAsync.when(
             loading: () => const Center(
               child: Padding(
