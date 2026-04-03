@@ -1,7 +1,7 @@
 name: chusa1817
-description: "한자정습 - 한국 중·고등학교 교육용 기초 한자 1,800자 학습 앱"
-publish_to: 'none'
-version: 1.0.0+1
+description: "추사1817 - 한국 중·고등학교 교육용 기초 한자 1,817자 학습 앱"
+publish_to: "none"
+version: 1.0.99+1
 
 environment:
   sdk: ^3.11.4
@@ -39,6 +39,7 @@ dependencies:
   firebase_auth: ^6.3.0
   google_sign_in: ^6.2.1
   path_drawing: ^1.0.1
+  package_info_plus: ^8.1.3
 
 dev_dependencies:
   flutter_test:

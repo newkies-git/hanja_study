@@ -25,14 +25,13 @@ class ProfileScreen extends ConsumerWidget {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final totalHanjaCount = ref.watch(totalHanjaCountProvider);
     final authState = ref.watch(authStateChangesProvider);
-    final authUser = authState.asData?.value;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       children: [
         const EditorialTopBar(title: '내 정보'),
         const SizedBox(height: 14),
-        _buildProfileCard(textTheme, authUser),
+        _buildProfileCard(textTheme, authState),
         const SizedBox(height: 14),
         _buildHanjaCountCard(textTheme, totalHanjaCount),
         const SizedBox(height: 14),
@@ -41,40 +40,49 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildProfileCard(TextTheme textTheme, User? authUser) {
+  Widget _buildProfileCard(TextTheme textTheme, AsyncValue<User?> authState) {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            radius: 26,
-            backgroundColor: HanjaColors.primaryFixed,
-            child: Icon(Icons.person, color: HanjaColors.primaryContainer),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  authUser?.displayName ?? (authUser?.isAnonymous == false ? '추사 1817 학습자' : '게스트 사용자'), 
-                  style: textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  (authUser?.isAnonymous ?? true) ? '데이터가 기기에 임시 저장됩니다' : (authUser?.email ?? '이메일 정보 없음'),
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: HanjaColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
+      child: authState.when(
+        data: (authUser) => Row(
+          children: [
+            const CircleAvatar(
+              radius: 26,
+              backgroundColor: HanjaColors.primaryFixed,
+              child: Icon(Icons.person, color: HanjaColors.primaryContainer),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    authUser?.displayName ??
+                        (authUser?.isAnonymous == false
+                            ? (authUser?.email?.split('@').first ?? '추사 1817 학습자')
+                            : '게스트 사용자'),
+                    style: textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    (authUser?.isAnonymous ?? true)
+                        ? '데이터가 기기에 임시 저장됩니다'
+                        : (authUser?.email ?? '이메일 정보 없음'),
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: HanjaColors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        loading: () => const _ProfileShimmer(),
+        error: (error, _) => Text('정보를 불러오지 못했습니다: $error'),
       ),
     );
   }
@@ -373,6 +381,52 @@ class ProfileScreen extends ConsumerWidget {
       Icons.radio_button_unchecked,
       size: size,
       color: HanjaColors.outlineVariant,
+    );
+  }
+}
+
+/// 정보를 불러오는 동안 표시할 임시 로딩 UI.
+class _ProfileShimmer extends StatelessWidget {
+  const _ProfileShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 52,
+          height: 52,
+          decoration: const BoxDecoration(
+            color: HanjaColors.surfaceContainerLow,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 140,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: HanjaColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 200,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: HanjaColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

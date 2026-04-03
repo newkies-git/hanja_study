@@ -64,10 +64,14 @@ class _WritingCanvasWidgetState extends State<WritingCanvasWidget> {
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
 
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: HanjaColors.primary.withValues(alpha: 0.08),
+          width: 1.5,
+        ),
         boxShadow: const [
           BoxShadow(
             color: HanjaColors.shadow,
@@ -79,9 +83,13 @@ class _WritingCanvasWidgetState extends State<WritingCanvasWidget> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: GestureDetector(
+          // 수직 스크롤 간섭을 막기 위해 모든 드래그 축을 캔버스에서 명시적으로 제어
           onPanStart: _onPanStart,
           onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
+          onVerticalDragStart: (_) {}, // 수직 드래그가 상위 ListView로 전달되지 않도록 가로챔
+          onVerticalDragUpdate: (_) {},
+          behavior: HitTestBehavior.opaque,
           child: Stack(
             children: [
               // 배경 원고지 그리드
