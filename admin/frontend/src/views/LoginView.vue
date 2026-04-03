@@ -43,173 +43,155 @@ async function onSubmit() {
 
 <template>
   <div
-    class="flex min-h-dvh flex-col bg-gradient-to-b from-surface-low/40 via-surface to-surface-low/30"
+    class="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#fbfcfd] px-6 py-20 sm:py-28"
   >
-    <div
-      class="pointer-events-none fixed inset-0 overflow-hidden"
-      aria-hidden="true"
-    >
+    <!-- Pastel Background Blobs -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <!-- Mint Blob -->
       <div
-        class="absolute -left-20 top-0 h-72 w-72 rounded-full bg-primary/[0.06] blur-3xl"
-      />
+        class="animate-float absolute -left-1/4 -top-1/4 h-[80%] w-[80%] rounded-full bg-emerald-100/60 blur-[120px]"
+      ></div>
+      <!-- Lavender Blob -->
       <div
-        class="absolute -right-16 bottom-32 h-64 w-64 rounded-full bg-primary/[0.05] blur-3xl"
-      />
+        class="animate-float-delayed absolute -right-1/4 -bottom-1/4 h-[70%] w-[70%] rounded-full bg-purple-100/50 blur-[100px]"
+      ></div>
+      <!-- Peach/Soft Orange Blob -->
+      <div
+        class="absolute left-1/2 top-1/2 h-[50%] w-[50%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange-50/60 blur-[150px]"
+      ></div>
     </div>
 
-    <div class="relative flex flex-1 flex-col items-center justify-center px-4 py-10 sm:py-14">
-      <div class="w-full max-w-md space-y-5">
-        <!-- 히어로 -->
-        <section
-          class="relative overflow-hidden rounded-xl border border-outline-variant/80 bg-gradient-to-br from-primary/[0.07] via-surface-lowest to-surface-low px-4 py-3 shadow-float ring-1 ring-black/[0.03] sm:px-5 sm:py-3.5"
-        >
-          <div
-            class="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
-            aria-hidden="true"
-          >
-            <div
-              class="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-primary/[0.1] blur-2xl"
-            />
-          </div>
-          <div class="relative flex items-center gap-3 sm:gap-3.5">
-            <div
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-b from-primary to-primary-container font-display text-sm font-bold text-white shadow-md shadow-primary/25 sm:h-10 sm:w-10"
-              aria-hidden="true"
-            >
-              漢
-            </div>
-            <div class="min-w-0 leading-tight">
-              <p
-                class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
-              >
-                Admin · Firebase Auth
-              </p>
-              <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
-                로그인
-              </h1>
-              <p class="mt-0.5 text-xs text-onSurface-variant sm:text-sm">
-                이메일 계정으로 로그인합니다. Firestore 쓰기는
-                <code
-                  class="mx-0.5 rounded-md border border-outline-variant/50 bg-white/80 px-1 py-px font-mono text-[10px] text-primary"
-                >admin</code>
-                클레임이 필요합니다.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- 폼 카드 -->
+    <!-- Main Content -->
+    <div class="relative w-full max-w-[460px] space-y-12 sm:space-y-16">
+      <!-- Header Section -->
+      <div class="text-center">
         <div
-          class="overflow-hidden rounded-2xl border border-outline-variant/70 bg-surface-lowest/95 shadow-[0_12px_40px_rgba(25,28,30,0.08)] ring-1 ring-black/[0.02] backdrop-blur-sm"
+          class="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-indigo-400 to-purple-300 p-0.5 shadow-xl shadow-indigo-100 sm:h-20 sm:w-20"
         >
           <div
-            class="border-b border-outline-variant/60 bg-gradient-to-r from-primary/[0.06] via-surface-low/90 to-surface-lowest px-4 py-3 sm:px-5"
+            class="flex h-full w-full items-center justify-center rounded-[14px] bg-white font-display text-2xl font-bold text-indigo-600 sm:text-3xl"
           >
-            <p class="text-[10px] font-semibold uppercase tracking-wide text-primary/90">
-              계정
-            </p>
-            <p class="mt-0.5 font-display text-sm font-semibold text-onSurface">
-              이메일 · 비밀번호
-            </p>
+            漢
           </div>
+        </div>
+        <h1
+          class="font-display text-4xl font-extrabold tracking-tight text-slate-800 sm:text-5xl"
+        >
+          Welcome Back
+        </h1>
+        <p class="mt-5 text-lg font-medium text-slate-500">
+          한자 관리 시스템에 로그인하세요
+        </p>
+      </div>
 
-          <div class="p-5 sm:p-6">
-            <div
-              v-if="!configured"
-              class="space-y-3 rounded-xl border border-amber-200/90 bg-amber-50/90 px-3 py-3 text-xs leading-relaxed text-amber-950 shadow-sm sm:text-sm"
-            >
-              <p class="font-semibold text-amber-950">Firebase 미설정</p>
-              <p class="text-amber-900/90">
-                <strong class="text-amber-950">로컬:</strong>
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >admin/frontend/.env</code>
-                를 두고
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >.env.example</code>
-                과 같은 키로
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >VITE_FIREBASE_*</code>
-                를 채운 뒤 개발 서버를 다시 실행하세요.
-              </p>
-              <p class="text-amber-900/90">
-                <strong class="text-amber-950">배포:</strong>
-                환경 변수에
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >VITE_FIREBASE_API_KEY</code>,
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >VITE_FIREBASE_AUTH_DOMAIN</code>,
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >VITE_FIREBASE_PROJECT_ID</code>
-                (및 선택 항목)을 넣고 재배포하세요. Root Directory가
-                <code
-                  class="mx-0.5 rounded-md border border-amber-200/80 bg-white/90 px-1 py-px font-mono text-[11px]"
-                >admin/frontend</code>
-                인지 확인하세요.
-              </p>
-            </div>
+      <!-- Login Card -->
+      <div class="glass-panel-light group relative overflow-hidden p-10 sm:p-14">
+        <!-- Subtle inner glow -->
+        <div
+          class="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        ></div>
 
-            <form v-else class="space-y-4" @submit.prevent="onSubmit">
-              <div>
-                <label
-                  class="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-onSurface-variant"
-                  for="login-email"
-                >이메일</label>
-                <input
-                  id="login-email"
-                  v-model="email"
-                  type="email"
-                  autocomplete="username"
-                  required
-                  class="input-minimal"
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div>
-                <label
-                  class="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-onSurface-variant"
-                  for="login-password"
-                >비밀번호</label>
-                <input
-                  id="login-password"
-                  v-model="password"
-                  type="password"
-                  autocomplete="current-password"
-                  required
-                  class="input-minimal"
-                />
-              </div>
-              <div
-                v-if="error"
-                class="rounded-xl border border-red-200/90 bg-red-50/90 px-3 py-2.5 text-sm text-red-900"
-              >
-                {{ error }}
-              </div>
-              <button
-                type="submit"
-                class="btn-primary mt-2 w-full py-2.5 text-sm font-medium shadow-md shadow-primary/20 disabled:opacity-60"
-                :disabled="isLoginSubmitting"
-              >
-                {{ isLoginSubmitting ? "처리 중…" : "로그인" }}
-              </button>
-            </form>
+        <div v-if="!configured" class="space-y-6">
+          <div
+            class="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 text-sm leading-relaxed text-amber-800 backdrop-blur-md"
+          >
+            <h3 class="mb-2 font-bold text-amber-700">Firebase 설정 필요</h3>
+            <p>
+              로그인 기능을 사용하려면 <code class="text-amber-600">.env</code> 파일에 Firebase API 키를 설정해야 합니다.
+            </p>
           </div>
         </div>
 
-        <p
-          v-if="configured"
-          class="text-center text-[11px] leading-relaxed text-onSurface-variant"
-        >
-          관리자 콘솔입니다. 계정은 Firebase Authentication에서 초대·등록합니다.
-        </p>
+        <form v-else class="relative space-y-8" @submit.prevent="onSubmit">
+          <div class="space-y-2.5">
+            <label
+              for="login-email"
+              class="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+            >이메일 주소</label>
+            <div class="relative">
+              <input
+                id="login-email"
+                v-model="email"
+                type="email"
+                required
+                placeholder="name@example.com"
+                class="w-full rounded-2xl border border-slate-200 bg-white/50 px-5 py-4 text-slate-800 outline-none ring-4 ring-transparent transition-all placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-indigo-50"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <label
+                for="login-password"
+                class="ml-1 text-xs font-bold uppercase tracking-widest text-slate-400"
+              >비밀번호</label>
+            </div>
+            <div class="relative">
+              <input
+                id="login-password"
+                v-model="password"
+                type="password"
+                required
+                placeholder="••••••••"
+                class="w-full rounded-2xl border border-slate-200 bg-white/50 px-5 py-4 text-slate-800 outline-none ring-4 ring-transparent transition-all placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-indigo-50"
+              />
+            </div>
+          </div>
+
+          <div
+            v-if="error"
+            class="animate-in fade-in slide-in-from-top-2 rounded-2xl border border-red-200 bg-red-50/80 px-5 py-4 text-sm font-medium text-red-600"
+          >
+            {{ error }}
+          </div>
+
+          <button
+            type="submit"
+            :disabled="isLoginSubmitting"
+            class="relative mt-2 w-full overflow-hidden rounded-2xl bg-indigo-500 py-4.5 text-lg font-bold text-white transition-all hover:scale-[1.02] hover:bg-indigo-600 active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 shadow-lg shadow-indigo-200"
+          >
+            <span :class="{ 'opacity-0': isLoginSubmitting }">
+              {{ isLoginSubmitting ? "로그인 중..." : "로그인" }}
+            </span>
+            <div
+              v-if="isLoginSubmitting"
+              class="absolute inset-0 flex items-center justify-center"
+            >
+              <svg
+                class="h-6 w-6 animate-spin text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                ></circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+          </button>
+        </form>
       </div>
+
+      <!-- Footer Info -->
+      <p class="text-center text-sm font-medium tracking-wide text-slate-400">
+        Admin Console · Authorized Access Only
+      </p>
     </div>
 
-    <AppFooter />
+    <!-- App Footer -->
+    <div class="mt-auto pt-20">
+      <AppFooter class="!bg-transparent !border-none !text-slate-400 opacity-80 hover:opacity-100 transition-opacity" />
+    </div>
   </div>
 </template>
