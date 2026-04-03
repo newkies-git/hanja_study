@@ -24,7 +24,7 @@ abstract final class HanjaTheme {
     );
 
     final TextTheme interTheme = GoogleFonts.interTextTheme(base.textTheme);
-    final TextTheme serifTheme = GoogleFonts.notoSerifTextTheme(interTheme);
+    final TextTheme serifTheme = GoogleFonts.notoSerifKrTextTheme(interTheme);
 
     return base.copyWith(
       scaffoldBackgroundColor: HanjaColors.surface,

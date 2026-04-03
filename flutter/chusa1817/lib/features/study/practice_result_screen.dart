@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
-import '../shell/app_shell.dart';
 
 /// 쓰기 연습 완료 결과 화면.
 ///
@@ -44,12 +45,7 @@ class PracticeResultScreen extends StatelessWidget {
             const SizedBox(height: 16),
             GradientPrimaryButton(
               label: '홈으로 돌아가기',
-              onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(
-                  builder: (_) => const AppShell(initialIndex: 0),
-                ),
-                (route) => false,
-              ),
+              onPressed: () => context.go(AppRoutes.home),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -61,12 +57,7 @@ class PracticeResultScreen extends StatelessWidget {
                   shape: const StadiumBorder(),
                   elevation: 0,
                 ),
-                onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (_) => const AppShell(initialIndex: 3),
-                  ),
-                  (route) => false,
-                ),
+                onPressed: () => context.go('${AppRoutes.home}?tab=3'),
                 child: Text(
                   '학습 통계 보기',
                   style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),

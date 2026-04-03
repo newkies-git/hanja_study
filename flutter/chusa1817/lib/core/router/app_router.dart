@@ -19,6 +19,7 @@ import 'package:chusa1817/features/study/practice_result_screen.dart';
 import 'package:chusa1817/features/study/study_screen.dart';
 
 import '../auth/auth_providers.dart';
+import '../providers/app_providers.dart';
 
 /// 앱 전체 라우트 테이블.
 ///
@@ -27,6 +28,7 @@ import '../auth/auth_providers.dart';
 final goRouterProvider = Provider<GoRouter>((ref) {
   final isSignedIn = ref.watch(isSignedInProvider);
   final isNonAnonymousUser = ref.watch(isNonAnonymousUserProvider);
+  final onboardingCompletedAsync = ref.watch(onboardingCompletedProvider);
   final authStateChanges = ref.watch(firebaseAuthProvider).authStateChanges();
 
   return GoRouter(
@@ -45,6 +47,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // (Firestore 규칙의 request.auth 만족을 위해 익명 세션을 기본 유지)
       if (!isSignedIn && !isAuthRoute) {
         return AppRoutes.landing;
+      }
+
+      // Landing 도착 시: 이메일 로그인 유저이거나 온보딩을 끝낸 익명 유저라면 Home으로 이동.
+      if (state.uri.path == AppRoutes.landing) {
+        final hasCompletedOnboarding = onboardingCompletedAsync.value ?? false;
+        if (isNonAnonymousUser || hasCompletedOnboarding) {
+          return AppRoutes.home;
+        }
       }
 
       // 이메일/비밀번호로 이미 로그인한 사용자라면 로그인 화면으로 가지 않도록 한다.
