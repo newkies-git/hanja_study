@@ -41,7 +41,7 @@ class EditorialBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -87,7 +87,7 @@ class _NavButton extends StatelessWidget {
 
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Material(
           color: isSelected
               ? HanjaColors.primaryFixed.withValues(alpha: 0.5)
@@ -97,18 +97,18 @@ class _NavButton extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(14),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(item.icon, color: foregroundColor),
-                  const SizedBox(height: 6),
+                  Icon(item.icon, color: foregroundColor, size: 22),
+                  const SizedBox(height: 4),
                   Text(
                     item.label,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: foregroundColor,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
+                          letterSpacing: 0.5,
                         ),
                   ),
                 ],

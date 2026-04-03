@@ -14,7 +14,7 @@ class EditorialTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
       child: Row(
         children: [
           const Icon(Icons.menu, color: HanjaColors.legacyNeutralIcon),

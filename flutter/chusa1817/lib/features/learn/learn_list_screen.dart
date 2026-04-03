@@ -146,13 +146,15 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                   sorted.shuffle(Random(seed));
               }
 
-              final totalPages = (sorted.length / itemsPerPage).ceil();
-              // 검색어 변경 등으로 현재 페이지가 범위를 벗어날 수 있으므로 안전 처리
-              final safeCurrentPage = _currentPage.clamp(0, max(0, totalPages - 1));
+              final int totalPages = (sorted.length + itemsPerPage - 1) ~/ itemsPerPage;
               
-              final startIndex = safeCurrentPage * itemsPerPage;
-              final endIndex = min(startIndex + itemsPerPage, sorted.length);
-              final paginatedList = sorted.sublist(startIndex, endIndex);
+              // 검색어 변경 등으로 현재 페이지가 범위를 벗어날 수 있으므로 안전 처리
+              final int maxPage = totalPages > 0 ? totalPages - 1 : 0;
+              final int safeCurrentPage = _currentPage.clamp(0, maxPage);
+              
+              final int startIndex = safeCurrentPage * itemsPerPage;
+              final int endIndex = (startIndex + itemsPerPage).clamp(0, sorted.length);
+              final List<HanjaTableData> paginatedList = sorted.sublist(startIndex, endIndex);
 
               return Column(
                 children: [
