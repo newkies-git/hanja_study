@@ -83,6 +83,27 @@ class LocalHanjaRepository implements HanjaRepository {
     final result = await query.map((row) => row.read(countExp)).getSingle();
     return result ?? 0;
   }
+
+  @override
+  Future<HanjaTableData?> fetchNextToLearn() async {
+    final DateTime now = DateTime.now();
+    final DateTime todayStart = DateTime(now.year, now.month, now.day);
+
+    final query = _db.select(_db.hanjaTable).join([
+      leftOuterJoin(
+        _db.userProgressTable,
+        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+      ),
+    ])
+      ..where(_db.userProgressTable.lastStudiedAt.isNull() |
+          _db.userProgressTable.lastStudiedAt.isSmallerThanValue(todayStart))
+      ..orderBy([OrderingTerm.asc(_db.hanjaTable.reading)])
+      ..limit(1);
+
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+    return row.readTable(_db.hanjaTable);
+  }
 }
 
 /// [ProgressRepository]의 로컬 DB 구현체.

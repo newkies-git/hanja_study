@@ -129,7 +129,7 @@ final upcomingReviewHanjaProvider =
       hanjaRow.character,
       '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
       nextReviewAt,
-      row.accuracyRate ?? 0.0,
+      row.accuracyRate,
     ));
   }
   return results;
@@ -183,7 +183,7 @@ final dueForReviewHanjaProvider =
       hanjaRow.id,
       hanjaRow.character,
       '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
-      due.accuracyRate ?? 0.0,
+      due.accuracyRate,
     ));
   }
   return results;
@@ -199,4 +199,10 @@ final firestoreContentSyncProvider = Provider<FirestoreContentSyncService>((ref)
     firestore: ref.watch(firebaseFirestoreProvider),
     database: ref.watch(appDatabaseProvider),
   );
+});
+
+/// 오늘 공부할 다음 한자 하나를 가져온다. 홈 화면의 '학습 이어하기' 버튼용.
+final nextHanjaToLearnProvider = FutureProvider<HanjaTableData?>((ref) async {
+  final repo = ref.watch(hanjaRepositoryProvider);
+  return repo.fetchNextToLearn();
 });

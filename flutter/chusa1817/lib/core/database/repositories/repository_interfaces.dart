@@ -35,6 +35,9 @@ abstract class HanjaRepository {
 
   /// 로컬 DB에 있는 한자의 총 갯수를 조회한다.
   Future<int> fetchTotalCount();
+
+  /// 아직 학습하지 않았거나('unseen') 오늘 공부하지 않은 다음 한자를 가져온다.
+  Future<HanjaTableData?> fetchNextToLearn();
 }
 
 /// 사용자 진도 Repository 인터페이스.

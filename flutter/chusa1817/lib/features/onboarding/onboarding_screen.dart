@@ -30,6 +30,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } else {
       final settings = ref.read(settingsRepositoryProvider);
       await settings.set(AppSettingsKeys.onboardingCompleted, 'true');
+      ref.invalidate(onboardingCompletedProvider); 
       if (!mounted) return;
       context.go('${AppRoutes.home}?tab=1');
     }
@@ -109,10 +110,11 @@ class _OnboardingPage1 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             height: 320,
@@ -215,7 +217,7 @@ class _OnboardingPage1 extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -225,10 +227,11 @@ class _OnboardingPage2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text('획순 기반 필기 연습', style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
           const SizedBox(height: 12),
@@ -311,7 +314,7 @@ class _OnboardingPage2 extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -321,10 +324,11 @@ class _OnboardingPage3 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             height: 320,
@@ -394,6 +398,6 @@ class _OnboardingPage3 extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }

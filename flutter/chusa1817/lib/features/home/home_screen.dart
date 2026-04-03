@@ -25,6 +25,7 @@ class HomeScreen extends ConsumerWidget {
     final todayDoneAsync = ref.watch(todayCompletedCountProvider);
     final streakDaysAsync = ref.watch(streakDaysProvider);
     final reviewHanjaAsync = ref.watch(recommendedReviewHanjaProvider);
+    final nextToLearnAsync = ref.watch(nextHanjaToLearnProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -52,7 +53,17 @@ class HomeScreen extends ConsumerWidget {
             goal: dailyGoalAsync.value ?? 5,
             done: todayDoneAsync.value ?? 0,
             textTheme: textTheme,
-            onTap: () => context.go('${AppRoutes.home}?tab=1'),
+            onTap: () {
+              final hanja = nextToLearnAsync.value;
+              if (hanja != null) {
+                final meaning = '${hanja.meaning} ${hanja.reading}'.trim();
+                context.push(
+                  '${AppRoutes.study}/${hanja.id}?meaning=${Uri.encodeComponent(meaning)}',
+                );
+              } else {
+                context.go('${AppRoutes.home}?tab=1');
+              }
+            },
           ),
         const SizedBox(height: 14),
         if (streakDaysAsync.isLoading)
@@ -102,7 +113,17 @@ class HomeScreen extends ConsumerWidget {
         const SizedBox(height: 22),
         GradientPrimaryButton(
           label: '학습 이어가기',
-          onPressed: () => context.go('${AppRoutes.home}?tab=1'),
+          onPressed: () {
+            final hanja = nextToLearnAsync.value;
+            if (hanja != null) {
+              final meaning = '${hanja.meaning} ${hanja.reading}'.trim();
+              context.push(
+                '${AppRoutes.study}/${hanja.id}?meaning=${Uri.encodeComponent(meaning)}',
+              );
+            } else {
+              context.go('${AppRoutes.home}?tab=1');
+            }
+          },
         ),
       ],
     );

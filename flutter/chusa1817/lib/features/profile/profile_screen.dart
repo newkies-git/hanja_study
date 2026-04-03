@@ -56,21 +56,23 @@ class ProfileScreen extends ConsumerWidget {
             child: Icon(Icons.person, color: HanjaColors.primaryContainer),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                authUser?.displayName ?? (authUser?.isAnonymous == false ? '추사 1817 학습자' : '게스트 사용자'), 
-                style: textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                (authUser?.isAnonymous ?? true) ? '데이터가 기기에 임시 저장됩니다' : (authUser?.email ?? '이메일 정보 없음'),
-                style: textTheme.bodyMedium?.copyWith(
-                  color: HanjaColors.onSurfaceVariant,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  authUser?.displayName ?? (authUser?.isAnonymous == false ? '추사 1817 학습자' : '게스트 사용자'), 
+                  style: textTheme.headlineSmall,
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  (authUser?.isAnonymous ?? true) ? '데이터가 기기에 임시 저장됩니다' : (authUser?.email ?? '이메일 정보 없음'),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: HanjaColors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

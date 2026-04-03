@@ -177,14 +177,15 @@ class _StrokeAnimationPlayerState extends State<StrokeAnimationPlayer>
           ),
         ),
         const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8.0,
+          runSpacing: 8.0,
           children: List.generate(_strokeCount, (index) {
             final bool isCompleted = index < _currentStrokeIndex;
             final bool isCurrent = index == _currentStrokeIndex;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
               width: isCurrent ? 28 : 10,
               height: 10,
               decoration: BoxDecoration(

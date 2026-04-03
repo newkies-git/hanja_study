@@ -164,10 +164,10 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                     child: GridView.builder(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 14,
-                        childAspectRatio: 1.1,
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 0.72,
                       ),
                       itemCount: paginatedList.length,
                       itemBuilder: (BuildContext context, int index) {
@@ -178,7 +178,10 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
 
                         return HanjaCard(
                           hanja: hanja,
+                          reading: hanjaRow.reading,
                           meaning: meaning,
+                          totalStrokes: hanjaRow.totalStrokes,
+                          radical: hanjaRow.radical,
                           onTap: () => context.push(
                             '${AppRoutes.hanjaDetail}/$hanjaId'
                             '?meaning=${Uri.encodeComponent(meaning)}'
