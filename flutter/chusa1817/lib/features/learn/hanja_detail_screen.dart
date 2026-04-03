@@ -103,13 +103,13 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                     ),
                   ],
                 ),
-                _buildStickyWritingButton(
-                  context,
-                  hanjaId: hanjaRow.id,
-                  meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
-                ),
               ],
             ),
+          ),
+          floatingActionButton: _buildFAB(
+            context,
+            hanjaId: hanjaRow.id,
+            meaning: '${hanjaRow.meaning} (${hanjaRow.reading})',
           ),
         );
       },
@@ -174,26 +174,38 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     }
   }
 
-  Widget _buildStickyWritingButton(
+  Widget _buildFAB(
     BuildContext context, {
     required String hanjaId,
     required String meaning,
   }) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-          child: GradientPrimaryButton(
-            label: '쓰기 연습 시작',
-            onPressed: () => context.push(
-              '${AppRoutes.study}/$hanjaId'
-              '?meaning=${Uri.encodeComponent(meaning)}',
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10, right: 4),
+      child: FloatingActionButton.extended(
+        onPressed: () => context.push(
+          '${AppRoutes.study}/$hanjaId'
+          '?meaning=${Uri.encodeComponent(meaning)}',
+        ),
+        backgroundColor: HanjaColors.primary,
+        elevation: 8,
+        highlightElevation: 12,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        icon: Container(
+          width: 32,
+          height: 32,
+          padding: const EdgeInsets.all(2),
+          child: Image.asset(
+            'assets/images/brush_icon.png',
+            fit: BoxFit.contain,
           ),
+        ),
+        label: Text(
+          '쓰기 연습',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
         ),
       ),
     );

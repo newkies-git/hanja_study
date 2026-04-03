@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/app_providers.dart';
+import '../../../core/theme/hanja_colors.dart';
 import '../../../shared/widgets/related_word_tile.dart';
 
 /// 관련 단어 탭 화면.
@@ -29,9 +30,17 @@ class HanjaWordsTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '관련 단어',
-            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Text(
+              '관련 단어',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: HanjaColors.primary,
+                fontSize: 18,
+                letterSpacing: -0.5,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           if (wordsAsync.isLoading || idiomsAsync.isLoading)
@@ -45,9 +54,8 @@ class HanjaWordsTab extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                '관련 단어를 불러오지 못했습니다.\n'
-                '${wordsAsync.error ?? ''}\n'
-                '${idiomsAsync.error ?? ''}',
+                '관련 단어를 불러오지 못했습니다.',
+                style: textTheme.bodyMedium?.copyWith(color: HanjaColors.error),
                 textAlign: TextAlign.center,
               ),
             )
@@ -55,20 +63,29 @@ class HanjaWordsTab extends ConsumerWidget {
             ...((wordsAsync.value ?? const []).map(
               (w) => RelatedWordTile(
                 hanja: w.word,
-                meaning: '${w.meaning} (${w.reading})'.trim(),
+                reading: w.reading,
+                meaning: w.meaning,
+                category: '단어',
               ),
             )),
             ...((idiomsAsync.value ?? const []).map(
               (i) => RelatedWordTile(
                 hanja: i.idiom,
-                meaning: '${i.meaning} (${i.reading})'.trim(),
+                reading: i.reading,
+                meaning: i.meaning,
+                category: '성어',
               ),
             )),
             if ((wordsAsync.value?.isEmpty ?? true) &&
                 (idiomsAsync.value?.isEmpty ?? true))
-              const Padding(
-                padding: EdgeInsets.all(12),
-                child: Text('표시할 단어/성어 데이터가 없습니다.'),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Text(
+                    '표시할 단어/성어 데이터가 없습니다.',
+                    style: textTheme.bodySmall?.copyWith(color: HanjaColors.outline),
+                  ),
+                ),
               ),
           ],
         ],
