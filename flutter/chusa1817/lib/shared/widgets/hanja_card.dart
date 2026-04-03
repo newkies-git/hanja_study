@@ -80,7 +80,7 @@ class HanjaCard extends StatelessWidget {
                   runSpacing: 4,
                   alignment: WrapAlignment.center,
                   children: [
-                    _InfoChip(label: '${totalStrokes}획'),
+                    _InfoChip(label: '$totalStrokes획'),
                     _InfoChip(label: '부수 $radical'),
                   ],
                 ),

@@ -1,5 +1,4 @@
 import 'package:chusa1817/core/utils/stroke_coordinate_utils.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
