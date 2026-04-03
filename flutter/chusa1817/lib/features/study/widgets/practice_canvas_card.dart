@@ -33,7 +33,7 @@ class PracticeCanvasCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(28),
             boxShadow: const [
               BoxShadow(
-                color: HanjaColors.legacyShadow,
+                color: HanjaColors.shadow,
                 blurRadius: 32,
                 offset: Offset(0, 10),
               ),
@@ -49,7 +49,7 @@ class PracticeCanvasCard extends StatelessWidget {
                     child: Text(
                       hanja,
                       style: textTheme.displayLarge?.copyWith(
-                        color: HanjaColors.legacyNeutralIcon.withValues(alpha: 0.25),
+                        color: HanjaColors.neutralIcon.withValues(alpha: 0.25),
                         height: 1,
                       ),
                     ),

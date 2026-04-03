@@ -27,7 +27,7 @@ class HanjaHeroSection extends StatelessWidget {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x0D000000),
@@ -63,7 +63,7 @@ class HanjaHeroSection extends StatelessWidget {
         Text(
           '뜻과 음',
           style: textTheme.labelSmall?.copyWith(
-            color: const Color(0xFF9A9DA0),
+            color: HanjaColors.neutralIcon,
             letterSpacing: 3.2,
             fontWeight: FontWeight.w900,
           ),

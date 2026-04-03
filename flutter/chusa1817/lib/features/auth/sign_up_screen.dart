@@ -10,6 +10,8 @@ import '../../shared/widgets/editorial_text_field.dart';
 import '../../shared/widgets/form_field_label.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
+import '../../shared/widgets/ghost_divider.dart';
+import '../../shared/widgets/social_auth_button.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -75,6 +77,28 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       if (kDebugMode) {
         debugPrint('회원가입 실패: $error');
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(firebaseAuthErrorMessage(error)),
+          backgroundColor: HanjaColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _submitGoogleSignUp() async {
+    if (_isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      if (!mounted) return;
+      context.go(AppRoutes.home);
+    } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(firebaseAuthErrorMessage(error)),
@@ -228,6 +252,29 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         GradientPrimaryButton(
                           label: '가입하기',
                           onPressed: () => _onSignUpPressed(),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Expanded(child: GhostDivider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                '또는',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: HanjaColors.outline,
+                                  letterSpacing: 3,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: GhostDivider()),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SocialAuthButton(
+                          label: 'Google 계정으로 가입',
+                          isLoading: _isSubmitting,
+                          onPressed: () => _submitGoogleSignUp(),
                         ),
                         const SizedBox(height: 24),
                         Center(

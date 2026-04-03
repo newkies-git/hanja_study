@@ -36,12 +36,14 @@ abstract final class HanjaColors {
   static const Color outline = Color(0xFF737686);
   static const Color outlineVariant = Color(0xFFC3C5D7);
 
-  // ── Legacy hard-coded tokens (gradual cleanup) ────────────────────────────
-  static const Color legacyNeutralIcon = Color(0xFF9A9DA0);
-  static const Color legacySurfaceSoft = Color(0xFFFAFAFA);
-  static const Color legacyShadow = Color(0x14000000);
+  // ── UI System (Standardized from legacy) ──────────────────────────────────
+  static const Color neutralIcon = Color(0xFF9A9DA0);
+  static const Color surfaceSoft = Color(0xFFFAFAFA);
+  static const Color shadow = Color(0x14000000);
 
-  // ── Semantic ─────────────────────────────────────────────────────────────
+  // ── Semantic Status (@Scholar's Palette) ──────────────────────────────────
   static const Color error = Color(0xFFBA1A1A);
   static const Color errorContainer = Color(0xFFFFDAD6);
+  static const Color statusSuccess = Color(0xFF2E7D32);
+  static const Color statusWarning = Color(0xFFE65100);
 }

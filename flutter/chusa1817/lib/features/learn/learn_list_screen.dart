@@ -68,21 +68,6 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                       },
                     )
                   : null,
-              filled: true,
-              fillColor: HanjaColors.surfaceContainerLowest,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: HanjaColors.outlineVariant.withValues(alpha: 0.3)),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: HanjaColors.outlineVariant.withValues(alpha: 0.3)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: HanjaColors.primary, width: 2),
-              ),
             ),
           ),
         ),
@@ -207,10 +192,10 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
     if (totalPages <= 1) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       decoration: const BoxDecoration(
         color: HanjaColors.surface,
-        border: Border(top: BorderSide(color: HanjaColors.legacySurfaceSoft)),
+        border: Border(top: BorderSide(color: HanjaColors.surfaceSoft)),
       ),
       child: SafeArea(
         top: false,

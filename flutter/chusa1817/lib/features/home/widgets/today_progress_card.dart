@@ -30,7 +30,7 @@ class TodayProgressCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(
               color: Color(0x33003078),

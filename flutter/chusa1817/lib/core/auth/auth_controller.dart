@@ -1,4 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'auth_providers.dart';
 import '../providers/app_providers.dart';
@@ -14,10 +16,31 @@ class AuthController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref.watch(firebaseAuthProvider).signInWithEmailAndPassword(
+      await ref.read(firebaseAuthProvider).signInWithEmailAndPassword(
             email: email,
             password: password,
           );
+    });
+  }
+
+  Future<void> signInWithGoogle() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      // 1. Google 로그인 흐름 시작
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return; // 사용자가 취소함
+
+      // 2. 인증 상세 정보 획득
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // 3. Firebase 자격 증명 생성
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // 4. Firebase 로그인
+      await ref.read(firebaseAuthProvider).signInWithCredential(credential);
     });
   }
 
@@ -27,7 +50,7 @@ class AuthController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref.watch(firebaseAuthProvider).createUserWithEmailAndPassword(
+      await ref.read(firebaseAuthProvider).createUserWithEmailAndPassword(
             email: email,
             password: password,
           );
@@ -37,14 +60,17 @@ class AuthController extends AsyncNotifier<void> {
   Future<void> sendPasswordResetEmail({required String email}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref.watch(firebaseAuthProvider).sendPasswordResetEmail(email: email);
+      await ref.read(firebaseAuthProvider).sendPasswordResetEmail(email: email);
     });
   }
 
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final auth = ref.watch(firebaseAuthProvider);
+      final auth = ref.read(firebaseAuthProvider);
+      
+      // Google 로그아웃도 함께 수행
+      await GoogleSignIn().signOut();
       await auth.signOut();
       
       // 로그아웃 시 '온보딩 완료' 플래그를 초기화하여 랜딩 스크린으로 돌아갈 수 있게 함.

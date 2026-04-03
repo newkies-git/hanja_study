@@ -189,9 +189,9 @@ class _ReviewCard extends StatelessWidget {
   final VoidCallback onStudyTap;
 
   Color get _accuracyColor {
-    if (item.accuracy >= 0.85) return const Color(0xFF2E7D32); // 초록
-    if (item.accuracy >= 0.60) return const Color(0xFFE65100); // 주황
-    return const Color(0xFFC62828); // 빨강
+    if (item.accuracy >= 0.85) return HanjaColors.statusSuccess;
+    if (item.accuracy >= 0.60) return HanjaColors.statusWarning;
+    return HanjaColors.error;
   }
 
   @override
@@ -200,10 +200,10 @@ class _ReviewCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
         child: InkWell(
           onTap: onStudyTap,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -319,7 +319,7 @@ class _EmptyCard extends StatelessWidget {
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [

@@ -28,7 +28,7 @@ class EditorialTopBar extends StatelessWidget {
           IconButton(
             onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
             icon: const Icon(Icons.menu),
-            color: HanjaColors.legacyNeutralIcon,
+            color: HanjaColors.neutralIcon,
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -40,7 +40,7 @@ class EditorialTopBar extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontStyle: FontStyle.italic,
+                    fontWeight: FontWeight.w900,
                     color: HanjaColors.primaryContainer,
                   ),
             ),
@@ -49,7 +49,7 @@ class EditorialTopBar extends StatelessWidget {
           IconButton(
             onPressed: onAvatarPressed ?? () => context.go('${AppRoutes.home}?tab=4'),
             icon: const Icon(Icons.account_circle),
-            color: HanjaColors.legacyNeutralIcon,
+            color: HanjaColors.neutralIcon,
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

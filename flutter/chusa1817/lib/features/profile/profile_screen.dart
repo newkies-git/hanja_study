@@ -46,7 +46,7 @@ class ProfileScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         children: [
@@ -88,7 +88,7 @@ class ProfileScreen extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: HanjaColors.secondary.withValues(alpha: 0.2),
@@ -165,7 +165,7 @@ class ProfileScreen extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
@@ -249,7 +249,7 @@ class ProfileScreen extends ConsumerWidget {
             color: HanjaColors.outlineVariant.withValues(alpha: 0.15),
           ),
           ListTile(
-            leading: const Icon(Icons.logout, color: HanjaColors.tertiary),
+            leading: const Icon(Icons.logout, color: HanjaColors.error),
             title: Text(
               '로그아웃',
               style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),

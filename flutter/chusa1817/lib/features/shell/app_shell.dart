@@ -69,7 +69,8 @@ class _AppShellState extends ConsumerState<AppShell> {
       appBar: null, // EditorialTopBar는 각 페이지 내부에 위치함
       drawer: Drawer(
         backgroundColor: HanjaColors.surface,
-        child: Column(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(
@@ -78,10 +79,10 @@ class _AppShellState extends ConsumerState<AppShell> {
               child: Center(
                 child: Text(
                   '추사 1817',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontStyle: FontStyle.italic,
                         color: HanjaColors.primaryContainer,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                       ),
                 ),
               ),
@@ -93,8 +94,8 @@ class _AppShellState extends ConsumerState<AppShell> {
             _buildDrawerItem(Icons.person, '내 정보', 4),
             const Divider(height: 32),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.redAccent),
-              title: const Text('로그아웃', style: TextStyle(color: Colors.redAccent)),
+              leading: const Icon(Icons.logout, color: HanjaColors.error),
+              title: const Text('로그아웃', style: TextStyle(color: HanjaColors.error)),
               onTap: () async {
                 Navigator.pop(context);
                 await ref.read(authControllerProvider.notifier).signOut();

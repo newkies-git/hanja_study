@@ -98,14 +98,14 @@ class _LandingScreenState extends State<LandingScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(32),
+                    borderRadius: BorderRadius.circular(24),
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
                       child: Container(
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(32),
+                          borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.2),
                             width: 1.5,

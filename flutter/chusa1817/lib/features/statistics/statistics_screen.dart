@@ -65,7 +65,7 @@ class _WeeklyBarChart extends StatelessWidget {
   final List<int> counts;
   final List<String> dayLabels;
 
-  static const double _maxBarHeight = 140.0;
+  static const double _maxBarHeight = 120.0;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +75,7 @@ class _WeeklyBarChart extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -115,7 +115,7 @@ class _WeeklyBarChart extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     '$count',
                     style: textTheme.labelSmall?.copyWith(
@@ -123,7 +123,7 @@ class _WeeklyBarChart extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 6),
                   Text(
                     dayLabels[index],
                     style: textTheme.labelSmall?.copyWith(

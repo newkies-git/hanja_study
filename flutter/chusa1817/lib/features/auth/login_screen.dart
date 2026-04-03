@@ -11,6 +11,7 @@ import '../../shared/widgets/ghost_divider.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
+import '../../shared/widgets/social_auth_button.dart';
 
 /// 이메일/비밀번호 로그인 화면.
 ///
@@ -63,6 +64,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (kDebugMode) {
         debugPrint('로그인 실패: $error');
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(firebaseAuthErrorMessage(error)),
+          backgroundColor: HanjaColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _submitGoogleLogin() async {
+    if (_isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      if (!mounted) return;
+      context.go(AppRoutes.home);
+    } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(firebaseAuthErrorMessage(error)),
@@ -191,6 +214,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             const Expanded(child: GhostDivider()),
                           ],
+                        ),
+                        const SizedBox(height: 18),
+                        SocialAuthButton(
+                          label: 'Google 로그인',
+                          isLoading: _isSubmitting,
+                          onPressed: () => _submitGoogleLogin(),
                         ),
                         const SizedBox(height: 18),
                         Center(

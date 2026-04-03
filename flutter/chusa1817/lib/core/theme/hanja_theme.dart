@@ -53,7 +53,22 @@ abstract final class HanjaTheme {
             ),
           ),
       inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: HanjaColors.surfaceContainerLowest,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         hintStyle: interTheme.bodyMedium?.copyWith(color: HanjaColors.outline),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: HanjaColors.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: HanjaColors.outlineVariant.withValues(alpha: 0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: HanjaColors.primary, width: 2),
+        ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
