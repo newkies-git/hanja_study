@@ -201,7 +201,6 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   Widget _buildHanjaInfoRow(BuildContext context, {required int totalStrokes}) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
-    final hanja = hanjaAsync.value?.character ?? '';
     final meaning = hanjaAsync.value == null
         ? widget.meaning
         : '${hanjaAsync.value!.meaning} (${hanjaAsync.value!.reading})';

@@ -7,7 +7,6 @@ import '../../core/auth/auth_controller.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_input_group.dart';
-import '../../shared/widgets/ghost_divider.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
 

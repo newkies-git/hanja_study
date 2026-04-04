@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/auth/auth_controller.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_bottom_nav.dart';
 import '../home/home_screen.dart';

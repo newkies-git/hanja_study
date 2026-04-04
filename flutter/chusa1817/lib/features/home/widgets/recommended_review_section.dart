@@ -67,10 +67,10 @@ class RecommendedReviewSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: HanjaColors.outline.withOpacity(0.1),
+                color: HanjaColors.outline.withValues(alpha: 0.1),
               ),
             ),
             child: Center(
@@ -79,7 +79,7 @@ class RecommendedReviewSection extends StatelessWidget {
                   Icon(
                     Icons.history_edu_rounded,
                     size: 40,
-                    color: HanjaColors.outline.withOpacity(0.5),
+                    color: HanjaColors.outline.withValues(alpha: 0.5),
                   ),
                   const SizedBox(height: 12),
                   Text(

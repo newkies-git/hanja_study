@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../core/providers/app_providers.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
-import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
 
 import 'widgets/today_progress_card.dart';

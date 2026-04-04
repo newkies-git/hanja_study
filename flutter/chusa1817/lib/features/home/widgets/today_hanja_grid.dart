@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/hanja_colors.dart';
 import '../../../core/database/app_database.dart';
 
 /// '오늘의 학습' 한자 목록 그리드.
@@ -108,7 +107,6 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
   @override
   Widget build(BuildContext context) {
     final bool isCompleted = widget.status == 'completed';
-    final bool isLearning = widget.status == 'learning';
 
     return GestureDetector(
       onTap: widget.onTap,

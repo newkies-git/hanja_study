@@ -262,20 +262,53 @@ class LocalProgressRepository implements ProgressRepository {
     final double accuracyRate =
         totalAttempts == 0 ? 0.0 : correctAttempts / totalAttempts;
 
-    final DateTime nextReviewAt = isCorrect
-        ? studiedAt.add(const Duration(days: 1))
-        : studiedAt.add(const Duration(hours: 6));
+    // ── SM-2 알고리즘 계산 ────────────────────────────────────────────────
+    int n = existing?.reviewCount ?? 0;
+    int interval = existing?.intervalDays ?? 0;
+    double ef = existing?.easeFactor ?? 2.5;
+
+    final DateTime nextReviewAt;
+
+    if (isCorrect) {
+      // 정답인 경우 (q=4 정도로 가정)
+      if (n == 0) {
+        interval = 1;
+      } else if (n == 1) {
+        interval = 6;
+      } else {
+        interval = (interval * ef).round();
+      }
+      n++;
+      // EF 업데이트 (q=4 기준: EF' = EF + (0.1 - (5-4)*(0.08+(5-4)*0.02)) = EF - 0.0)
+      // 여기서는 정답 시 EF를 유지하거나 미세하게 조정
+      ef = ef + (0.1 - (5 - 4) * (0.08 + (5 - 4) * 0.02));
+    } else {
+      // 오답인 경우 (q=0~2)
+      n = 0;
+      interval = 1; // 즉시 다시 학습하도록 1일 설정 (또는 수 시간 내)
+      // 오답 시 EF 감소: EF = EF - 0.2 (하한 1.3)
+      ef = (ef - 0.2).clamp(1.3, 2.5);
+    }
+
+    if (ef < 1.3) ef = 1.3;
+    nextReviewAt = DateTime(now.year, now.month, now.day).add(Duration(days: interval));
 
     await _db.into(_db.userProgressTable).insertOnConflictUpdate(
           UserProgressTableCompanion(
             id: Value(id),
+            userId: Value(existing?.userId ?? ''),
             hanjaId: Value(hanjaId),
-            status: Value(isCorrect ? 'learning' : 'review_needed'),
+            status: Value(isCorrect 
+                ? (n >= 4 ? 'mastered' : 'learning') 
+                : 'review_needed'),
             totalAttempts: Value(totalAttempts),
             correctAttempts: Value(correctAttempts),
             accuracyRate: Value(accuracyRate),
             lastStudiedAt: Value(studiedAt),
             nextReviewAt: Value(nextReviewAt),
+            reviewCount: Value(n),
+            intervalDays: Value(interval),
+            easeFactor: Value(ef),
             updatedAt: Value(now),
           ),
         );

@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
-import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
 
 import 'widgets/hanja_hero_section.dart';
@@ -68,7 +67,6 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
         }
 
         final hanja = hanjaRow.character;
-        final meaning = '${hanjaRow.meaning} (${hanjaRow.reading})';
         final originText = (hanjaRow.origin ?? '').trim();
 
         // ── 진도 및 북마크 상태 구독 ──────────────────────────────────────────
@@ -81,12 +79,10 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 // 초기 위치 설정 (우하단)
-                if (_fabPosition == null) {
-                  _fabPosition = Offset(
-                    constraints.maxWidth - 100, // 대략적인 버튼 폭 고려
-                    constraints.maxHeight - 80,
-                  );
-                }
+                _fabPosition ??= Offset(
+                  constraints.maxWidth - 100, // 대략적인 버튼 폭 고려
+                  constraints.maxHeight - 80,
+                );
 
                 return Stack(
                   children: [

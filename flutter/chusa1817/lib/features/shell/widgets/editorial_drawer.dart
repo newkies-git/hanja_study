@@ -163,14 +163,12 @@ class _DrawerMenuItem extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onTap,
-    this.color,
   });
 
   final IconData icon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -192,13 +190,13 @@ class _DrawerMenuItem extends StatelessWidget {
                 Icon(
                   icon,
                   size: 20,
-                  color: color ?? (isSelected ? Colors.white : Colors.white60),
+                  color: isSelected ? Colors.white : Colors.white60,
                 ),
                 const SizedBox(width: 16),
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: color ?? (isSelected ? Colors.white : Colors.white60),
+                        color: isSelected ? Colors.white : Colors.white60,
                         fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
                         letterSpacing: -0.2,
                       ),

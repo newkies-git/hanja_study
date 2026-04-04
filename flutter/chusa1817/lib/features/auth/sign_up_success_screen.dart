@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/auth/auth_providers.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -20,7 +19,7 @@ class SignUpSuccessScreen extends ConsumerWidget {
     final String displayName = profileAsync.when(
       data: (profile) => profile?.displayName ?? '선비님',
       loading: () => '선비님',
-      error: (_, __) => '선비님',
+      error: (error, _) => '선비님',
     );
 
     return Scaffold(

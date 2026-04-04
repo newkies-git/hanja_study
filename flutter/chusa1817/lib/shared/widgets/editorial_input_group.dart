@@ -54,14 +54,14 @@ class EditorialInputGroup extends FormField<String> {
 
                 // 2. 입력 필드 (42px 고정 박스)
                 _FieldBox(
-                  isFocused: state is _EditorialInputGroupState ? (state as _EditorialInputGroupState).isFocused : false,
+                  isFocused: state is _EditorialInputGroupState ? state.isFocused : false,
                   hasError: hasError,
                   fillColor: fillColor,
                   child: Container(
                     constraints: const BoxConstraints(maxHeight: 42),
                     child: TextField(
                       controller: controller,
-                      focusNode: state is _EditorialInputGroupState ? (state as _EditorialInputGroupState).focusNode : null,
+                      focusNode: state is _EditorialInputGroupState ? state.focusNode : null,
                       textAlignVertical: TextAlignVertical.center,
                       keyboardType: keyboardType,
                       obscureText: obscureText,

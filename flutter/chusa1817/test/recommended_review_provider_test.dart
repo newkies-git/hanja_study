@@ -30,6 +30,9 @@ void main() {
             id: 'progress-1',
             hanjaId: hanjaId,
             status: const Value('learning'),
+            totalAttempts: const Value(5),
+            correctAttempts: const Value(1),
+            accuracyRate: const Value(0.2),
             nextReviewAt: Value(DateTime.now().subtract(const Duration(days: 1))),
           ),
         );

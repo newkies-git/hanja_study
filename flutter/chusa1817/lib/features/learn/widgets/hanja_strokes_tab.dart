@@ -18,7 +18,6 @@ class HanjaStrokesTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
     final strokesAsync = ref.watch(hanjaStrokeVisualProvider(hanjaId));
 
     return Container(

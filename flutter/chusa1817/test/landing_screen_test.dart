@@ -10,12 +10,13 @@ void main() {
       ),
     );
 
-    expect(find.text('Welcome to Learning'), findsOneWidget);
-    expect(find.text('앱 둘러보기'), findsOneWidget);
-
-    await tester.fling(find.byType(ListView), const Offset(0, -600), 1000);
+    // Initial pump ensures first frame is rendered.
+    // LandingScreen has animations, let it settle.
     await tester.pumpAndSettle();
-    expect(find.text('로그인'), findsOneWidget);
+
+    expect(find.text('추사 1817'), findsOneWidget);
+    expect(find.text('앱 둘러보기'), findsOneWidget);
+    expect(find.text('가입 / 로그인'), findsOneWidget);
   });
 }
 

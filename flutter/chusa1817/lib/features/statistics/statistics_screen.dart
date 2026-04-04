@@ -98,7 +98,7 @@ class StatisticsScreen extends ConsumerWidget {
             value: streak.when(
               data: (v) => '$v일',
               loading: () => '...',
-              error: (_, __) => '0일',
+              error: (_, _) => '0일',
             ),
             textTheme: textTheme,
           ),
@@ -113,10 +113,10 @@ class StatisticsScreen extends ConsumerWidget {
               data: (done) => goal.when(
                 data: (g) => '$done / $g',
                 loading: () => '$done / -',
-                error: (_, __) => '$done / 5',
+                error: (_, _) => '$done / 5',
               ),
               loading: () => '...',
-              error: (_, __) => '0 / 5',
+              error: (_, _) => '0 / 5',
             ),
             textTheme: textTheme,
           ),
@@ -164,10 +164,10 @@ class StatisticsScreen extends ConsumerWidget {
                     ),
                   ),
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
             ],
           ),
@@ -262,7 +262,7 @@ class StatisticsScreen extends ConsumerWidget {
                     ),
                   ),
                   loading: () => const Text('...', style: TextStyle(color: Colors.white)),
-                  error: (_, __) => const Text('0 글자', style: TextStyle(color: Colors.white)),
+                  error: (_, _) => const Text('0 글자', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -338,11 +338,11 @@ class _WeeklyBarChartCard extends StatelessWidget {
   List<String> _generateDayLabels() {
     final DateTime now = DateTime.now();
     final List<String> labels = [];
-    const Weekdays = ['월', '화', '수', '목', '금', '토', '일'];
+    const weekdays = ['월', '화', '수', '목', '금', '토', '일'];
 
     for (int i = 6; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
-      labels.add(Weekdays[date.weekday - 1]);
+      labels.add(weekdays[date.weekday - 1]);
     }
     return labels;
   }
