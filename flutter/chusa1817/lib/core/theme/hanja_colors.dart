@@ -46,4 +46,5 @@ abstract final class HanjaColors {
   static const Color errorContainer = Color(0xFFFFDAD6);
   static const Color statusSuccess = Color(0xFF2E7D32);
   static const Color statusWarning = Color(0xFFE65100);
+  static const Color statusWarningContainer = Color(0xFFFFE0B2); // Pastel Orange
 }

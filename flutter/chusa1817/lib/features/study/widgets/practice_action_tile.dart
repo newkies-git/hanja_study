@@ -12,12 +12,16 @@ enum PracticeActionTileVariant { neutral, primary }
 class PracticeActionTile extends StatelessWidget {
   const PracticeActionTile({
     super.key,
-    required this.icon,
+    this.icon,
+    this.label,
     required this.onTap,
     this.variant = PracticeActionTileVariant.neutral,
-  });
+    this.subLabel,
+  }) : assert(icon != null || label != null, 'Icon or Label must be provided');
 
-  final IconData icon;
+  final IconData? icon;
+  final String? label;
+  final String? subLabel; // 아이콘 아래 추가 표시용 (정답률 등)
   final VoidCallback onTap;
   final PracticeActionTileVariant variant;
 
@@ -41,12 +45,42 @@ class PracticeActionTile extends StatelessWidget {
                 : null,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Center(
-              child: Icon(
-                icon,
-                color: _isPrimary ? Colors.white : HanjaColors.onSurface,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null)
+                  Icon(
+                    icon,
+                    color: _isPrimary ? Colors.white : HanjaColors.onSurface,
+                    size: 24,
+                  ),
+                if (icon != null && label != null)
+                  const SizedBox(height: 4),
+                if (label != null)
+                  Text(
+                    label!,
+                    style: TextStyle(
+                      color: _isPrimary ? Colors.white : HanjaColors.onSurface,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                if (subLabel != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subLabel!,
+                    style: TextStyle(
+                      color: _isPrimary 
+                          ? Colors.white.withValues(alpha:0.8) 
+                          : HanjaColors.onSurfaceVariant,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

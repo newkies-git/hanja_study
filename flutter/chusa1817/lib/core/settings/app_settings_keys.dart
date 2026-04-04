@@ -6,5 +6,6 @@ abstract final class AppSettingsKeys {
   static const String isAscending = 'plan.isAscending'; // bool (true/false)
 
   static const String onboardingCompleted = 'onboarding.completed';
+  static const String lastDailyActivityRefreshedAt = 'plan.lastDailyActivityRefreshedAt'; // 'yyyy-MM-dd'
 }
 

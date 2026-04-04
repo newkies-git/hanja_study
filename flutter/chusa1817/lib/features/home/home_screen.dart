@@ -129,8 +129,8 @@ class HomeScreen extends ConsumerWidget {
             )
           else
             RecommendedReviewSection(
-              hanjaList: (reviewHanjaAsync.value ?? const [])
-                  .map((row) => {'hanjaId': row.$1, 'hanja': row.$2, 'meaning': row.$3})
+              hanjaList: (reviewHanjaAsync.value ?? const <(String, String, String, String)>[])
+                  .map((row) => {'hanjaId': row.$1, 'hanja': row.$2, 'meaning': row.$3, 'subInfo': row.$4})
                   .toList(),
               textTheme: textTheme,
               onStudyTap: (hanjaId, meaning) => context.push(

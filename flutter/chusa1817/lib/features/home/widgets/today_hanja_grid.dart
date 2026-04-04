@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/hanja_colors.dart';
 import '../../../core/database/app_database.dart';
 
 /// '오늘의 학습' 한자 목록 그리드.
@@ -14,7 +15,7 @@ class TodayHanjaGrid extends StatelessWidget {
     this.onTap,
   });
 
-  final List<(HanjaTableData, String)> hanjaList;
+  final List<(HanjaTableData, String, bool)> hanjaList;
   final Function(String hanjaId, String meaning)? onTap;
 
   @override
@@ -31,10 +32,12 @@ class TodayHanjaGrid extends StatelessWidget {
             children: hanjaList.map((item) {
               final hanja = item.$1;
               final status = item.$2;
+              final isBookmarked = item.$3;
               
               return _HanjaGridItem(
                 character: hanja.character,
                 status: status,
+                isBookmarked: isBookmarked,
                 size: itemSize,
                 onTap: () => onTap?.call(
                   hanja.id,
@@ -53,12 +56,14 @@ class _HanjaGridItem extends StatefulWidget {
   const _HanjaGridItem({
     required this.character,
     required this.status,
+    required this.isBookmarked,
     required this.size,
     required this.onTap,
   });
 
   final String character;
   final String status;
+  final bool isBookmarked;
   final double size;
   final VoidCallback onTap;
 
@@ -107,40 +112,58 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
   @override
   Widget build(BuildContext context) {
     final bool isCompleted = widget.status == 'completed';
+    final bool isLearning = widget.status == 'learning';
+
+    Color backgroundColor;
+    Color textColor;
+    
+    if (isCompleted) {
+      backgroundColor = HanjaColors.surfaceVariant; // 파스텔 회색
+      textColor = Colors.black87; // 검정색 유지
+    } else if (isLearning) {
+      backgroundColor = HanjaColors.statusWarningContainer; // 파스텔 주황색
+      textColor = Colors.black87; // 검정색 유지
+    } else {
+      backgroundColor = Colors.white;
+      textColor = Colors.black87; // 검정색 유지
+    }
 
     return GestureDetector(
       onTap: widget.onTap,
       child: AnimatedBuilder(
         animation: _glowAnimation,
         builder: (context, child) {
-          return Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22), // 약간 서클에 더 가깝게 (Squircle)
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
+          return Stack(
+            children: [
+              Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  color: backgroundColor,
+                  borderRadius: BorderRadius.circular(widget.size / 2), // 완벽한 원형 (이미지 준수)
+                  boxShadow: (isCompleted || isLearning)
+                      ? [] // 완료된/학습중인 항목은 평면으로 표시 (이미지 준수)
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                 ),
-              ],
-            ),
-            child: Center(
-              child: Opacity(
-                opacity: isCompleted ? 0.3 : 1.0,
-                child: Text(
-                  widget.character,
-                  style: TextStyle(
-                    fontSize: widget.size * 0.48,
-                    fontFamily: 'NotoSerifKR',
-                    fontWeight: FontWeight.w900,
-                    color: isCompleted ? Colors.grey : Colors.black87,
+                child: Center(
+                  child: Text(
+                    widget.character,
+                    style: TextStyle(
+                      fontSize: widget.size * 0.48,
+                      fontFamily: 'NotoSerifKR',
+                      fontWeight: FontWeight.w900,
+                      color: textColor,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           );
         },
       ),

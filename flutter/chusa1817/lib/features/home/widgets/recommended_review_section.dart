@@ -30,15 +30,6 @@ class RecommendedReviewSection extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'REVIEW',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: HanjaColors.primaryContainer,
-                    letterSpacing: 2.5,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
                   '오늘의 추천 복습',
                   style: textTheme.headlineSmall?.copyWith(
                     fontSize: 18,
@@ -123,6 +114,7 @@ class RecommendedReviewSection extends StatelessWidget {
               final String hanjaId = item['hanjaId']!;
               final String hanja = item['hanja']!;
               final String meaning = item['meaning']!;
+              final String subInfo = item['subInfo']!;
 
               return Material(
                 color: Colors.white,
@@ -171,9 +163,9 @@ class RecommendedReviewSection extends StatelessWidget {
                               ),
                               const SizedBox(height: 1),
                               Text(
-                                '복습하기',
+                                subInfo,
                                 style: textTheme.bodySmall?.copyWith(
-                                  color: HanjaColors.primaryContainer,
+                                  color: HanjaColors.outline,
                                   fontSize: 10, // 11 -> 10
                                 ),
                               ),

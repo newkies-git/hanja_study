@@ -25,7 +25,10 @@ final hanjaRepositoryProvider = Provider<HanjaRepository>((ref) {
 });
 
 final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
-  return LocalProgressRepository(ref.watch(appDatabaseProvider));
+  return LocalProgressRepository(
+    ref.watch(appDatabaseProvider),
+    ref.watch(settingsRepositoryProvider),
+  );
 });
 
 final studySessionRepositoryProvider = Provider<StudySessionRepository>((ref) {
@@ -191,13 +194,13 @@ final isAscendingProvider = FutureProvider<bool>((ref) async {
 });
 
 final recommendedReviewHanjaProvider =
-    FutureProvider<List<(String hanjaId, String hanja, String meaning)>>((ref) async {
+    FutureProvider<List<(String hanjaId, String hanja, String meaning, String subInfo)>>((ref) async {
   final progressRepository = ref.watch(progressRepositoryProvider);
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
   // 오답률 기반 상위 10개 추출 (오늘 공부한 한자 제외)
   final errorProneList = await progressRepository.fetchTopErrorProneHanja(limit: 10);
-  final results = <(String, String, String)>[];
+  final results = <(String, String, String, String)>[];
 
   for (final entry in errorProneList) {
     final hanjaRow = await hanjaRepository.fetchById(entry.hanjaId);
@@ -206,6 +209,7 @@ final recommendedReviewHanjaProvider =
       hanjaRow.id,
       hanjaRow.character,
       '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
+      '${hanjaRow.radical}   ${hanjaRow.totalStrokes}', // 요구된 포맷 반영
     ));
   }
   return results;
@@ -260,7 +264,7 @@ final hanjaProgressProvider =
 });
 
 /// 오늘 학습할 한자 목록 (목표량 기준).
-final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, String)>>((ref) async {
+final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, String, bool)>>((ref) async {
   final goal = await ref.watch(dailyGoalProvider.future);
   final orderIndex = await ref.watch(orderIndexProvider.future);
   final isAscending = await ref.watch(isAscendingProvider.future);

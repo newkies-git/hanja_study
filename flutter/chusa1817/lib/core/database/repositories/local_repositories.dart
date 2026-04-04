@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import '../../settings/app_settings_keys.dart';
 
 import '../app_database.dart';
 import 'repository_interfaces.dart';
@@ -120,9 +121,10 @@ class LocalHanjaRepository implements HanjaRepository {
 
 /// [ProgressRepository]의 로컬 DB 구현체.
 class LocalProgressRepository implements ProgressRepository {
-  LocalProgressRepository(this._db);
+  LocalProgressRepository(this._db, this._settings);
 
   final AppDatabase _db;
+  final SettingsRepository _settings;
   static const _uuid = Uuid();
 
   @override
@@ -165,10 +167,13 @@ class LocalProgressRepository implements ProgressRepository {
       DateTime.now().month,
       DateTime.now().day,
     );
-    final query = _db.select(_db.userProgressTable)
-      ..where((t) => t.lastStudiedAt.isBiggerOrEqualValue(startOfDay));
+    final query = _db.select(_db.dailyHanjaActivityTable)
+      ..where((t) => t.date.equals(startOfDay) & t.status.equals('completed'));
     final rows = await query.get();
-    return rows.length;
+    
+    // 동일 한자에 대한 중복 row 방지를 위해 고유 hanjaId 개수로 계산
+    final uniqueCount = rows.map((r) => r.hanjaId).toSet().length;
+    return uniqueCount;
   }
 
   @override
@@ -252,6 +257,8 @@ class LocalProgressRepository implements ProgressRepository {
     required String hanjaId,
     required DateTime studiedAt,
     required bool isCorrect,
+    bool? isBookmarked,
+    String? forceStatus, // 'learning' or 'completed'
   }) async {
     final existing = await fetchProgress(hanjaId);
     final DateTime now = DateTime.now();
@@ -306,6 +313,7 @@ class LocalProgressRepository implements ProgressRepository {
             accuracyRate: Value(accuracyRate),
             lastStudiedAt: Value(studiedAt),
             nextReviewAt: Value(nextReviewAt),
+            isBookmarked: isBookmarked != null ? Value(isBookmarked) : Value(existing?.isBookmarked ?? false),
             reviewCount: Value(n),
             intervalDays: Value(interval),
             easeFactor: Value(ef),
@@ -346,7 +354,7 @@ class LocalProgressRepository implements ProgressRepository {
             date: Value(date),
             userId: Value(userId),
             hanjaId: Value(hanjaId),
-            status: Value(isMastered ? 'completed' : 'learning'),
+            status: Value(forceStatus ?? (isMastered ? 'completed' : 'learning')),
             updatedAt: Value(now),
           ),
         );
@@ -363,95 +371,180 @@ class LocalProgressRepository implements ProgressRepository {
   }
 
   @override
-  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({
+  Future<List<(HanjaTableData hanja, String status, bool isBookmarked)>> fetchTodayLearningHanja({
     int dailyGoal = 5,
     int orderIndex = 0,
     bool isAscending = true,
   }) async {
     final DateTime now = DateTime.now();
     final DateTime todayDate = DateTime(now.year, now.month, now.day);
+    final String todayDateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     const String userId = ''; // 현재 세션 기반 userId (기본값)
 
-    // 1. 오늘 이미 등록된 활동(planned, learning, completed) 가져오기
+    // 1. 당일 최초 호출 시 '일일 할당 및 이월(Carryover)' 수행
+    final String? lastRefreshed =
+        await _settings.get(AppSettingsKeys.lastDailyActivityRefreshedAt);
+
+    if (lastRefreshed != todayDateStr) {
+      // 1-1. 기존의 '오늘 날짜' 데이터 중 결정적 ID 형식이 아닌 것(UUID 등)이 있다면 
+      // 데이터 정합성을 위해 미리 정리 (중복 방지)
+      final existingToday = await (_db.select(_db.dailyHanjaActivityTable)
+            ..where((t) => t.date.equals(todayDate)))
+          .get();
+      
+      final expectedPrefix = '${todayDate.millisecondsSinceEpoch}_';
+      for (final row in existingToday) {
+        if (!row.id.startsWith(expectedPrefix)) {
+          // 구버전(UUID) 데이터 삭제
+          await (_db.delete(_db.dailyHanjaActivityTable)..where((t) => t.id.equals(row.id))).go();
+        }
+      }
+
+      // 1-2. [이월] 어제까지 학습을 다 하지 못한(status != 'completed') 단어들을 오늘로 이동
+      final incomplete = await (_db.select(_db.dailyHanjaActivityTable)
+            ..where((t) =>
+                t.status.equals('completed').not() &
+                t.date.isSmallerThanValue(todayDate))
+            ..limit(dailyGoal))
+          .get();
+
+      // 현재 오늘 목록에 이미 있는 한자 ID 목록 (중복 이월 방지)
+      final currentTodayHanjaIds = (await (_db.select(_db.dailyHanjaActivityTable)
+                ..where((t) => t.date.equals(todayDate)))
+              .get())
+          .map((r) => r.hanjaId)
+          .toSet();
+
+      for (final row in incomplete) {
+        if (currentTodayHanjaIds.contains(row.hanjaId)) {
+          // 이미 오늘 목록에 있다면 이전 기록만 삭제하고 스킵
+          await (_db.delete(_db.dailyHanjaActivityTable)..where((t) => t.id.equals(row.id))).go();
+          continue;
+        }
+
+        final newId = '${todayDate.millisecondsSinceEpoch}_${row.userId}_${row.hanjaId}';
+        await _db.into(_db.dailyHanjaActivityTable).insertOnConflictUpdate(
+              DailyHanjaActivityTableCompanion(
+                id: Value(newId),
+                date: Value(todayDate),
+                userId: Value(row.userId),
+                hanjaId: Value(row.hanjaId),
+                status: Value(row.status),
+                updatedAt: Value(now),
+              ),
+            );
+        await (_db.delete(_db.dailyHanjaActivityTable)..where((t) => t.id.equals(row.id))).go();
+        currentTodayHanjaIds.add(row.hanjaId);
+      }
+
+      // 1-3. 이월 후 오늘 목록 수량 확인
+      final countExp = _db.dailyHanjaActivityTable.id.count();
+      final countQuery = _db.selectOnly(_db.dailyHanjaActivityTable)
+        ..addColumns([countExp])
+        ..where(_db.dailyHanjaActivityTable.date.equals(todayDate));
+      final int todayCount =
+          (await countQuery.map((row) => row.read(countExp)).getSingle()) ?? 0;
+
+      // 1-4. [최초 할당] 오늘 할 일이 아예 없는 경우에만 목표량만큼 신규 한자 채우기
+      if (todayCount == 0) {
+        final nextHanjasQuery = _db.select(_db.hanjaTable).join([
+          leftOuterJoin(
+            _db.userProgressTable,
+            _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+          ),
+        ])
+          ..where(_db.userProgressTable.status.isNull() |
+              _db.userProgressTable.status.equals('unseen'));
+
+        final mode = isAscending ? OrderingMode.asc : OrderingMode.desc;
+
+        if (orderIndex == 1) {
+          nextHanjasQuery.orderBy([
+            OrderingTerm(expression: _db.hanjaTable.totalStrokes, mode: mode)
+          ]);
+        } else if (orderIndex == 2) {
+          nextHanjasQuery.orderBy([OrderingTerm.random()]);
+        } else {
+          nextHanjasQuery.orderBy(
+              [OrderingTerm(expression: _db.hanjaTable.reading, mode: mode)]);
+        }
+
+        nextHanjasQuery.limit(dailyGoal);
+
+        final nextRows = await nextHanjasQuery.get();
+        for (final row in nextRows) {
+          final hanja = row.readTable(_db.hanjaTable);
+          final String activityId = '${todayDate.millisecondsSinceEpoch}_${userId}_${hanja.id}';
+          
+          await _db.into(_db.dailyHanjaActivityTable).insertOnConflictUpdate(
+                DailyHanjaActivityTableCompanion.insert(
+                  id: activityId,
+                  date: todayDate,
+                  userId: userId,
+                  hanjaId: hanja.id,
+                  status: const Value('planned'),
+                  updatedAt: Value(now),
+                ),
+              );
+        }
+      }
+
+      // 갱신 날짜 업데이트
+      await _settings.set(
+          AppSettingsKeys.lastDailyActivityRefreshedAt, todayDateStr);
+    }
+
+    // 2. 오늘 등록된 활동 가져오기
     final query = _db.select(_db.dailyHanjaActivityTable).join([
       innerJoin(
         _db.hanjaTable,
         _db.hanjaTable.id.equalsExp(_db.dailyHanjaActivityTable.hanjaId),
+      ),
+      leftOuterJoin(
+        _db.userProgressTable,
+        _db.userProgressTable.hanjaId.equalsExp(_db.dailyHanjaActivityTable.hanjaId),
       ),
     ])
       ..where(_db.dailyHanjaActivityTable.date.equals(todayDate))
       ..orderBy([OrderingTerm.asc(_db.dailyHanjaActivityTable.createdAt)]);
 
     final rows = await query.get();
-    final existingList = rows.map((row) {
-      return (
-        row.readTable(_db.hanjaTable),
-        row.readTable(_db.dailyHanjaActivityTable).status,
-      );
-    }).toList();
-
-    if (existingList.length >= dailyGoal) {
-      return existingList;
-    }
-
-    // 2. 일일 목표량(dailyGoal)에 미달할 경우 'unseen' 한자를 충원
-    final int gap = dailyGoal - existingList.length;
-    final List<String> existingIds = existingList.map((e) => e.$1.id).toList();
-
-    // 학습하지 않은 한자 중 아직 오늘의 리스트에 없는 것들을 가져온다.
-    final nextHanjasQuery = _db.select(_db.hanjaTable).join([
-      leftOuterJoin(
-        _db.userProgressTable,
-        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
-      ),
-    ])
-      ..where(_db.userProgressTable.status.isNull() |
-          _db.userProgressTable.status.equals('unseen'))
-      ..where(_db.hanjaTable.id.isNotIn(existingIds));
-
-    final mode = isAscending ? OrderingMode.asc : OrderingMode.desc;
-
-    if (orderIndex == 1) {
-      nextHanjasQuery.orderBy(
-          [OrderingTerm(expression: _db.hanjaTable.totalStrokes, mode: mode)]);
-    } else if (orderIndex == 2) {
-      nextHanjasQuery.orderBy([OrderingTerm.random()]);
-    } else {
-      nextHanjasQuery.orderBy(
-          [OrderingTerm(expression: _db.hanjaTable.reading, mode: mode)]);
-    }
-
-    nextHanjasQuery.limit(gap);
-
-    final nextRows = await nextHanjasQuery.get();
-    final List<(HanjaTableData, String)> resultList = [...existingList];
-
-    for (final row in nextRows) {
+    
+    // 3. 중복 한자 제거 및 목표량 제한 (안전장치)
+    final Map<String, (HanjaTableData, String, bool)> uniqueMap = {};
+    for (final row in rows) {
       final hanja = row.readTable(_db.hanjaTable);
-      final String activityId = _uuid.v4();
+      final status = row.readTable(_db.dailyHanjaActivityTable).status;
+      final bool isBookmarked = row.readTableOrNull(_db.userProgressTable)?.isBookmarked ?? false;
       
-      // DB에 'planned' 상태로 미리 등록 (다음 조회 시 유지되도록)
-      await _db.into(_db.dailyHanjaActivityTable).insert(
-        DailyHanjaActivityTableCompanion.insert(
-          id: activityId,
-          date: todayDate,
-          userId: userId,
-          hanjaId: hanja.id,
-          status: const Value('planned'),
-          updatedAt: Value(now),
-        ),
-      );
-      
-      resultList.add((hanja, 'planned'));
+      // 상태 업데이트 우선순위: completed > learning > planned
+      if (!uniqueMap.containsKey(hanja.id)) {
+        uniqueMap[hanja.id] = (hanja, status, isBookmarked);
+      } else {
+        final existingStatus = uniqueMap[hanja.id]!.$2;
+        if (status == 'completed' || (status == 'learning' && existingStatus == 'planned')) {
+          uniqueMap[hanja.id] = (hanja, status, isBookmarked);
+        }
+      }
     }
 
-    // 3. 만약 'learning' 상태인 한자가 하나도 없다면 첫 번째 'planned'를 'learning'으로 간주(표시용)
-    final bool hasLearning = resultList.any((e) => e.$2 == 'learning');
-    if (!hasLearning) {
-      for (int i = 0; i < resultList.length; i++) {
-        if (resultList[i].$2 == 'planned') {
-          resultList[i] = (resultList[i].$1, 'learning');
-          break;
+    List<(HanjaTableData, String, bool)> resultList = uniqueMap.values.toList();
+    
+    // 수량 제한: dailyGoal을 넘지 않도록 (단, 이미 학습 완료된 것이 상한을 넘는 경우 등 예외 케이스 고려)
+    if (resultList.length > dailyGoal) {
+      resultList = resultList.take(dailyGoal).toList();
+    }
+
+    // 4. 표시용 'learning' 상태 설정
+    if (resultList.isNotEmpty) {
+      final bool hasLearning = resultList.any((e) => e.$2 == 'learning');
+      if (!hasLearning) {
+        for (int i = 0; i < resultList.length; i++) {
+          if (resultList[i].$2 == 'planned') {
+            resultList[i] = (resultList[i].$1, 'learning', resultList[i].$3);
+            break;
+          }
         }
       }
     }

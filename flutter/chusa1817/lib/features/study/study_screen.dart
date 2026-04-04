@@ -35,6 +35,9 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   final WritingCanvasController _canvasController = WritingCanvasController();
   String? _sessionId;
   bool _showAnswerOverlay = false;
+  bool _isGraded = false;
+  double _accuracy = 0.0;
+  bool _isLastResultCorrect = false;
 
   @override
   void initState() {
@@ -69,13 +72,37 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     setState(() => _showAnswerOverlay = !_showAnswerOverlay);
   }
 
-  Future<void> _gradeAndSave() async {
+  Future<void> _confirmGrade() async {
     final guideStrokesAsync = ref.read(hanjaStrokePointsProvider(widget.hanjaId));
     final guideStrokes = guideStrokesAsync.value?.where((s) => s.length >= 2).toList() ?? const [];
 
     final int expected = guideStrokes.length;
     final int actual = _canvasController.strokeCount;
     final bool isCorrect = expected > 0 && actual == expected;
+    final double accuracy = expected == 0 ? 0.0 : (actual / expected).clamp(0.0, 1.0);
+
+    setState(() {
+      _isGraded = true;
+      _accuracy = accuracy;
+      _isLastResultCorrect = isCorrect;
+    });
+  }
+
+  Future<void> _finalizeStudy({required bool isCompleted}) async {
+    if (isCompleted && _accuracy < 0.5) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('정답률 알림'),
+          content: const Text('정답률이 50% 미만입니다.\n학습완료 처리하시겠습니까?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('아니오')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('예')),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
 
     final sessionId = _sessionId;
     if (sessionId != null) {
@@ -85,25 +112,41 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
               sessionId: sessionId,
               hanjaId: widget.hanjaId,
               answeredAt: DateTime.now(),
-              isCorrect: isCorrect,
-              accuracyScore: Value(expected == 0 ? 0.0 : (actual / expected).clamp(0.0, 1.0)),
+              isCorrect: _isLastResultCorrect,
+              accuracyScore: Value(_accuracy),
               strokesJson: Value(jsonEncode(_canvasController.strokes.map((s) => s.map((p) => [p.dx, p.dy]).toList()).toList())),
             ),
           );
       await ref.read(studySessionRepositoryProvider).endSession(
             sessionId,
-            correctCount: isCorrect ? 1 : 0,
+            correctCount: _isLastResultCorrect ? 1 : 0,
           );
     }
 
     await ref.read(progressRepositoryProvider).upsertProgressByHanjaId(
           hanjaId: widget.hanjaId,
           studiedAt: DateTime.now(),
-          isCorrect: isCorrect,
+          isCorrect: _isLastResultCorrect,
+          isBookmarked: isCompleted, // 학습완료 시 책갈피
+          forceStatus: isCompleted ? 'completed' : 'learning',
         );
 
     if (!mounted) return;
-    _navigateToPracticeResult();
+    
+    // 다음 한자 탐색
+    final todayListAsync = ref.read(todayLearningHanjaListProvider);
+    final list = todayListAsync.value ?? [];
+    final currentIndex = list.indexWhere((e) => e.$1.id == widget.hanjaId);
+    
+    if (currentIndex != -1 && currentIndex < list.length - 1) {
+      final nextHanja = list[currentIndex + 1].$1;
+      final meaning = '${nextHanja.meaning} ${nextHanja.reading}'.trim();
+      context.pushReplacement(
+        '${AppRoutes.study}/${nextHanja.id}?meaning=${Uri.encodeComponent(meaning)}',
+      );
+    } else {
+      _navigateToPracticeResult();
+    }
   }
 
   @override
@@ -246,30 +289,107 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   }
 
   Widget _buildActionGrid() {
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
+    return Column(
       children: [
-        PracticeActionTile(
-          icon: Icons.restart_alt,
-          onTap: _canvasController.reset,
+        // 상단 행: 기본 도구 및 확인 버튼 (항상 노출)
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: PracticeActionTile(
+                  icon: Icons.restart_alt,
+                  onTap: () {
+                    setState(() {
+                      _isGraded = false;
+                      _canvasController.reset();
+                    });
+                  },
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: PracticeActionTile(
+                  icon: Icons.undo,
+                  onTap: _canvasController.undo,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: PracticeActionTile(
+                  icon: Icons.lightbulb_outline,
+                  onTap: _showHint,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: PracticeActionTile(
+                  label: '확인',
+                  variant: PracticeActionTileVariant.primary,
+                  onTap: _confirmGrade,
+                ),
+              ),
+            ),
+          ],
         ),
-        PracticeActionTile(
-          icon: Icons.undo,
-          onTap: _canvasController.undo,
-        ),
-        PracticeActionTile(
-          icon: Icons.lightbulb_outline,
-          onTap: _showHint,
-        ),
-        PracticeActionTile(
-          icon: Icons.arrow_forward,
-          variant: PracticeActionTileVariant.primary,
-          onTap: _gradeAndSave,
-        ),
+        
+        // 하단 행: 정답률 및 처리 버튼 (확인 버튼을 누른 후에만 노출)
+        if (_isGraded) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: RichText(
+                    text: TextSpan(
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      children: [
+                        const TextSpan(
+                          text: '정답률(%)  ',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        TextSpan(
+                          text: (_accuracy * 100).toStringAsFixed(2),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: PracticeActionTile(
+                    icon: Icons.check_circle_rounded,
+                    label: '완료',
+                    variant: PracticeActionTileVariant.primary,
+                    onTap: () => _finalizeStudy(isCompleted: true),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: PracticeActionTile(
+                    icon: Icons.arrow_forward_rounded,
+                    label: '다음',
+                    variant: PracticeActionTileVariant.primary,
+                    onTap: () => _finalizeStudy(isCompleted: false),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
