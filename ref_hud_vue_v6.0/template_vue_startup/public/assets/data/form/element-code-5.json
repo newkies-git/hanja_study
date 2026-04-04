@@ -1,5 +1,0 @@
-<!-- default range -->
-<input type="range" class="form-range" id="formControlRange">
-
-<!-- disabled range -->
-<input type="range" class="form-range" id="disabledRange" disabled>

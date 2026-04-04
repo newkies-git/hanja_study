@@ -1,7 +1,0 @@
-	1.	PostgreSQL DDL 확정
-	2.	Python 프로젝트 초기화
-	3.	collector와 raw_store 먼저 구현
-	4.	1개 한자(예: 佳) 기준으로 extractor 테스트
-	5.	stroke_entity 표준 포맷 확정
-	6.	FastAPI로 상세 조회 API 3개 먼저 개통
-	7.	Flutter에서 한자 상세 + 획순 렌더링 화면 연결
