@@ -77,6 +77,14 @@ abstract class ProgressRepository {
     required DateTime studiedAt,
     required bool isCorrect,
   });
+
+  /// 마스터한 한자의 총 갯수를 조회한다.
+  Future<int> fetchMasteredCount();
+
+  /// 오늘 학습할/학습한 한자 목록을 반환한다.
+  ///
+  /// [dailyGoal] 만큼의 한자를 포함하며, 오늘 이미 학습한 한자와 다음에 학습할 한자를 조합한다.
+  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({int dailyGoal = 5});
 }
 
 /// 학습 세션 Repository 인터페이스.

@@ -304,6 +304,97 @@ class LocalProgressRepository implements ProgressRepository {
           ),
         );
   }
+
+  @override
+  Future<int> fetchMasteredCount() async {
+    final countExp = _db.userProgressTable.id.count();
+    final query = _db.selectOnly(_db.userProgressTable)
+      ..where(_db.userProgressTable.status.equals('mastered'))
+      ..addColumns([countExp]);
+    final result = await query.map((row) => row.read(countExp)).getSingle();
+    return result ?? 0;
+  }
+
+  @override
+  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({int dailyGoal = 5}) async {
+    final DateTime now = DateTime.now();
+    final DateTime todayDate = DateTime(now.year, now.month, now.day);
+    const String userId = ''; // 현재 세션 기반 userId (기본값)
+
+    // 1. 오늘 이미 등록된 활동(planned, learning, completed) 가져오기
+    final query = _db.select(_db.dailyHanjaActivityTable).join([
+      innerJoin(
+        _db.hanjaTable,
+        _db.hanjaTable.id.equalsExp(_db.dailyHanjaActivityTable.hanjaId),
+      ),
+    ])
+      ..where(_db.dailyHanjaActivityTable.date.equals(todayDate))
+      ..orderBy([OrderingTerm.asc(_db.dailyHanjaActivityTable.createdAt)]);
+
+    final rows = await query.get();
+    final existingList = rows.map((row) {
+      return (
+        row.readTable(_db.hanjaTable),
+        row.readTable(_db.dailyHanjaActivityTable).status,
+      );
+    }).toList();
+
+    if (existingList.length >= dailyGoal) {
+      return existingList;
+    }
+
+    // 2. 일일 목표량(dailyGoal)에 미달할 경우 'unseen' 한자를 충원
+    final int gap = dailyGoal - existingList.length;
+    final List<String> existingIds = existingList.map((e) => e.$1.id).toList();
+
+    // 학습하지 않은 한자 중 아직 오늘의 리스트에 없는 것들을 가져온다.
+    final nextHanjasQuery = _db.select(_db.hanjaTable).join([
+      leftOuterJoin(
+        _db.userProgressTable,
+        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+      ),
+    ])
+      ..where(_db.userProgressTable.status.isNull() |
+          _db.userProgressTable.status.equals('unseen'))
+      ..where(_db.hanjaTable.id.isNotIn(existingIds))
+      ..orderBy([OrderingTerm.asc(_db.hanjaTable.reading)])
+      ..limit(gap);
+
+    final nextRows = await nextHanjasQuery.get();
+    final List<(HanjaTableData, String)> resultList = [...existingList];
+
+    for (final row in nextRows) {
+      final hanja = row.readTable(_db.hanjaTable);
+      final String activityId = _uuid.v4();
+      
+      // DB에 'planned' 상태로 미리 등록 (다음 조회 시 유지되도록)
+      await _db.into(_db.dailyHanjaActivityTable).insert(
+        DailyHanjaActivityTableCompanion.insert(
+          id: activityId,
+          date: todayDate,
+          userId: userId,
+          hanjaId: hanja.id,
+          status: const Value('planned'),
+          updatedAt: Value(now),
+        ),
+      );
+      
+      resultList.add((hanja, 'planned'));
+    }
+
+    // 3. 만약 'learning' 상태인 한자가 하나도 없다면 첫 번째 'planned'를 'learning'으로 간주(표시용)
+    final bool hasLearning = resultList.any((e) => e.$2 == 'learning');
+    if (!hasLearning) {
+      for (int i = 0; i < resultList.length; i++) {
+        if (resultList[i].$2 == 'planned') {
+          resultList[i] = (resultList[i].$1, 'learning');
+          break;
+        }
+      }
+    }
+
+    return resultList;
+  }
 }
 
 /// [StudySessionRepository]의 로컬 DB 구현체.

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/auth/auth_controller.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/firebase/content_sync_controller.dart';
 import '../../core/firebase/content_sync_progress.dart';
@@ -16,7 +15,7 @@ import '../../core/providers/app_providers.dart';
 
 /// 사용자 프로필 화면.
 ///
-/// 프로필 정보, 학습 계획 설정, 로그아웃 메뉴를 제공한다.
+/// 프로필 정보, 학습 계획 설정 메뉴를 제공한다.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -251,22 +250,6 @@ class ProfileScreen extends ConsumerWidget {
             textTheme,
             syncProgress,
             syncState.isLoading,
-          ),
-          Divider(
-            height: 1,
-            color: HanjaColors.outlineVariant.withValues(alpha: 0.15),
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout, color: HanjaColors.error),
-            title: Text(
-              '로그아웃',
-              style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              await ref.read(authControllerProvider.notifier).signOut();
-              if (context.mounted) context.go(AppRoutes.landing);
-            },
           ),
         ],
       ),

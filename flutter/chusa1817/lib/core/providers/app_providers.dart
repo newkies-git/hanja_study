@@ -64,6 +64,11 @@ final totalHanjaCountProvider = FutureProvider<int>((ref) {
   return ref.watch(hanjaRepositoryProvider).fetchTotalCount();
 });
 
+/// 마스터한 한자 갯수 FutureProvider.
+final masteredHanjaCountProvider = FutureProvider<int>((ref) {
+  return ref.watch(progressRepositoryProvider).fetchMasteredCount();
+});
+
 /// 학습 탭 그리드. Firestore `구분`에 따라 `schoolLevel`이 middle/high/both로 갈리므로
 /// 중학만 필터하면 데이터가 비는 경우가 있다 — 동기화된 전체 한자를 쓴다.
 final learnHanjaListProvider = FutureProvider<List<HanjaTableData>>((ref) {
@@ -236,4 +241,11 @@ final hanjaProgressProvider =
     FutureProvider.family<UserProgressTableData?, String>((ref, hanjaId) async {
   final repo = ref.watch(progressRepositoryProvider);
   return repo.fetchProgress(hanjaId);
+});
+
+/// 오늘 학습할 한자 목록 (목표량 기준).
+final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, String)>>((ref) async {
+  final goal = await ref.watch(dailyGoalProvider.future);
+  final repo = ref.watch(progressRepositoryProvider);
+  return repo.fetchTodayLearningHanja(dailyGoal: goal);
 });
