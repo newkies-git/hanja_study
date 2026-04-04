@@ -1,0 +1,17 @@
+@use '../variables' as *;
+
+.v-file-input {
+
+  .v-field__input {
+    .v-chip {
+      height: auto; // Allow chip to grow vertically
+      max-width: 100%;
+
+      .v-chip__content {
+        white-space: normal; // Allow text wrapping
+        word-break: break-all; // Break long words (filenames)
+        display: block;
+      }
+    }
+  }
+}

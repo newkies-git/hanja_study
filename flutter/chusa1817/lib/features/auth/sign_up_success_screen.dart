@@ -1,16 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/auth_providers.dart';
+import '../../core/providers/app_providers.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 
-class SignUpSuccessScreen extends StatelessWidget {
+class SignUpSuccessScreen extends ConsumerWidget {
   const SignUpSuccessScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    
+    // 로컬 DB(Drift)에서 사용자 프로필 정보 구독
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final String displayName = profileAsync.when(
+      data: (profile) => profile?.displayName ?? '선비님',
+      loading: () => '선비님',
+      error: (_, __) => '선비님',
+    );
 
     return Scaffold(
       backgroundColor: HanjaColors.surface,
@@ -77,7 +88,7 @@ class SignUpSuccessScreen extends StatelessWidget {
                       style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                       children: [
                         TextSpan(
-                          text: '선비님!',
+                          text: displayName.endsWith('님') ? '$displayName!' : '$displayName님!',
                           style: textTheme.headlineSmall?.copyWith(color: HanjaColors.primary, fontWeight: FontWeight.bold),
                         ),
                       ],

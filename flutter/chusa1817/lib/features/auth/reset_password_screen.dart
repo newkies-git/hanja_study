@@ -6,8 +6,8 @@ import 'package:flutter/foundation.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
-import '../../shared/widgets/editorial_text_field.dart';
-import '../../shared/widgets/form_field_label.dart';
+import '../../shared/widgets/editorial_input_group.dart';
+import '../../shared/widgets/ghost_divider.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
 
@@ -115,19 +115,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 32),
-                          const Align(
-                            alignment: Alignment.centerLeft,
-                            child: FormFieldLabel(label: '이메일 주소'),
-                          ),
-                          const SizedBox(height: 8),
-                          EditorialTextField(
+                          EditorialInputGroup(
+                            label: '이메일 주소',
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            hintText: 'example@scholar.com',
-                            prefix: const Padding(
-                              padding: EdgeInsets.only(left: 16, right: 8),
-                              child: Icon(Icons.mail, color: HanjaColors.outline, size: 20),
-                            ),
+                            hintText: 'email@example.com',
+                            isRequired: true,
                             validator: (value) =>
                                 (value == null || value.trim().isEmpty) ? '이메일을 입력해 주세요' : null,
                           ),

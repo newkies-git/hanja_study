@@ -5831,6 +5831,2062 @@ class SyncQueueTableCompanion extends UpdateCompanion<SyncQueueTableData> {
   }
 }
 
+class $UserProfileTableTable extends UserProfileTable
+    with TableInfo<$UserProfileTableTable, UserProfileTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UserProfileTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _photoUrlMeta = const VerificationMeta(
+    'photoUrl',
+  );
+  @override
+  late final GeneratedColumn<String> photoUrl = GeneratedColumn<String>(
+    'photo_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local_only'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncRevisionMeta = const VerificationMeta(
+    'syncRevision',
+  );
+  @override
+  late final GeneratedColumn<int> syncRevision = GeneratedColumn<int>(
+    'sync_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    email,
+    photoUrl,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    syncRevision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'user_profile';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UserProfileTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
+    if (data.containsKey('photo_url')) {
+      context.handle(
+        _photoUrlMeta,
+        photoUrl.isAcceptableOrUnknown(data['photo_url']!, _photoUrlMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_revision')) {
+      context.handle(
+        _syncRevisionMeta,
+        syncRevision.isAcceptableOrUnknown(
+          data['sync_revision']!,
+          _syncRevisionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UserProfileTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserProfileTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      ),
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      ),
+      photoUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_url'],
+      ),
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_revision'],
+      )!,
+    );
+  }
+
+  @override
+  $UserProfileTableTable createAlias(String alias) {
+    return $UserProfileTableTable(attachedDatabase, alias);
+  }
+}
+
+class UserProfileTableData extends DataClass
+    implements Insertable<UserProfileTableData> {
+  final String id;
+  final String? displayName;
+  final String? email;
+  final String? photoUrl;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final int syncRevision;
+  const UserProfileTableData({
+    required this.id,
+    this.displayName,
+    this.email,
+    this.photoUrl,
+    required this.syncStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncRevision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || displayName != null) {
+      map['display_name'] = Variable<String>(displayName);
+    }
+    if (!nullToAbsent || email != null) {
+      map['email'] = Variable<String>(email);
+    }
+    if (!nullToAbsent || photoUrl != null) {
+      map['photo_url'] = Variable<String>(photoUrl);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['sync_revision'] = Variable<int>(syncRevision);
+    return map;
+  }
+
+  UserProfileTableCompanion toCompanion(bool nullToAbsent) {
+    return UserProfileTableCompanion(
+      id: Value(id),
+      displayName: displayName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(displayName),
+      email: email == null && nullToAbsent
+          ? const Value.absent()
+          : Value(email),
+      photoUrl: photoUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoUrl),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncRevision: Value(syncRevision),
+    );
+  }
+
+  factory UserProfileTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserProfileTableData(
+      id: serializer.fromJson<String>(json['id']),
+      displayName: serializer.fromJson<String?>(json['displayName']),
+      email: serializer.fromJson<String?>(json['email']),
+      photoUrl: serializer.fromJson<String?>(json['photoUrl']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncRevision: serializer.fromJson<int>(json['syncRevision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'displayName': serializer.toJson<String?>(displayName),
+      'email': serializer.toJson<String?>(email),
+      'photoUrl': serializer.toJson<String?>(photoUrl),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncRevision': serializer.toJson<int>(syncRevision),
+    };
+  }
+
+  UserProfileTableData copyWith({
+    String? id,
+    Value<String?> displayName = const Value.absent(),
+    Value<String?> email = const Value.absent(),
+    Value<String?> photoUrl = const Value.absent(),
+    String? syncStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? syncRevision,
+  }) => UserProfileTableData(
+    id: id ?? this.id,
+    displayName: displayName.present ? displayName.value : this.displayName,
+    email: email.present ? email.value : this.email,
+    photoUrl: photoUrl.present ? photoUrl.value : this.photoUrl,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncRevision: syncRevision ?? this.syncRevision,
+  );
+  UserProfileTableData copyWithCompanion(UserProfileTableCompanion data) {
+    return UserProfileTableData(
+      id: data.id.present ? data.id.value : this.id,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      email: data.email.present ? data.email.value : this.email,
+      photoUrl: data.photoUrl.present ? data.photoUrl.value : this.photoUrl,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncRevision: data.syncRevision.present
+          ? data.syncRevision.value
+          : this.syncRevision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserProfileTableData(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('email: $email, ')
+          ..write('photoUrl: $photoUrl, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncRevision: $syncRevision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    displayName,
+    email,
+    photoUrl,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    syncRevision,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserProfileTableData &&
+          other.id == this.id &&
+          other.displayName == this.displayName &&
+          other.email == this.email &&
+          other.photoUrl == this.photoUrl &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncRevision == this.syncRevision);
+}
+
+class UserProfileTableCompanion extends UpdateCompanion<UserProfileTableData> {
+  final Value<String> id;
+  final Value<String?> displayName;
+  final Value<String?> email;
+  final Value<String?> photoUrl;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> syncRevision;
+  final Value<int> rowid;
+  const UserProfileTableCompanion({
+    this.id = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.email = const Value.absent(),
+    this.photoUrl = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncRevision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  UserProfileTableCompanion.insert({
+    required String id,
+    this.displayName = const Value.absent(),
+    this.email = const Value.absent(),
+    this.photoUrl = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncRevision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<UserProfileTableData> custom({
+    Expression<String>? id,
+    Expression<String>? displayName,
+    Expression<String>? email,
+    Expression<String>? photoUrl,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? syncRevision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (displayName != null) 'display_name': displayName,
+      if (email != null) 'email': email,
+      if (photoUrl != null) 'photo_url': photoUrl,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncRevision != null) 'sync_revision': syncRevision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  UserProfileTableCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? displayName,
+    Value<String?>? email,
+    Value<String?>? photoUrl,
+    Value<String>? syncStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? syncRevision,
+    Value<int>? rowid,
+  }) {
+    return UserProfileTableCompanion(
+      id: id ?? this.id,
+      displayName: displayName ?? this.displayName,
+      email: email ?? this.email,
+      photoUrl: photoUrl ?? this.photoUrl,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncRevision: syncRevision ?? this.syncRevision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (photoUrl.present) {
+      map['photo_url'] = Variable<String>(photoUrl.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncRevision.present) {
+      map['sync_revision'] = Variable<int>(syncRevision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserProfileTableCompanion(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('email: $email, ')
+          ..write('photoUrl: $photoUrl, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncRevision: $syncRevision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LoginHistoryTableTable extends LoginHistoryTable
+    with TableInfo<$LoginHistoryTableTable, LoginHistoryTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LoginHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _loginAtMeta = const VerificationMeta(
+    'loginAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> loginAt = GeneratedColumn<DateTime>(
+    'login_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, userId, loginAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'login_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LoginHistoryTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('login_at')) {
+      context.handle(
+        _loginAtMeta,
+        loginAt.isAcceptableOrUnknown(data['login_at']!, _loginAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LoginHistoryTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LoginHistoryTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      loginAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}login_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LoginHistoryTableTable createAlias(String alias) {
+    return $LoginHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class LoginHistoryTableData extends DataClass
+    implements Insertable<LoginHistoryTableData> {
+  final String id;
+  final String userId;
+  final DateTime loginAt;
+  const LoginHistoryTableData({
+    required this.id,
+    required this.userId,
+    required this.loginAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['login_at'] = Variable<DateTime>(loginAt);
+    return map;
+  }
+
+  LoginHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return LoginHistoryTableCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      loginAt: Value(loginAt),
+    );
+  }
+
+  factory LoginHistoryTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LoginHistoryTableData(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      loginAt: serializer.fromJson<DateTime>(json['loginAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'loginAt': serializer.toJson<DateTime>(loginAt),
+    };
+  }
+
+  LoginHistoryTableData copyWith({
+    String? id,
+    String? userId,
+    DateTime? loginAt,
+  }) => LoginHistoryTableData(
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    loginAt: loginAt ?? this.loginAt,
+  );
+  LoginHistoryTableData copyWithCompanion(LoginHistoryTableCompanion data) {
+    return LoginHistoryTableData(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      loginAt: data.loginAt.present ? data.loginAt.value : this.loginAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoginHistoryTableData(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('loginAt: $loginAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, userId, loginAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoginHistoryTableData &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.loginAt == this.loginAt);
+}
+
+class LoginHistoryTableCompanion
+    extends UpdateCompanion<LoginHistoryTableData> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<DateTime> loginAt;
+  final Value<int> rowid;
+  const LoginHistoryTableCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.loginAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LoginHistoryTableCompanion.insert({
+    required String id,
+    required String userId,
+    this.loginAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       userId = Value(userId);
+  static Insertable<LoginHistoryTableData> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<DateTime>? loginAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (loginAt != null) 'login_at': loginAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LoginHistoryTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? userId,
+    Value<DateTime>? loginAt,
+    Value<int>? rowid,
+  }) {
+    return LoginHistoryTableCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      loginAt: loginAt ?? this.loginAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (loginAt.present) {
+      map['login_at'] = Variable<DateTime>(loginAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoginHistoryTableCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('loginAt: $loginAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DailyActivityStatsTableTable extends DailyActivityStatsTable
+    with TableInfo<$DailyActivityStatsTableTable, DailyActivityStatsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyActivityStatsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _loginCountMeta = const VerificationMeta(
+    'loginCount',
+  );
+  @override
+  late final GeneratedColumn<int> loginCount = GeneratedColumn<int>(
+    'login_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sessionCountMeta = const VerificationMeta(
+    'sessionCount',
+  );
+  @override
+  late final GeneratedColumn<int> sessionCount = GeneratedColumn<int>(
+    'session_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _plannedCountMeta = const VerificationMeta(
+    'plannedCount',
+  );
+  @override
+  late final GeneratedColumn<int> plannedCount = GeneratedColumn<int>(
+    'planned_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _inProgressCountMeta = const VerificationMeta(
+    'inProgressCount',
+  );
+  @override
+  late final GeneratedColumn<int> inProgressCount = GeneratedColumn<int>(
+    'in_progress_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _completedCountMeta = const VerificationMeta(
+    'completedCount',
+  );
+  @override
+  late final GeneratedColumn<int> completedCount = GeneratedColumn<int>(
+    'completed_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local_only'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncRevisionMeta = const VerificationMeta(
+    'syncRevision',
+  );
+  @override
+  late final GeneratedColumn<int> syncRevision = GeneratedColumn<int>(
+    'sync_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    date,
+    userId,
+    loginCount,
+    sessionCount,
+    plannedCount,
+    inProgressCount,
+    completedCount,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    syncRevision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_activity_stats';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyActivityStatsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('login_count')) {
+      context.handle(
+        _loginCountMeta,
+        loginCount.isAcceptableOrUnknown(data['login_count']!, _loginCountMeta),
+      );
+    }
+    if (data.containsKey('session_count')) {
+      context.handle(
+        _sessionCountMeta,
+        sessionCount.isAcceptableOrUnknown(
+          data['session_count']!,
+          _sessionCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('planned_count')) {
+      context.handle(
+        _plannedCountMeta,
+        plannedCount.isAcceptableOrUnknown(
+          data['planned_count']!,
+          _plannedCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('in_progress_count')) {
+      context.handle(
+        _inProgressCountMeta,
+        inProgressCount.isAcceptableOrUnknown(
+          data['in_progress_count']!,
+          _inProgressCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('completed_count')) {
+      context.handle(
+        _completedCountMeta,
+        completedCount.isAcceptableOrUnknown(
+          data['completed_count']!,
+          _completedCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_revision')) {
+      context.handle(
+        _syncRevisionMeta,
+        syncRevision.isAcceptableOrUnknown(
+          data['sync_revision']!,
+          _syncRevisionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DailyActivityStatsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyActivityStatsTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      loginCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}login_count'],
+      )!,
+      sessionCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}session_count'],
+      )!,
+      plannedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}planned_count'],
+      )!,
+      inProgressCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}in_progress_count'],
+      )!,
+      completedCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}completed_count'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_revision'],
+      )!,
+    );
+  }
+
+  @override
+  $DailyActivityStatsTableTable createAlias(String alias) {
+    return $DailyActivityStatsTableTable(attachedDatabase, alias);
+  }
+}
+
+class DailyActivityStatsTableData extends DataClass
+    implements Insertable<DailyActivityStatsTableData> {
+  final String id;
+  final DateTime date;
+  final String userId;
+  final int loginCount;
+  final int sessionCount;
+  final int plannedCount;
+  final int inProgressCount;
+  final int completedCount;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final int syncRevision;
+  const DailyActivityStatsTableData({
+    required this.id,
+    required this.date,
+    required this.userId,
+    required this.loginCount,
+    required this.sessionCount,
+    required this.plannedCount,
+    required this.inProgressCount,
+    required this.completedCount,
+    required this.syncStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncRevision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['date'] = Variable<DateTime>(date);
+    map['user_id'] = Variable<String>(userId);
+    map['login_count'] = Variable<int>(loginCount);
+    map['session_count'] = Variable<int>(sessionCount);
+    map['planned_count'] = Variable<int>(plannedCount);
+    map['in_progress_count'] = Variable<int>(inProgressCount);
+    map['completed_count'] = Variable<int>(completedCount);
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['sync_revision'] = Variable<int>(syncRevision);
+    return map;
+  }
+
+  DailyActivityStatsTableCompanion toCompanion(bool nullToAbsent) {
+    return DailyActivityStatsTableCompanion(
+      id: Value(id),
+      date: Value(date),
+      userId: Value(userId),
+      loginCount: Value(loginCount),
+      sessionCount: Value(sessionCount),
+      plannedCount: Value(plannedCount),
+      inProgressCount: Value(inProgressCount),
+      completedCount: Value(completedCount),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncRevision: Value(syncRevision),
+    );
+  }
+
+  factory DailyActivityStatsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyActivityStatsTableData(
+      id: serializer.fromJson<String>(json['id']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      userId: serializer.fromJson<String>(json['userId']),
+      loginCount: serializer.fromJson<int>(json['loginCount']),
+      sessionCount: serializer.fromJson<int>(json['sessionCount']),
+      plannedCount: serializer.fromJson<int>(json['plannedCount']),
+      inProgressCount: serializer.fromJson<int>(json['inProgressCount']),
+      completedCount: serializer.fromJson<int>(json['completedCount']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncRevision: serializer.fromJson<int>(json['syncRevision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'date': serializer.toJson<DateTime>(date),
+      'userId': serializer.toJson<String>(userId),
+      'loginCount': serializer.toJson<int>(loginCount),
+      'sessionCount': serializer.toJson<int>(sessionCount),
+      'plannedCount': serializer.toJson<int>(plannedCount),
+      'inProgressCount': serializer.toJson<int>(inProgressCount),
+      'completedCount': serializer.toJson<int>(completedCount),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncRevision': serializer.toJson<int>(syncRevision),
+    };
+  }
+
+  DailyActivityStatsTableData copyWith({
+    String? id,
+    DateTime? date,
+    String? userId,
+    int? loginCount,
+    int? sessionCount,
+    int? plannedCount,
+    int? inProgressCount,
+    int? completedCount,
+    String? syncStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? syncRevision,
+  }) => DailyActivityStatsTableData(
+    id: id ?? this.id,
+    date: date ?? this.date,
+    userId: userId ?? this.userId,
+    loginCount: loginCount ?? this.loginCount,
+    sessionCount: sessionCount ?? this.sessionCount,
+    plannedCount: plannedCount ?? this.plannedCount,
+    inProgressCount: inProgressCount ?? this.inProgressCount,
+    completedCount: completedCount ?? this.completedCount,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncRevision: syncRevision ?? this.syncRevision,
+  );
+  DailyActivityStatsTableData copyWithCompanion(
+    DailyActivityStatsTableCompanion data,
+  ) {
+    return DailyActivityStatsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      date: data.date.present ? data.date.value : this.date,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      loginCount: data.loginCount.present
+          ? data.loginCount.value
+          : this.loginCount,
+      sessionCount: data.sessionCount.present
+          ? data.sessionCount.value
+          : this.sessionCount,
+      plannedCount: data.plannedCount.present
+          ? data.plannedCount.value
+          : this.plannedCount,
+      inProgressCount: data.inProgressCount.present
+          ? data.inProgressCount.value
+          : this.inProgressCount,
+      completedCount: data.completedCount.present
+          ? data.completedCount.value
+          : this.completedCount,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncRevision: data.syncRevision.present
+          ? data.syncRevision.value
+          : this.syncRevision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyActivityStatsTableData(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('userId: $userId, ')
+          ..write('loginCount: $loginCount, ')
+          ..write('sessionCount: $sessionCount, ')
+          ..write('plannedCount: $plannedCount, ')
+          ..write('inProgressCount: $inProgressCount, ')
+          ..write('completedCount: $completedCount, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncRevision: $syncRevision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    date,
+    userId,
+    loginCount,
+    sessionCount,
+    plannedCount,
+    inProgressCount,
+    completedCount,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    syncRevision,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyActivityStatsTableData &&
+          other.id == this.id &&
+          other.date == this.date &&
+          other.userId == this.userId &&
+          other.loginCount == this.loginCount &&
+          other.sessionCount == this.sessionCount &&
+          other.plannedCount == this.plannedCount &&
+          other.inProgressCount == this.inProgressCount &&
+          other.completedCount == this.completedCount &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncRevision == this.syncRevision);
+}
+
+class DailyActivityStatsTableCompanion
+    extends UpdateCompanion<DailyActivityStatsTableData> {
+  final Value<String> id;
+  final Value<DateTime> date;
+  final Value<String> userId;
+  final Value<int> loginCount;
+  final Value<int> sessionCount;
+  final Value<int> plannedCount;
+  final Value<int> inProgressCount;
+  final Value<int> completedCount;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> syncRevision;
+  final Value<int> rowid;
+  const DailyActivityStatsTableCompanion({
+    this.id = const Value.absent(),
+    this.date = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.loginCount = const Value.absent(),
+    this.sessionCount = const Value.absent(),
+    this.plannedCount = const Value.absent(),
+    this.inProgressCount = const Value.absent(),
+    this.completedCount = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncRevision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailyActivityStatsTableCompanion.insert({
+    required String id,
+    required DateTime date,
+    required String userId,
+    this.loginCount = const Value.absent(),
+    this.sessionCount = const Value.absent(),
+    this.plannedCount = const Value.absent(),
+    this.inProgressCount = const Value.absent(),
+    this.completedCount = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncRevision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       date = Value(date),
+       userId = Value(userId);
+  static Insertable<DailyActivityStatsTableData> custom({
+    Expression<String>? id,
+    Expression<DateTime>? date,
+    Expression<String>? userId,
+    Expression<int>? loginCount,
+    Expression<int>? sessionCount,
+    Expression<int>? plannedCount,
+    Expression<int>? inProgressCount,
+    Expression<int>? completedCount,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? syncRevision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (date != null) 'date': date,
+      if (userId != null) 'user_id': userId,
+      if (loginCount != null) 'login_count': loginCount,
+      if (sessionCount != null) 'session_count': sessionCount,
+      if (plannedCount != null) 'planned_count': plannedCount,
+      if (inProgressCount != null) 'in_progress_count': inProgressCount,
+      if (completedCount != null) 'completed_count': completedCount,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncRevision != null) 'sync_revision': syncRevision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailyActivityStatsTableCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? date,
+    Value<String>? userId,
+    Value<int>? loginCount,
+    Value<int>? sessionCount,
+    Value<int>? plannedCount,
+    Value<int>? inProgressCount,
+    Value<int>? completedCount,
+    Value<String>? syncStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? syncRevision,
+    Value<int>? rowid,
+  }) {
+    return DailyActivityStatsTableCompanion(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      userId: userId ?? this.userId,
+      loginCount: loginCount ?? this.loginCount,
+      sessionCount: sessionCount ?? this.sessionCount,
+      plannedCount: plannedCount ?? this.plannedCount,
+      inProgressCount: inProgressCount ?? this.inProgressCount,
+      completedCount: completedCount ?? this.completedCount,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncRevision: syncRevision ?? this.syncRevision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (loginCount.present) {
+      map['login_count'] = Variable<int>(loginCount.value);
+    }
+    if (sessionCount.present) {
+      map['session_count'] = Variable<int>(sessionCount.value);
+    }
+    if (plannedCount.present) {
+      map['planned_count'] = Variable<int>(plannedCount.value);
+    }
+    if (inProgressCount.present) {
+      map['in_progress_count'] = Variable<int>(inProgressCount.value);
+    }
+    if (completedCount.present) {
+      map['completed_count'] = Variable<int>(completedCount.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncRevision.present) {
+      map['sync_revision'] = Variable<int>(syncRevision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyActivityStatsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('userId: $userId, ')
+          ..write('loginCount: $loginCount, ')
+          ..write('sessionCount: $sessionCount, ')
+          ..write('plannedCount: $plannedCount, ')
+          ..write('inProgressCount: $inProgressCount, ')
+          ..write('completedCount: $completedCount, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncRevision: $syncRevision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DailyHanjaActivityTableTable extends DailyHanjaActivityTable
+    with TableInfo<$DailyHanjaActivityTableTable, DailyHanjaActivityTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DailyHanjaActivityTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hanjaIdMeta = const VerificationMeta(
+    'hanjaId',
+  );
+  @override
+  late final GeneratedColumn<String> hanjaId = GeneratedColumn<String>(
+    'hanja_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('planned'),
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local_only'),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _syncRevisionMeta = const VerificationMeta(
+    'syncRevision',
+  );
+  @override
+  late final GeneratedColumn<int> syncRevision = GeneratedColumn<int>(
+    'sync_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    date,
+    userId,
+    hanjaId,
+    status,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    syncRevision,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'daily_hanja_activity';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DailyHanjaActivityTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('hanja_id')) {
+      context.handle(
+        _hanjaIdMeta,
+        hanjaId.isAcceptableOrUnknown(data['hanja_id']!, _hanjaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hanjaIdMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_revision')) {
+      context.handle(
+        _syncRevisionMeta,
+        syncRevision.isAcceptableOrUnknown(
+          data['sync_revision']!,
+          _syncRevisionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DailyHanjaActivityTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DailyHanjaActivityTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      hanjaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hanja_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      syncRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sync_revision'],
+      )!,
+    );
+  }
+
+  @override
+  $DailyHanjaActivityTableTable createAlias(String alias) {
+    return $DailyHanjaActivityTableTable(attachedDatabase, alias);
+  }
+}
+
+class DailyHanjaActivityTableData extends DataClass
+    implements Insertable<DailyHanjaActivityTableData> {
+  final String id;
+  final DateTime date;
+  final String userId;
+  final String hanjaId;
+  final String status;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final int syncRevision;
+  const DailyHanjaActivityTableData({
+    required this.id,
+    required this.date,
+    required this.userId,
+    required this.hanjaId,
+    required this.status,
+    required this.syncStatus,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.syncRevision,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['date'] = Variable<DateTime>(date);
+    map['user_id'] = Variable<String>(userId);
+    map['hanja_id'] = Variable<String>(hanjaId);
+    map['status'] = Variable<String>(status);
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['sync_revision'] = Variable<int>(syncRevision);
+    return map;
+  }
+
+  DailyHanjaActivityTableCompanion toCompanion(bool nullToAbsent) {
+    return DailyHanjaActivityTableCompanion(
+      id: Value(id),
+      date: Value(date),
+      userId: Value(userId),
+      hanjaId: Value(hanjaId),
+      status: Value(status),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      syncRevision: Value(syncRevision),
+    );
+  }
+
+  factory DailyHanjaActivityTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DailyHanjaActivityTableData(
+      id: serializer.fromJson<String>(json['id']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      userId: serializer.fromJson<String>(json['userId']),
+      hanjaId: serializer.fromJson<String>(json['hanjaId']),
+      status: serializer.fromJson<String>(json['status']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      syncRevision: serializer.fromJson<int>(json['syncRevision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'date': serializer.toJson<DateTime>(date),
+      'userId': serializer.toJson<String>(userId),
+      'hanjaId': serializer.toJson<String>(hanjaId),
+      'status': serializer.toJson<String>(status),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'syncRevision': serializer.toJson<int>(syncRevision),
+    };
+  }
+
+  DailyHanjaActivityTableData copyWith({
+    String? id,
+    DateTime? date,
+    String? userId,
+    String? hanjaId,
+    String? status,
+    String? syncStatus,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? syncRevision,
+  }) => DailyHanjaActivityTableData(
+    id: id ?? this.id,
+    date: date ?? this.date,
+    userId: userId ?? this.userId,
+    hanjaId: hanjaId ?? this.hanjaId,
+    status: status ?? this.status,
+    syncStatus: syncStatus ?? this.syncStatus,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    syncRevision: syncRevision ?? this.syncRevision,
+  );
+  DailyHanjaActivityTableData copyWithCompanion(
+    DailyHanjaActivityTableCompanion data,
+  ) {
+    return DailyHanjaActivityTableData(
+      id: data.id.present ? data.id.value : this.id,
+      date: data.date.present ? data.date.value : this.date,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      hanjaId: data.hanjaId.present ? data.hanjaId.value : this.hanjaId,
+      status: data.status.present ? data.status.value : this.status,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncRevision: data.syncRevision.present
+          ? data.syncRevision.value
+          : this.syncRevision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyHanjaActivityTableData(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('userId: $userId, ')
+          ..write('hanjaId: $hanjaId, ')
+          ..write('status: $status, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncRevision: $syncRevision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    date,
+    userId,
+    hanjaId,
+    status,
+    syncStatus,
+    createdAt,
+    updatedAt,
+    syncRevision,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DailyHanjaActivityTableData &&
+          other.id == this.id &&
+          other.date == this.date &&
+          other.userId == this.userId &&
+          other.hanjaId == this.hanjaId &&
+          other.status == this.status &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncRevision == this.syncRevision);
+}
+
+class DailyHanjaActivityTableCompanion
+    extends UpdateCompanion<DailyHanjaActivityTableData> {
+  final Value<String> id;
+  final Value<DateTime> date;
+  final Value<String> userId;
+  final Value<String> hanjaId;
+  final Value<String> status;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> syncRevision;
+  final Value<int> rowid;
+  const DailyHanjaActivityTableCompanion({
+    this.id = const Value.absent(),
+    this.date = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.hanjaId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncRevision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DailyHanjaActivityTableCompanion.insert({
+    required String id,
+    required DateTime date,
+    required String userId,
+    required String hanjaId,
+    this.status = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncRevision = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       date = Value(date),
+       userId = Value(userId),
+       hanjaId = Value(hanjaId);
+  static Insertable<DailyHanjaActivityTableData> custom({
+    Expression<String>? id,
+    Expression<DateTime>? date,
+    Expression<String>? userId,
+    Expression<String>? hanjaId,
+    Expression<String>? status,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? syncRevision,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (date != null) 'date': date,
+      if (userId != null) 'user_id': userId,
+      if (hanjaId != null) 'hanja_id': hanjaId,
+      if (status != null) 'status': status,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncRevision != null) 'sync_revision': syncRevision,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DailyHanjaActivityTableCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? date,
+    Value<String>? userId,
+    Value<String>? hanjaId,
+    Value<String>? status,
+    Value<String>? syncStatus,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? syncRevision,
+    Value<int>? rowid,
+  }) {
+    return DailyHanjaActivityTableCompanion(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      userId: userId ?? this.userId,
+      hanjaId: hanjaId ?? this.hanjaId,
+      status: status ?? this.status,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncRevision: syncRevision ?? this.syncRevision,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (hanjaId.present) {
+      map['hanja_id'] = Variable<String>(hanjaId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncRevision.present) {
+      map['sync_revision'] = Variable<int>(syncRevision.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DailyHanjaActivityTableCompanion(')
+          ..write('id: $id, ')
+          ..write('date: $date, ')
+          ..write('userId: $userId, ')
+          ..write('hanjaId: $hanjaId, ')
+          ..write('status: $status, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncRevision: $syncRevision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5859,6 +7915,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     this,
   );
   late final $SyncQueueTableTable syncQueueTable = $SyncQueueTableTable(this);
+  late final $UserProfileTableTable userProfileTable = $UserProfileTableTable(
+    this,
+  );
+  late final $LoginHistoryTableTable loginHistoryTable =
+      $LoginHistoryTableTable(this);
+  late final $DailyActivityStatsTableTable dailyActivityStatsTable =
+      $DailyActivityStatsTableTable(this);
+  late final $DailyHanjaActivityTableTable dailyHanjaActivityTable =
+      $DailyHanjaActivityTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5876,6 +7941,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     answerHistoryTable,
     appSettingsTable,
     syncQueueTable,
+    userProfileTable,
+    loginHistoryTable,
+    dailyActivityStatsTable,
+    dailyHanjaActivityTable,
   ];
 }
 
@@ -9236,6 +11305,1119 @@ typedef $$SyncQueueTableTableProcessedTableManager =
       SyncQueueTableData,
       PrefetchHooks Function()
     >;
+typedef $$UserProfileTableTableCreateCompanionBuilder =
+    UserProfileTableCompanion Function({
+      required String id,
+      Value<String?> displayName,
+      Value<String?> email,
+      Value<String?> photoUrl,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> syncRevision,
+      Value<int> rowid,
+    });
+typedef $$UserProfileTableTableUpdateCompanionBuilder =
+    UserProfileTableCompanion Function({
+      Value<String> id,
+      Value<String?> displayName,
+      Value<String?> email,
+      Value<String?> photoUrl,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> syncRevision,
+      Value<int> rowid,
+    });
+
+class $$UserProfileTableTableFilterComposer
+    extends Composer<_$AppDatabase, $UserProfileTableTable> {
+  $$UserProfileTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoUrl => $composableBuilder(
+    column: $table.photoUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UserProfileTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $UserProfileTableTable> {
+  $$UserProfileTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get photoUrl => $composableBuilder(
+    column: $table.photoUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UserProfileTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UserProfileTableTable> {
+  $$UserProfileTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get photoUrl =>
+      $composableBuilder(column: $table.photoUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => column,
+  );
+}
+
+class $$UserProfileTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UserProfileTableTable,
+          UserProfileTableData,
+          $$UserProfileTableTableFilterComposer,
+          $$UserProfileTableTableOrderingComposer,
+          $$UserProfileTableTableAnnotationComposer,
+          $$UserProfileTableTableCreateCompanionBuilder,
+          $$UserProfileTableTableUpdateCompanionBuilder,
+          (
+            UserProfileTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $UserProfileTableTable,
+              UserProfileTableData
+            >,
+          ),
+          UserProfileTableData,
+          PrefetchHooks Function()
+        > {
+  $$UserProfileTableTableTableManager(
+    _$AppDatabase db,
+    $UserProfileTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UserProfileTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UserProfileTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UserProfileTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> displayName = const Value.absent(),
+                Value<String?> email = const Value.absent(),
+                Value<String?> photoUrl = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> syncRevision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserProfileTableCompanion(
+                id: id,
+                displayName: displayName,
+                email: email,
+                photoUrl: photoUrl,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncRevision: syncRevision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> displayName = const Value.absent(),
+                Value<String?> email = const Value.absent(),
+                Value<String?> photoUrl = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> syncRevision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => UserProfileTableCompanion.insert(
+                id: id,
+                displayName: displayName,
+                email: email,
+                photoUrl: photoUrl,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncRevision: syncRevision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UserProfileTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UserProfileTableTable,
+      UserProfileTableData,
+      $$UserProfileTableTableFilterComposer,
+      $$UserProfileTableTableOrderingComposer,
+      $$UserProfileTableTableAnnotationComposer,
+      $$UserProfileTableTableCreateCompanionBuilder,
+      $$UserProfileTableTableUpdateCompanionBuilder,
+      (
+        UserProfileTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $UserProfileTableTable,
+          UserProfileTableData
+        >,
+      ),
+      UserProfileTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$LoginHistoryTableTableCreateCompanionBuilder =
+    LoginHistoryTableCompanion Function({
+      required String id,
+      required String userId,
+      Value<DateTime> loginAt,
+      Value<int> rowid,
+    });
+typedef $$LoginHistoryTableTableUpdateCompanionBuilder =
+    LoginHistoryTableCompanion Function({
+      Value<String> id,
+      Value<String> userId,
+      Value<DateTime> loginAt,
+      Value<int> rowid,
+    });
+
+class $$LoginHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LoginHistoryTableTable> {
+  $$LoginHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get loginAt => $composableBuilder(
+    column: $table.loginAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LoginHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LoginHistoryTableTable> {
+  $$LoginHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get loginAt => $composableBuilder(
+    column: $table.loginAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LoginHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LoginHistoryTableTable> {
+  $$LoginHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get loginAt =>
+      $composableBuilder(column: $table.loginAt, builder: (column) => column);
+}
+
+class $$LoginHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LoginHistoryTableTable,
+          LoginHistoryTableData,
+          $$LoginHistoryTableTableFilterComposer,
+          $$LoginHistoryTableTableOrderingComposer,
+          $$LoginHistoryTableTableAnnotationComposer,
+          $$LoginHistoryTableTableCreateCompanionBuilder,
+          $$LoginHistoryTableTableUpdateCompanionBuilder,
+          (
+            LoginHistoryTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $LoginHistoryTableTable,
+              LoginHistoryTableData
+            >,
+          ),
+          LoginHistoryTableData,
+          PrefetchHooks Function()
+        > {
+  $$LoginHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $LoginHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LoginHistoryTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LoginHistoryTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LoginHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<DateTime> loginAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LoginHistoryTableCompanion(
+                id: id,
+                userId: userId,
+                loginAt: loginAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String userId,
+                Value<DateTime> loginAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LoginHistoryTableCompanion.insert(
+                id: id,
+                userId: userId,
+                loginAt: loginAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LoginHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LoginHistoryTableTable,
+      LoginHistoryTableData,
+      $$LoginHistoryTableTableFilterComposer,
+      $$LoginHistoryTableTableOrderingComposer,
+      $$LoginHistoryTableTableAnnotationComposer,
+      $$LoginHistoryTableTableCreateCompanionBuilder,
+      $$LoginHistoryTableTableUpdateCompanionBuilder,
+      (
+        LoginHistoryTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $LoginHistoryTableTable,
+          LoginHistoryTableData
+        >,
+      ),
+      LoginHistoryTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$DailyActivityStatsTableTableCreateCompanionBuilder =
+    DailyActivityStatsTableCompanion Function({
+      required String id,
+      required DateTime date,
+      required String userId,
+      Value<int> loginCount,
+      Value<int> sessionCount,
+      Value<int> plannedCount,
+      Value<int> inProgressCount,
+      Value<int> completedCount,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> syncRevision,
+      Value<int> rowid,
+    });
+typedef $$DailyActivityStatsTableTableUpdateCompanionBuilder =
+    DailyActivityStatsTableCompanion Function({
+      Value<String> id,
+      Value<DateTime> date,
+      Value<String> userId,
+      Value<int> loginCount,
+      Value<int> sessionCount,
+      Value<int> plannedCount,
+      Value<int> inProgressCount,
+      Value<int> completedCount,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> syncRevision,
+      Value<int> rowid,
+    });
+
+class $$DailyActivityStatsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $DailyActivityStatsTableTable> {
+  $$DailyActivityStatsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get loginCount => $composableBuilder(
+    column: $table.loginCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sessionCount => $composableBuilder(
+    column: $table.sessionCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get plannedCount => $composableBuilder(
+    column: $table.plannedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get inProgressCount => $composableBuilder(
+    column: $table.inProgressCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get completedCount => $composableBuilder(
+    column: $table.completedCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyActivityStatsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $DailyActivityStatsTableTable> {
+  $$DailyActivityStatsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get loginCount => $composableBuilder(
+    column: $table.loginCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sessionCount => $composableBuilder(
+    column: $table.sessionCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get plannedCount => $composableBuilder(
+    column: $table.plannedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get inProgressCount => $composableBuilder(
+    column: $table.inProgressCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get completedCount => $composableBuilder(
+    column: $table.completedCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyActivityStatsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DailyActivityStatsTableTable> {
+  $$DailyActivityStatsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<int> get loginCount => $composableBuilder(
+    column: $table.loginCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sessionCount => $composableBuilder(
+    column: $table.sessionCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get plannedCount => $composableBuilder(
+    column: $table.plannedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get inProgressCount => $composableBuilder(
+    column: $table.inProgressCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get completedCount => $composableBuilder(
+    column: $table.completedCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyActivityStatsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DailyActivityStatsTableTable,
+          DailyActivityStatsTableData,
+          $$DailyActivityStatsTableTableFilterComposer,
+          $$DailyActivityStatsTableTableOrderingComposer,
+          $$DailyActivityStatsTableTableAnnotationComposer,
+          $$DailyActivityStatsTableTableCreateCompanionBuilder,
+          $$DailyActivityStatsTableTableUpdateCompanionBuilder,
+          (
+            DailyActivityStatsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $DailyActivityStatsTableTable,
+              DailyActivityStatsTableData
+            >,
+          ),
+          DailyActivityStatsTableData,
+          PrefetchHooks Function()
+        > {
+  $$DailyActivityStatsTableTableTableManager(
+    _$AppDatabase db,
+    $DailyActivityStatsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyActivityStatsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$DailyActivityStatsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$DailyActivityStatsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<int> loginCount = const Value.absent(),
+                Value<int> sessionCount = const Value.absent(),
+                Value<int> plannedCount = const Value.absent(),
+                Value<int> inProgressCount = const Value.absent(),
+                Value<int> completedCount = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> syncRevision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyActivityStatsTableCompanion(
+                id: id,
+                date: date,
+                userId: userId,
+                loginCount: loginCount,
+                sessionCount: sessionCount,
+                plannedCount: plannedCount,
+                inProgressCount: inProgressCount,
+                completedCount: completedCount,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncRevision: syncRevision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime date,
+                required String userId,
+                Value<int> loginCount = const Value.absent(),
+                Value<int> sessionCount = const Value.absent(),
+                Value<int> plannedCount = const Value.absent(),
+                Value<int> inProgressCount = const Value.absent(),
+                Value<int> completedCount = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> syncRevision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyActivityStatsTableCompanion.insert(
+                id: id,
+                date: date,
+                userId: userId,
+                loginCount: loginCount,
+                sessionCount: sessionCount,
+                plannedCount: plannedCount,
+                inProgressCount: inProgressCount,
+                completedCount: completedCount,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncRevision: syncRevision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyActivityStatsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DailyActivityStatsTableTable,
+      DailyActivityStatsTableData,
+      $$DailyActivityStatsTableTableFilterComposer,
+      $$DailyActivityStatsTableTableOrderingComposer,
+      $$DailyActivityStatsTableTableAnnotationComposer,
+      $$DailyActivityStatsTableTableCreateCompanionBuilder,
+      $$DailyActivityStatsTableTableUpdateCompanionBuilder,
+      (
+        DailyActivityStatsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $DailyActivityStatsTableTable,
+          DailyActivityStatsTableData
+        >,
+      ),
+      DailyActivityStatsTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$DailyHanjaActivityTableTableCreateCompanionBuilder =
+    DailyHanjaActivityTableCompanion Function({
+      required String id,
+      required DateTime date,
+      required String userId,
+      required String hanjaId,
+      Value<String> status,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> syncRevision,
+      Value<int> rowid,
+    });
+typedef $$DailyHanjaActivityTableTableUpdateCompanionBuilder =
+    DailyHanjaActivityTableCompanion Function({
+      Value<String> id,
+      Value<DateTime> date,
+      Value<String> userId,
+      Value<String> hanjaId,
+      Value<String> status,
+      Value<String> syncStatus,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> syncRevision,
+      Value<int> rowid,
+    });
+
+class $$DailyHanjaActivityTableTableFilterComposer
+    extends Composer<_$AppDatabase, $DailyHanjaActivityTableTable> {
+  $$DailyHanjaActivityTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DailyHanjaActivityTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $DailyHanjaActivityTableTable> {
+  $$DailyHanjaActivityTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hanjaId => $composableBuilder(
+    column: $table.hanjaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DailyHanjaActivityTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DailyHanjaActivityTableTable> {
+  $$DailyHanjaActivityTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get hanjaId =>
+      $composableBuilder(column: $table.hanjaId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get syncRevision => $composableBuilder(
+    column: $table.syncRevision,
+    builder: (column) => column,
+  );
+}
+
+class $$DailyHanjaActivityTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DailyHanjaActivityTableTable,
+          DailyHanjaActivityTableData,
+          $$DailyHanjaActivityTableTableFilterComposer,
+          $$DailyHanjaActivityTableTableOrderingComposer,
+          $$DailyHanjaActivityTableTableAnnotationComposer,
+          $$DailyHanjaActivityTableTableCreateCompanionBuilder,
+          $$DailyHanjaActivityTableTableUpdateCompanionBuilder,
+          (
+            DailyHanjaActivityTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $DailyHanjaActivityTableTable,
+              DailyHanjaActivityTableData
+            >,
+          ),
+          DailyHanjaActivityTableData,
+          PrefetchHooks Function()
+        > {
+  $$DailyHanjaActivityTableTableTableManager(
+    _$AppDatabase db,
+    $DailyHanjaActivityTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DailyHanjaActivityTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$DailyHanjaActivityTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$DailyHanjaActivityTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> hanjaId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> syncRevision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyHanjaActivityTableCompanion(
+                id: id,
+                date: date,
+                userId: userId,
+                hanjaId: hanjaId,
+                status: status,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncRevision: syncRevision,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime date,
+                required String userId,
+                required String hanjaId,
+                Value<String> status = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> syncRevision = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DailyHanjaActivityTableCompanion.insert(
+                id: id,
+                date: date,
+                userId: userId,
+                hanjaId: hanjaId,
+                status: status,
+                syncStatus: syncStatus,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncRevision: syncRevision,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DailyHanjaActivityTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DailyHanjaActivityTableTable,
+      DailyHanjaActivityTableData,
+      $$DailyHanjaActivityTableTableFilterComposer,
+      $$DailyHanjaActivityTableTableOrderingComposer,
+      $$DailyHanjaActivityTableTableAnnotationComposer,
+      $$DailyHanjaActivityTableTableCreateCompanionBuilder,
+      $$DailyHanjaActivityTableTableUpdateCompanionBuilder,
+      (
+        DailyHanjaActivityTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $DailyHanjaActivityTableTable,
+          DailyHanjaActivityTableData
+        >,
+      ),
+      DailyHanjaActivityTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9267,4 +12449,18 @@ class $AppDatabaseManager {
       $$AppSettingsTableTableTableManager(_db, _db.appSettingsTable);
   $$SyncQueueTableTableTableManager get syncQueueTable =>
       $$SyncQueueTableTableTableManager(_db, _db.syncQueueTable);
+  $$UserProfileTableTableTableManager get userProfileTable =>
+      $$UserProfileTableTableTableManager(_db, _db.userProfileTable);
+  $$LoginHistoryTableTableTableManager get loginHistoryTable =>
+      $$LoginHistoryTableTableTableManager(_db, _db.loginHistoryTable);
+  $$DailyActivityStatsTableTableTableManager get dailyActivityStatsTable =>
+      $$DailyActivityStatsTableTableTableManager(
+        _db,
+        _db.dailyActivityStatsTable,
+      );
+  $$DailyHanjaActivityTableTableTableManager get dailyHanjaActivityTable =>
+      $$DailyHanjaActivityTableTableTableManager(
+        _db,
+        _db.dailyHanjaActivityTable,
+      );
 }

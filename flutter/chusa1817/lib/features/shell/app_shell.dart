@@ -74,10 +74,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       drawer: EditorialDrawer(
         selectedIndex: _selectedIndex,
         onItemSelected: _onNavigationItemTap,
-        onLogout: () async {
-          Navigator.pop(context);
-          await ref.read(authControllerProvider.notifier).signOut();
-        },
         userName: user?.displayName ?? '추사학도',
         userEmail: user?.email ?? 'scholar@chusa1817.app',
       ),

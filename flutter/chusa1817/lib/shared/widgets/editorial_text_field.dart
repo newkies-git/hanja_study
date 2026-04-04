@@ -16,9 +16,11 @@ class EditorialTextField extends StatefulWidget {
     this.prefix,
     this.suffix,
     this.validator,
+    this.onChanged,
     this.fillColor,
     this.textColor,
     this.hintColor,
+    this.errorText,
   });
 
   final TextEditingController controller;
@@ -28,9 +30,11 @@ class EditorialTextField extends StatefulWidget {
   final Widget? prefix;
   final Widget? suffix;
   final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
   final Color? fillColor;
   final Color? textColor;
   final Color? hintColor;
+  final String? errorText;
 
   @override
   State<EditorialTextField> createState() => _EditorialTextFieldState();
@@ -62,23 +66,32 @@ class _EditorialTextFieldState extends State<EditorialTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final bool hasError = widget.errorText != null;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       height: 42,
       decoration: BoxDecoration(
-        color: _isFocused
-            ? HanjaColors.surfaceContainerLowest
-            : (widget.fillColor ?? HanjaColors.surfaceContainerLow),
+        color: hasError
+            ? HanjaColors.error.withValues(alpha: 0.1)
+            : (_isFocused
+                ? HanjaColors.surfaceContainerLowest
+                : (widget.fillColor ?? HanjaColors.surfaceContainerLow)),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: _isFocused
+        boxShadow: hasError || _isFocused
             ? [
                 BoxShadow(
-                  color: HanjaColors.primary.withValues(alpha: 0.15),
+                  color: hasError
+                      ? HanjaColors.error.withValues(alpha: 0.25)
+                      : HanjaColors.primary.withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 0),
                   spreadRadius: 1,
                 ),
               ]
+            : null,
+        border: hasError
+            ? Border.all(color: HanjaColors.error.withValues(alpha: 0.5), width: 1)
             : null,
       ),
       child: TextFormField(
@@ -87,6 +100,7 @@ class _EditorialTextFieldState extends State<EditorialTextField> {
         keyboardType: widget.keyboardType,
         obscureText: widget.obscureText,
         validator: widget.validator,
+        onChanged: widget.onChanged,
         style: TextStyle(
           color: widget.textColor ?? HanjaColors.onSurface,
           fontSize: 14,
@@ -98,13 +112,15 @@ class _EditorialTextFieldState extends State<EditorialTextField> {
             color: widget.hintColor ?? HanjaColors.outline,
             fontSize: 14,
           ),
-          filled: false, // AnimatedContainer에서 배경 처리
+          filled: false,
           prefixIcon: widget.prefix,
           suffixIcon: widget.suffix,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 0,
           ),
+          // 에러 메시지는 외부에서 처리하므로 내부 메러 관련 UI는 무시
+          errorStyle: const TextStyle(height: 0, fontSize: 0),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,

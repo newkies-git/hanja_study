@@ -130,3 +130,90 @@ class SyncQueueTable extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// 사용자 기본 프로필 테이블 (로컬 주 저장소).
+///
+/// Firebase Auth는 인증만 담당하고, 실제 이름 등은 이 DB를 우선 참조한다.
+class UserProfileTable extends Table {
+  @override
+  String get tableName => 'user_profile';
+
+  TextColumn get id => text()(); // Firebase UID (Primary Key)
+  TextColumn get displayName => text().nullable()();
+  TextColumn get email => text().nullable()();
+  TextColumn get photoUrl => text().nullable()();
+
+  // ── 동기화 및 메타 ──────────────────────────────────────────────────────────
+  TextColumn get syncStatus => text().withDefault(const Constant('local_only'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  IntColumn get syncRevision => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 사용자 로그인 이력 테이블.
+class LoginHistoryTable extends Table {
+  @override
+  String get tableName => 'login_history';
+
+  TextColumn get id => text()(); // UUID
+  TextColumn get userId => text()();
+  DateTimeColumn get loginAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 일별 사용자 활동 및 학습 통계 테이블.
+class DailyActivityStatsTable extends Table {
+  @override
+  String get tableName => 'daily_activity_stats';
+
+  TextColumn get id => text()(); // date_userId 형태의 고유 키
+  DateTimeColumn get date => dateTime()(); // 통계 기준 날짜 (시간 제외)
+  TextColumn get userId => text()();
+
+  // ── 활동 집계 ──────────────────────────────────────────────────────────
+  IntColumn get loginCount => integer().withDefault(const Constant(0))();
+  IntColumn get sessionCount => integer().withDefault(const Constant(0))();
+
+  // ── 학습량 스냅샷 (량/횟수) ──────────────────────────────────────────────
+  IntColumn get plannedCount => integer().withDefault(const Constant(0))(); // 당일 계획량
+  IntColumn get inProgressCount => integer().withDefault(const Constant(0))(); // 학습 중인 한자 수
+  IntColumn get completedCount => integer().withDefault(const Constant(0))(); // 완료(마스터) 한자 수
+
+  // ── 동기화 및 메타 ──────────────────────────────────────────────────────────
+  TextColumn get syncStatus => text().withDefault(const Constant('local_only'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  IntColumn get syncRevision => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// 일별 학습 대상 한자 상세 관리 테이블.
+class DailyHanjaActivityTable extends Table {
+  @override
+  String get tableName => 'daily_hanja_activity';
+
+  TextColumn get id => text()(); // UUID
+  DateTimeColumn get date => dateTime()(); // 통계 기준 날짜 (시간 제외)
+  TextColumn get userId => text()();
+  TextColumn get hanjaId => text()();
+
+  // ── 한자별 활동 상태 ──────────────────────────────────────────────────
+  TextColumn get status => text().withDefault(const Constant('planned'))();
+  // 'planned' | 'learning' | 'completed'
+
+  // ── 동기화 및 메타 ──────────────────────────────────────────────────────────
+  TextColumn get syncStatus => text().withDefault(const Constant('local_only'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  IntColumn get syncRevision => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

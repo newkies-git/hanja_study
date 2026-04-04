@@ -102,3 +102,36 @@ abstract class SettingsRepository {
   /// 설정 값을 저장한다.
   Future<void> set(String key, String value);
 }
+
+/// 사용자 프로필 Repository 인터페이스.
+abstract class UserRepository {
+  /// ID로 사용자 프로필을 조회한다.
+  Future<UserProfileTableData?> fetchById(String id);
+
+  /// 프로필을 저장하거나 갱신한다.
+  Future<void> upsert(UserProfileTableCompanion data);
+
+  /// 특정 이메일로 사용자 프로필을 조회한다.
+  Future<UserProfileTableData?> fetchByEmail(String email);
+}
+
+/// 사용자 활동 및 통계 Repository 인터페이스.
+abstract class ActivityRepository {
+  /// 로그인을 기록하고 당일 로그인 횟수를 업데이트한다.
+  Future<void> recordLogin(String userId);
+
+  /// 특정 날짜의 활동 통계를 가져온다.
+  Future<DailyActivityStatsTableData?> fetchDailyStats(String userId, DateTime date);
+
+  /// 특정 날짜의 학습 통계(량)를 업데이트한다.
+  Future<void> updateDailyStudyStats({
+    required String userId,
+    required DateTime date,
+    int? planned,
+    int? inProgress,
+    int? completed,
+  });
+
+  /// 최근 N일간의 활동 통계 목록을 가져온다.
+  Future<List<DailyActivityStatsTableData>> fetchRecentStats(String userId, {int days = 7});
+}

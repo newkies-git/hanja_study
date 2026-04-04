@@ -86,17 +86,15 @@ class LocalHanjaRepository implements HanjaRepository {
 
   @override
   Future<HanjaTableData?> fetchNextToLearn() async {
-    final DateTime now = DateTime.now();
-    final DateTime todayStart = DateTime(now.year, now.month, now.day);
-
+    // '오늘의 학습'은 아직 한 번도 학습하지 않은('unseen') 한자만 추천한다.
     final query = _db.select(_db.hanjaTable).join([
       leftOuterJoin(
         _db.userProgressTable,
         _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
       ),
     ])
-      ..where(_db.userProgressTable.lastStudiedAt.isNull() |
-          _db.userProgressTable.lastStudiedAt.isSmallerThanValue(todayStart))
+      ..where(_db.userProgressTable.status.isNull() |
+          _db.userProgressTable.status.equals('unseen'))
       ..orderBy([OrderingTerm.asc(_db.hanjaTable.reading)])
       ..limit(1);
 
@@ -267,6 +265,44 @@ class LocalProgressRepository implements ProgressRepository {
             updatedAt: Value(now),
           ),
         );
+
+    // ── 일별 통계 동기화 ───────────────────────────────────────────────────
+    // 진도 업데이트 후 당일의 학습 중/완료 상태를 집계하여 스냅샷 갱신
+    final String userId = existing?.userId ?? '';
+    final date = DateTime(now.year, now.month, now.day);
+    final statsId = '${date.millisecondsSinceEpoch}_$userId';
+
+    // 전체 진도에서 상태별 자동 집계 (성능 이슈 고려 시 추후 변경 가능)
+    final allProgress = await _db.select(_db.userProgressTable).get();
+    final inProgress = allProgress.where((p) => p.status == 'learning' || p.status == 'review_needed').length;
+    final mastered = allProgress.where((p) => p.status == 'mastered').length;
+
+    await _db.into(_db.dailyActivityStatsTable).insertOnConflictUpdate(
+          DailyActivityStatsTableCompanion(
+            id: Value(statsId),
+            date: Value(date),
+            userId: Value(userId),
+            inProgressCount: Value(inProgress),
+            completedCount: Value(mastered),
+            updatedAt: Value(now),
+          ),
+        );
+
+    // ── 일별 한자 활동 기록 ───────────────────────────────────────────────
+    // 어떤 한자를 공부했는지 상세 목록에 기록
+    final activityId = '${date.millisecondsSinceEpoch}_${userId}_$hanjaId';
+    final isMastered = (isCorrect && (accuracyRate > 0.8)); // 임시 마스터 판정 기준
+
+    await _db.into(_db.dailyHanjaActivityTable).insertOnConflictUpdate(
+          DailyHanjaActivityTableCompanion(
+            id: Value(activityId),
+            date: Value(date),
+            userId: Value(userId),
+            hanjaId: Value(hanjaId),
+            status: Value(isMastered ? 'completed' : 'learning'),
+            updatedAt: Value(now),
+          ),
+        );
   }
 }
 
@@ -291,12 +327,27 @@ class LocalStudySessionRepository implements StudySessionRepository {
   @override
   Future<void> endSession(String sessionId,
       {required int correctCount}) async {
+    final now = DateTime.now();
     await (_db.update(_db.studySessionTable)
           ..where((t) => t.id.equals(sessionId)))
         .write(StudySessionTableCompanion(
-      endedAt: Value(DateTime.now()),
+      endedAt: Value(now),
       correctCount: Value(correctCount),
+      updatedAt: Value(now),
     ));
+
+    // ── 일별 통계 동기화 ───────────────────────────────────────────────────
+    // 세션 종료 후 당일 학습 횟수(sessionCount) 증가
+    final date = DateTime(now.year, now.month, now.day);
+    const userId = ''; // 현재 세션 테이블에 userId가 없는 경우 기본값
+    final statsId = '${date.millisecondsSinceEpoch}_$userId';
+
+    await _db.customStatement(
+        'INSERT INTO daily_activity_stats (id, date, user_id, session_count, created_at, updated_at) '
+        'VALUES (?, ?, ?, 1, ?, ?) '
+        'ON CONFLICT(id) DO UPDATE SET session_count = session_count + 1, updated_at = ?',
+        [statsId, date.toIso8601String(), userId, now.toIso8601String(), now.toIso8601String(), now.toIso8601String()],
+      );
   }
 
   @override
@@ -334,5 +385,103 @@ class LocalSettingsRepository implements SettingsRepository {
             updatedAt: Value(DateTime.now()),
           ),
         );
+  }
+}
+
+/// [UserRepository]의 로컬 DB 구현체.
+class LocalUserRepository implements UserRepository {
+  const LocalUserRepository(this._db);
+
+  final AppDatabase _db;
+
+  @override
+  Future<UserProfileTableData?> fetchById(String id) =>
+      (_db.select(_db.userProfileTable)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+
+  @override
+  Future<UserProfileTableData?> fetchByEmail(String email) =>
+      (_db.select(_db.userProfileTable)..where((t) => t.email.equals(email)))
+          .getSingleOrNull();
+
+  @override
+  Future<void> upsert(UserProfileTableCompanion data) =>
+      _db.into(_db.userProfileTable).insertOnConflictUpdate(data);
+}
+
+/// [ActivityRepository]의 로컬 DB 구현체.
+class LocalActivityRepository implements ActivityRepository {
+  const LocalActivityRepository(this._db);
+
+  final AppDatabase _db;
+  static const _uuid = Uuid();
+
+  @override
+  Future<void> recordLogin(String userId) async {
+    final now = DateTime.now();
+    final date = DateTime(now.year, now.month, now.day);
+    final statsId = '${date.millisecondsSinceEpoch}_$userId';
+
+    await _db.batch((batch) {
+      // 1. 상세 이력 추가
+      batch.insert(_db.loginHistoryTable, LoginHistoryTableCompanion(
+        id: Value(_uuid.v4()),
+        userId: Value(userId),
+        loginAt: Value(now),
+      ));
+
+      // 2. 당일 통계 업데이트 (로그인 횟수 증가)
+      // Drift에서 직접 increment를 지원하지 않는 경우 먼저 조회 후 업데이트
+      batch.customStatement(
+        'INSERT INTO daily_activity_stats (id, date, user_id, login_count, created_at, updated_at) '
+        'VALUES (?, ?, ?, 1, ?, ?) '
+        'ON CONFLICT(id) DO UPDATE SET login_count = login_count + 1, updated_at = ?',
+        [statsId, date.toIso8601String(), userId, now.toIso8601String(), now.toIso8601String(), now.toIso8601String()],
+      );
+    });
+  }
+
+  @override
+  Future<DailyActivityStatsTableData?> fetchDailyStats(String userId, DateTime date) {
+    final d = DateTime(date.year, date.month, date.day);
+    return (_db.select(_db.dailyActivityStatsTable)
+          ..where((t) => t.userId.equals(userId) & t.date.equals(d)))
+        .getSingleOrNull();
+  }
+
+  @override
+  Future<void> updateDailyStudyStats({
+    required String userId,
+    required DateTime date,
+    int? planned,
+    int? inProgress,
+    int? completed,
+  }) async {
+    final d = DateTime(date.year, date.month, date.day);
+    final now = DateTime.now();
+    final statsId = '${d.millisecondsSinceEpoch}_$userId';
+
+    await _db.into(_db.dailyActivityStatsTable).insertOnConflictUpdate(
+          DailyActivityStatsTableCompanion(
+            id: Value(statsId),
+            date: Value(d),
+            userId: Value(userId),
+            plannedCount: planned != null ? Value(planned) : const Value.absent(),
+            inProgressCount: inProgress != null ? Value(inProgress) : const Value.absent(),
+            completedCount: completed != null ? Value(completed) : const Value.absent(),
+            updatedAt: Value(now),
+          ),
+        );
+  }
+
+  @override
+  Future<List<DailyActivityStatsTableData>> fetchRecentStats(String userId, {int days = 7}) {
+    final start = DateTime.now().subtract(Duration(days: days - 1));
+    final d = DateTime(start.year, start.month, start.day);
+
+    return (_db.select(_db.dailyActivityStatsTable)
+          ..where((t) => t.userId.equals(userId) & t.date.isBiggerOrEqualValue(d))
+          ..orderBy([(t) => OrderingTerm.asc(t.date)]))
+        .get();
   }
 }

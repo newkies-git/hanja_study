@@ -7,8 +7,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/auth/auth_controller.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
-import '../../shared/widgets/editorial_text_field.dart';
-import '../../shared/widgets/form_field_label.dart';
+import '../../shared/widgets/editorial_input_group.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
 import '../../shared/widgets/ghost_divider.dart';
@@ -90,6 +89,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       await ref.read(authControllerProvider.notifier).signUpWithEmailPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text,
+            name: _nameController.text.trim(),
           );
       if (!mounted) return;
       context.push(AppRoutes.signUpSuccess);
@@ -295,56 +295,60 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   
-                                  const FormFieldLabel(label: '성함', color: Colors.white70),
-                                  const SizedBox(height: 2),
-                                  EditorialTextField(
+                                  EditorialInputGroup(
+                                    label: '성함',
+                                    labelColor: Colors.white70,
                                     controller: _nameController,
                                     hintText: '당신의 이름을 알려주세요',
                                     fillColor: Colors.white.withValues(alpha: 0.08),
                                     textColor: Colors.white,
                                     hintColor: Colors.white24,
+                                    isRequired: true,
                                     validator: (value) =>
                                         (value == null || value.trim().isEmpty) ? '이름을 입력해 주세요' : null,
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
                                   
-                                  const FormFieldLabel(label: '이메일 주소', color: Colors.white70),
-                                  const SizedBox(height: 2),
-                                  EditorialTextField(
+                                  EditorialInputGroup(
+                                    label: '이메일 주소',
+                                    labelColor: Colors.white70,
                                     controller: _emailController,
                                     keyboardType: TextInputType.emailAddress,
                                     hintText: 'scholar@example.com',
                                     fillColor: Colors.white.withValues(alpha: 0.08),
                                     textColor: Colors.white,
                                     hintColor: Colors.white24,
+                                    isRequired: true,
                                     validator: (value) =>
                                         (value == null || value.trim().isEmpty) ? '이메일을 입력해 주세요' : null,
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
                                   
-                                  const FormFieldLabel(label: '비밀번호', color: Colors.white70),
-                                  const SizedBox(height: 2),
-                                  EditorialTextField(
+                                  EditorialInputGroup(
+                                    label: '비밀번호',
+                                    labelColor: Colors.white70,
                                     controller: _passwordController,
                                     obscureText: true,
                                     hintText: '••••••••',
                                     fillColor: Colors.white.withValues(alpha: 0.08),
                                     textColor: Colors.white,
                                     hintColor: Colors.white24,
+                                    isRequired: true,
                                     validator: (value) =>
                                         (value == null || value.isEmpty) ? '비밀번호를 입력해 주세요' : null,
                                   ),
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 12),
                                   
-                                  const FormFieldLabel(label: '비밀번호 확인', color: Colors.white70),
-                                  const SizedBox(height: 2),
-                                  EditorialTextField(
+                                  EditorialInputGroup(
+                                    label: '비밀번호 확인',
+                                    labelColor: Colors.white70,
                                     controller: _confirmController,
                                     obscureText: true,
                                     hintText: '••••••••',
                                     fillColor: Colors.white.withValues(alpha: 0.08),
                                     textColor: Colors.white,
                                     hintColor: Colors.white24,
+                                    isRequired: true,
                                     validator: (value) =>
                                         (value == null || value.isEmpty) ? '비밀번호를 다시 한번 입력해 주세요' : null,
                                   ),

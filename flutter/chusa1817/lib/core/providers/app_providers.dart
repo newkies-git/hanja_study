@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,6 +34,29 @@ final studySessionRepositoryProvider = Provider<StudySessionRepository>((ref) {
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   return LocalSettingsRepository(ref.watch(appDatabaseProvider));
+});
+
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  return LocalUserRepository(ref.watch(appDatabaseProvider));
+});
+
+final activityRepositoryProvider = Provider<ActivityRepository>((ref) {
+  return LocalActivityRepository(ref.watch(appDatabaseProvider));
+});
+
+/// 현재 로그인 상태인 Firebase User.
+final firebaseUserProvider = StreamProvider<User?>((ref) {
+  final auth = FirebaseAuth.instance;
+  return auth.authStateChanges();
+});
+
+/// 로컬 DB에서 가져온 현재 사용자 프로필 정보.
+final currentUserProfileProvider = FutureProvider<UserProfileTableData?>((ref) async {
+  final user = ref.watch(firebaseUserProvider).value;
+  if (user == null) return null;
+  
+  final repo = ref.watch(userRepositoryProvider);
+  return repo.fetchById(user.uid);
 });
 
 /// 한자 총 갯수 FutureProvider.

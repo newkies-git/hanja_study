@@ -1,0 +1,52 @@
+@use '../variables' as *;
+
+.v-calendar-weekly__head-weekday,
+.v-calendar-daily_head-weekday {
+  padding: 16px 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.v-calendar-daily__head {
+  margin-right: 0 !important;
+}
+
+.v-calendar-weekly__head {
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.v-calendar-weekly__day {
+  &.v-present {
+    .v-calendar-weekly__day-label {
+      .v-icon-btn {
+        &.text-surface-variant {
+          color: rgba(var(--v-theme-secondary), var(--v-high-opacity)) !important;
+        }
+      }
+    }
+  }
+}
+
+.v-calendar-daily {
+  .v-calendar-daily__body {
+    .v-calendar-daily__interval:last-child {
+      border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+    }
+  }
+}
+
+.v-calendar-events {
+  .pl-1 {
+    [dir='rtl'] & {
+      padding-right: 4px !important;
+      padding-left: unset !important;
+    }
+  }
+}
+
+.v-event-draggable {
+  [dir='rtl'] & {
+    padding-right: 6px;
+    padding-left: unset !important;
+  }
+}

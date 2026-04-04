@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/auth/auth_controller.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 
@@ -7,20 +9,20 @@ import '../../core/theme/hanja_colors.dart';
 ///
 /// 중앙에 이탤릭체 브랜드 타이틀을, 좌/우에 아이콘을 배치하는
 /// 전문 아카이브/학술지 지면 스타일의 상단 바.
-class EditorialTopBar extends StatelessWidget {
+class EditorialTopBar extends ConsumerWidget {
   const EditorialTopBar({
     super.key,
     required this.title,
     this.onMenuPressed,
-    this.onAvatarPressed,
   });
 
   final String title;
   final VoidCallback? onMenuPressed;
-  final VoidCallback? onAvatarPressed;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 8),
       child: Row(
@@ -42,22 +44,66 @@ class EditorialTopBar extends StatelessWidget {
             child: Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: HanjaColors.primaryContainer,
-                  ),
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: HanjaColors.primaryContainer,
+              ),
             ),
           ),
           Transform.translate(
             offset: const Offset(8, 0),
-            child: IconButton(
-              onPressed: onAvatarPressed ?? () => context.go('${AppRoutes.home}?tab=4'),
+            child: PopupMenuButton<int>(
+              onSelected: (value) async {
+                if (value == 1) {
+                  // 비밀번호 변경 화면으로 이동
+                  context.push(AppRoutes.resetPassword);
+                } else if (value == 2) {
+                  // 로그아웃 수행
+                  await ref.read(authControllerProvider.notifier).signOut();
+                  if (context.mounted) context.go(AppRoutes.landing);
+                }
+              },
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 4,
+              offset: const Offset(0, 40),
               icon: const Icon(Icons.account_circle),
-              color: HanjaColors.neutralIcon,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              tooltip: '프로필',
+              color: Colors.white,
+              tooltip: '계정 메뉴',
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 1,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_reset, size: 20, color: HanjaColors.onSurfaceVariant),
+                      const SizedBox(width: 12),
+                      Text(
+                        '비밀번호 변경',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 2,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.logout, size: 20, color: HanjaColors.error),
+                      const SizedBox(width: 12),
+                      Text(
+                        '로그아웃',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: HanjaColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],

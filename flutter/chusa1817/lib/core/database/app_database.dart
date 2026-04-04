@@ -41,6 +41,10 @@ part 'app_database.g.dart';
   AnswerHistoryTable,
   AppSettingsTable,
   SyncQueueTable,
+  UserProfileTable,
+  LoginHistoryTable,
+  DailyActivityStatsTable,
+  DailyHanjaActivityTable,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
@@ -52,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -87,16 +91,21 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(hanjaStrokeSvgPathsTable);
           }
 
-          // v4 → v5: 학습 통계 테이블 추가 (예정)
-          // if (from < 5) {
-          //   await m.createTable(studyStatsTable);
-          // }
+          // v4 → v5: 사용자 프로필 테이블 추가
+          if (from < 5) {
+            await m.createTable(userProfileTable);
+          }
 
-          // v4 → v5: 서버 동기화 메타 필드 강화 (예정)
-          // if (from < 5) {
-          //   await m.addColumn(userProgressTable, userProgressTable.serverId);
-          //   await m.addColumn(studySessionTable, studySessionTable.rowVersion);
-          // }
+          // v5 → v6: 로그인 이력 및 일별 활동 통계 테이블 추가
+          if (from < 6) {
+            await m.createTable(loginHistoryTable);
+            await m.createTable(dailyActivityStatsTable);
+          }
+
+          // v6 → v7: 일별 한자 상세 활동 테이블 추가
+          if (from < 7) {
+            await m.createTable(dailyHanjaActivityTable);
+          }
         },
 
         /// DB 열기 직전 실행.

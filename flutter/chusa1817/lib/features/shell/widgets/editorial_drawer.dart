@@ -11,14 +11,12 @@ class EditorialDrawer extends StatelessWidget {
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
-    required this.onLogout,
     this.userName = '추사학도',
     this.userEmail = 'scholar@chusa1817.app',
   });
 
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
-  final VoidCallback onLogout;
   final String userName;
   final String userEmail;
 
@@ -148,17 +146,7 @@ class EditorialDrawer extends StatelessWidget {
                   ),
                 ),
 
-                // 푸터: 시스템 메뉴
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                  child: _DrawerMenuItem(
-                    icon: Icons.logout,
-                    label: '로그아웃',
-                    isSelected: false,
-                    color: Colors.redAccent.shade100,
-                    onTap: onLogout,
-                  ),
-                ),
+                const SizedBox(height: 20),
               ],
             ),
           ),

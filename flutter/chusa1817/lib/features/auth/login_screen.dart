@@ -6,8 +6,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/auth/auth_controller.dart';
 import '../../core/theme/hanja_colors.dart';
-import '../../shared/widgets/editorial_text_field.dart';
-import '../../shared/widgets/form_field_label.dart';
+import '../../shared/widgets/editorial_input_group.dart';
 import '../../shared/widgets/ghost_divider.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
@@ -231,53 +230,47 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   const SizedBox(height: 32),
                                   
-                                  const FormFieldLabel(
-                                    label: '이메일',
-                                    color: Colors.white70,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  EditorialTextField(
-                                    controller: _emailController,
-                                    keyboardType: TextInputType.emailAddress,
-                                    hintText: 'email@example.com',
-                                    fillColor: Colors.white.withValues(alpha: 0.08),
-                                    textColor: Colors.white,
-                                    hintColor: Colors.white24,
-                                    validator: (value) =>
-                                        (value == null || value.trim().isEmpty)
-                                            ? '이메일을 입력해 주세요'
-                                            : null,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  
-                                  const FormFieldLabel(
-                                    label: '비밀번호',
-                                    color: Colors.white70,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  EditorialTextField(
-                                    controller: _passwordController,
-                                    obscureText: !_isPasswordVisible,
-                                    hintText: '비밀번호 입력',
-                                    fillColor: Colors.white.withValues(alpha: 0.08),
-                                    textColor: Colors.white,
-                                    hintColor: Colors.white24,
-                                    suffix: IconButton(
-                                      onPressed: () => setState(
-                                        () => _isPasswordVisible = !_isPasswordVisible,
-                                      ),
-                                      icon: Icon(
-                                        _isPasswordVisible
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
-                                        color: Colors.white54,
-                                      ),
+                                    EditorialInputGroup(
+                                      label: '이메일',
+                                      labelColor: Colors.white70,
+                                      controller: _emailController,
+                                      keyboardType: TextInputType.emailAddress,
+                                      hintText: 'email@example.com',
+                                      fillColor: Colors.white.withValues(alpha: 0.08),
+                                      textColor: Colors.white,
+                                      hintColor: Colors.white24,
+                                      validator: (value) =>
+                                          (value == null || value.trim().isEmpty)
+                                              ? '이메일을 입력해 주세요'
+                                              : null,
                                     ),
-                                    validator: (value) =>
-                                        (value == null || value.isEmpty)
-                                            ? '비밀번호를 입력해 주세요'
-                                            : null,
-                                  ),
+                                    const SizedBox(height: 16),
+                                    
+                                    EditorialInputGroup(
+                                      label: '비밀번호',
+                                      labelColor: Colors.white70,
+                                      controller: _passwordController,
+                                      obscureText: !_isPasswordVisible,
+                                      hintText: '비밀번호 입력',
+                                      fillColor: Colors.white.withValues(alpha: 0.08),
+                                      textColor: Colors.white,
+                                      hintColor: Colors.white24,
+                                      suffix: IconButton(
+                                        onPressed: () => setState(
+                                          () => _isPasswordVisible = !_isPasswordVisible,
+                                        ),
+                                        icon: Icon(
+                                          _isPasswordVisible
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                          color: Colors.white54,
+                                        ),
+                                      ),
+                                      validator: (value) =>
+                                          (value == null || value.isEmpty)
+                                              ? '비밀번호를 입력해 주세요'
+                                              : null,
+                                    ),
                                   
                                   Align(
                                     alignment: Alignment.centerRight,

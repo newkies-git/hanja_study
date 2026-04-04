@@ -1,0 +1,24 @@
+@use '../variables' as *;
+
+// Outline Card
+.v-card--variant-outlined {
+  border-color: rgba(var(--v-theme-borderLight), 0.36);
+
+  .bg-warning {
+    .v-divider {
+      border-color: rgba(255, 255, 255, 0.36);
+    }
+  }
+}
+
+.v-card {
+  .v-card-text {
+    line-height: 1.25rem;
+  }
+}
+
+.card-hover-border {
+  &:hover {
+    border: 1px solid rgb(var(--v-theme-primary));
+  }
+}
