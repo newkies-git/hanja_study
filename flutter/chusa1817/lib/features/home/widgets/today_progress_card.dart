@@ -24,87 +24,90 @@ class TodayProgressCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [HanjaColors.primary, HanjaColors.primaryContainer],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
+          color: HanjaColors.primary,
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: HanjaColors.primary.withValues(alpha: 0.25),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              color: HanjaColors.primary.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 1. 헤더 (타이틀 + 배지 및 게이지)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. 학습 진도 및 목표 (왼쪽)
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '오늘의 학습 진도',
-                        style: textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.4,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '오늘의 학습 진도',
+                              style: textTheme.headlineSmall?.copyWith(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.6,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // 1/10 배지 (헤더로 이동)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$done / $goal',
+                              style: textTheme.labelLarge?.copyWith(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 8),
                       Text(
                         '목표까지 ${goal - done}자 남았습니다',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.75),
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                // 2. 수치 및 게이지 (오른쪽)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '$done / $goal',
-                        style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                        ),
+                // 2. 게이지 (우측)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: SizedBox(
+                    width: 80,
+                    height: 48,
+                    child: CustomPaint(
+                      painter: _SemicircleGaugePainter(
+                        progress: (done / goal).clamp(0.0, 1.0),
+                        color: Colors.white,
+                        backgroundColor: Colors.white.withValues(alpha: 0.12),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      width: 50,
-                      height: 25,
-                      child: CustomPaint(
-                        painter: _SemicircleGaugePainter(
-                          progress: (done / goal).clamp(0.0, 1.0),
-                          color: Colors.white,
-                          backgroundColor: Colors.white.withValues(alpha: 0.15),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -132,46 +135,47 @@ class _SemicircleGaugePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double strokeWidth = 11.0;
+    // 진행 아크의 두께가 반지름의 1/2이 되게 설정
+    final double radius = size.width / 2; 
+    final double strokeWidth = radius / 2; // 스피드 게이지 두께 최적화
     final Offset center = Offset(size.width / 2, size.height);
-    final double radius = size.width / 2 - strokeWidth / 2;
     
-    final Rect rect = Rect.fromCircle(center: center, radius: radius);
+    // 실제 드로잉을 위한 조정된 반지름 (스트로크의 절반만큼 안쪽으로)
+    final double drawingRadius = radius - strokeWidth / 2;
+    final Rect rect = Rect.fromCircle(center: center, radius: drawingRadius);
 
-    // 1. 배경 아크 (회색조)
+    // 1. 배경 아크 (약간의 투명감)
     final Paint bgPaint = Paint()
       ..color = backgroundColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.butt; // 라운드 처리 제거
 
     canvas.drawArc(rect, math.pi, math.pi, false, bgPaint);
 
-    // 2. 진행 그라데이션 아크 (적-황-청)
+    // 2. 진행 그라데이션 아크 (적-황-청 스펙트럼)
     if (progress > 0) {
       final Paint fgPaint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth + 0.5
-        ..strokeCap = StrokeCap.round
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt // 라운드 처리 제거
         ..shader = SweepGradient(
-          colors: const [Colors.red, Colors.yellow, Colors.blue],
-          stops: const [0.0, 0.5, 1.0],
+          colors: const [Colors.red, Colors.orange, Colors.yellow, Colors.blue],
+          stops: const [0.0, 0.33, 0.66, 1.0],
           startAngle: math.pi,
           endAngle: math.pi * 2,
         ).createShader(rect);
 
-      // SweepGradient matches 0 to 2pi. To show only half, we need an offset or just draw partial.
-      // Actually SweepGradient centers at center of rect.
       canvas.drawArc(rect, math.pi, math.pi * progress, false, fgPaint);
     }
 
     // 3. 바늘 (Pointer)
     final double needleAngle = math.pi + (math.pi * progress);
-    final double needleLength = radius + 3;
+    final double needleLength = radius + 1;
     
     final Paint needlePaint = Paint()
-      ..color = Colors.black87
-      ..strokeWidth = 2.5
+      ..color = Colors.black.withValues(alpha: 0.9)
+      ..strokeWidth = 3.8
       ..strokeCap = StrokeCap.round;
 
     final Offset needleEnd = Offset(
@@ -179,12 +183,11 @@ class _SemicircleGaugePainter extends CustomPainter {
       center.dy + needleLength * math.sin(needleAngle),
     );
 
-    // 바늘을 그린다 (중심에서 끝점까지)
     canvas.drawLine(center, needleEnd, needlePaint);
     
-    // 바늘 중심 점 (작은 원)
+    // 바늘 중심
     final Paint centerPaint = Paint()..color = Colors.black87;
-    canvas.drawCircle(center, 4.0, centerPaint);
+    canvas.drawCircle(center, 5.0, centerPaint);
   }
 
   @override

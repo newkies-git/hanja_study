@@ -230,13 +230,15 @@ class ProfileScreen extends ConsumerWidget {
                     ? '동기화 실패: $err'
                     : '동기화에 실패했습니다.';
               } else {
-                final ContentSyncResult? result = async.maybeWhen(
+                 final ContentSyncResult? result = async.maybeWhen(
                   data: (v) => v,
                   orElse: () => null,
                 );
-                message = result != null
-                    ? '동기화 완료: $result'
-                    : '동기화가 완료되었습니다.';
+                if (result?.remoteContentVersion == -1) {
+                  message = '이미 최신 상태입니다. (변경사항 없음)';
+                } else {
+                  message = result != null ? '동기화 완료' : '동기화가 완료되었습니다.';
+                }
               }
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(

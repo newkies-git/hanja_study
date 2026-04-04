@@ -9,103 +9,184 @@ class RecommendedReviewSection extends StatelessWidget {
     required this.hanjaList,
     required this.textTheme,
     required this.onStudyTap,
+    this.onSeedTap,
   });
 
   final List<Map<String, String>> hanjaList;
   final TextTheme textTheme;
   final void Function(String hanjaId, String meaning) onStudyTap;
+  final VoidCallback? onSeedTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'REVIEW',
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.primaryContainer,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '오늘의 추천 복습',
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 22, // DESIGN.md: Title-LG (1.375rem = 22px)
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'REVIEW',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: HanjaColors.primaryContainer,
+                    letterSpacing: 2.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '오늘의 추천 복습',
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+            if (hanjaList.isEmpty && onSeedTap != null)
+              TextButton.icon(
+                onPressed: onSeedTap,
+                icon: const Icon(Icons.add_circle_outline, size: 18),
+                label: const Text('샘플 데이터 추가'),
+                style: TextButton.styleFrom(
+                  foregroundColor: HanjaColors.primary,
+                  textStyle: textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
-        ...hanjaList.map((item) {
-          final String hanjaId = item['hanjaId']!;
-          final String hanja = item['hanja']!;
-          final String meaning = item['meaning']!;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              child: InkWell(
-                onTap: () => onStudyTap(hanjaId, meaning),
-                borderRadius: BorderRadius.circular(18),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: HanjaColors.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(14),
+        if (hanjaList.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: HanjaColors.outline.withOpacity(0.1),
+              ),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.history_edu_rounded,
+                    size: 40,
+                    color: HanjaColors.outline.withOpacity(0.5),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '아직 복습할 한자가 없습니다.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: HanjaColors.outline,
+                    ),
+                  ),
+                  if (onSeedTap != null) ...[
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: onSeedTap,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: HanjaColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Center(
-                          child: Text(
-                            hanja,
-                            style: GoogleFonts.notoSerif(
-                              textStyle: textTheme.titleLarge?.copyWith(
-                                color: HanjaColors.primaryContainer,
-                                fontWeight: FontWeight.w900,
+                      ),
+                      child: const Text('샘플 오답 데이터 생성'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              mainAxisExtent: 64, // 72 -> 64로 더욱 축소
+            ),
+            itemCount: hanjaList.length,
+            itemBuilder: (context, index) {
+              final item = hanjaList[index];
+              final String hanjaId = item['hanjaId']!;
+              final String hanja = item['hanja']!;
+              final String meaning = item['meaning']!;
+
+              return Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  onTap: () => onStudyTap(hanjaId, meaning),
+                  borderRadius: BorderRadius.circular(18),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // 8 -> 6로 축소
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40, // 44 -> 40
+                          height: 40, // 44 -> 40
+                          decoration: BoxDecoration(
+                            color: HanjaColors.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              hanja,
+                              style: GoogleFonts.notoSerif(
+                                textStyle: textTheme.titleMedium?.copyWith(
+                                  color: HanjaColors.primaryContainer,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16, // 약간 축소
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              meaning,
-                              style: textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                meaning,
+                                style: textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12, // 13 -> 12
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                maxLines: 1,
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '쓰기 연습',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: HanjaColors.primaryContainer,
+                              const SizedBox(height: 1),
+                              Text(
+                                '복습하기',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: HanjaColors.primaryContainer,
+                                  fontSize: 10, // 11 -> 10
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: HanjaColors.outline,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          );
-        }),
+              );
+            },
+          ),
       ],
     );
   }

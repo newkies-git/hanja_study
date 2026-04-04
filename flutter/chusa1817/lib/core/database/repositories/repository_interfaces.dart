@@ -37,7 +37,7 @@ abstract class HanjaRepository {
   Future<int> fetchTotalCount();
 
   /// 아직 학습하지 않았거나('unseen') 오늘 공부하지 않은 다음 한자를 가져온다.
-  Future<HanjaTableData?> fetchNextToLearn();
+  Future<HanjaTableData?> fetchNextToLearn({int orderIndex = 0, bool isAscending = true});
 }
 
 /// 사용자 진도 Repository 인터페이스.
@@ -84,7 +84,17 @@ abstract class ProgressRepository {
   /// 오늘 학습할/학습한 한자 목록을 반환한다.
   ///
   /// [dailyGoal] 만큼의 한자를 포함하며, 오늘 이미 학습한 한자와 다음에 학습할 한자를 조합한다.
-  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({int dailyGoal = 5});
+  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({
+    int dailyGoal = 5,
+    int orderIndex = 0,
+    bool isAscending = true,
+  });
+
+  /// 오답률이 높은(정확도가 낮은) 한자 목록을 반환한다 (오늘 학습하지 않은 것 위주).
+  Future<List<UserProgressTableData>> fetchTopErrorProneHanja({int limit = 10});
+
+  /// [샘플 데이터 생성] 추천 복습 섹션을 테스트하기 위해 가상의 오답 데이터를 생성한다.
+  Future<void> seedSampleReviewHanja();
 }
 
 /// 학습 세션 Repository 인터페이스.

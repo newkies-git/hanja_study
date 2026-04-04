@@ -85,7 +85,10 @@ class LocalHanjaRepository implements HanjaRepository {
   }
 
   @override
-  Future<HanjaTableData?> fetchNextToLearn() async {
+  Future<HanjaTableData?> fetchNextToLearn({
+    int orderIndex = 0,
+    bool isAscending = true,
+  }) async {
     // '오늘의 학습'은 아직 한 번도 학습하지 않은('unseen') 한자만 추천한다.
     final query = _db.select(_db.hanjaTable).join([
       leftOuterJoin(
@@ -94,9 +97,20 @@ class LocalHanjaRepository implements HanjaRepository {
       ),
     ])
       ..where(_db.userProgressTable.status.isNull() |
-          _db.userProgressTable.status.equals('unseen'))
-      ..orderBy([OrderingTerm.asc(_db.hanjaTable.reading)])
-      ..limit(1);
+          _db.userProgressTable.status.equals('unseen'));
+
+    final mode = isAscending ? OrderingMode.asc : OrderingMode.desc;
+
+    if (orderIndex == 1) {
+      query.orderBy(
+          [OrderingTerm(expression: _db.hanjaTable.totalStrokes, mode: mode)]);
+    } else if (orderIndex == 2) {
+      query.orderBy([OrderingTerm.random()]);
+    } else {
+      query.orderBy([OrderingTerm(expression: _db.hanjaTable.reading, mode: mode)]);
+    }
+
+    query.limit(1);
 
     final row = await query.getSingleOrNull();
     if (row == null) return null;
@@ -316,7 +330,11 @@ class LocalProgressRepository implements ProgressRepository {
   }
 
   @override
-  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({int dailyGoal = 5}) async {
+  Future<List<(HanjaTableData hanja, String status)>> fetchTodayLearningHanja({
+    int dailyGoal = 5,
+    int orderIndex = 0,
+    bool isAscending = true,
+  }) async {
     final DateTime now = DateTime.now();
     final DateTime todayDate = DateTime(now.year, now.month, now.day);
     const String userId = ''; // 현재 세션 기반 userId (기본값)
@@ -356,9 +374,21 @@ class LocalProgressRepository implements ProgressRepository {
     ])
       ..where(_db.userProgressTable.status.isNull() |
           _db.userProgressTable.status.equals('unseen'))
-      ..where(_db.hanjaTable.id.isNotIn(existingIds))
-      ..orderBy([OrderingTerm.asc(_db.hanjaTable.reading)])
-      ..limit(gap);
+      ..where(_db.hanjaTable.id.isNotIn(existingIds));
+
+    final mode = isAscending ? OrderingMode.asc : OrderingMode.desc;
+
+    if (orderIndex == 1) {
+      nextHanjasQuery.orderBy(
+          [OrderingTerm(expression: _db.hanjaTable.totalStrokes, mode: mode)]);
+    } else if (orderIndex == 2) {
+      nextHanjasQuery.orderBy([OrderingTerm.random()]);
+    } else {
+      nextHanjasQuery.orderBy(
+          [OrderingTerm(expression: _db.hanjaTable.reading, mode: mode)]);
+    }
+
+    nextHanjasQuery.limit(gap);
 
     final nextRows = await nextHanjasQuery.get();
     final List<(HanjaTableData, String)> resultList = [...existingList];
@@ -394,6 +424,69 @@ class LocalProgressRepository implements ProgressRepository {
     }
 
     return resultList;
+  }
+
+  @override
+  Future<List<UserProgressTableData>> fetchTopErrorProneHanja({int limit = 10}) async {
+    final DateTime now = DateTime.now();
+    final DateTime todayStart = DateTime(now.year, now.month, now.day);
+
+    // 오답률이 높은(정확도가 낮은) 순서로 정렬하여 가져오기.
+    // 단, 오늘 이미 공부한 한자는 제외하여 '오늘의 추천 복습' 리스트에서 제거되는 효과를 줌.
+    return (_db.select(_db.userProgressTable)
+          ..where((t) =>
+              t.totalAttempts.isBiggerThanValue(0) &
+              (t.lastStudiedAt.isNull() | t.lastStudiedAt.isSmallerThanValue(todayStart)))
+          ..orderBy([
+            (t) => OrderingTerm.asc(t.accuracyRate), // 정확도 낮은 순(오답률 높은 순)
+            (t) => OrderingTerm.desc(t.totalAttempts), // 시도 횟수가 많은 순(자주 틀리는 것 우선)
+          ])
+          ..limit(limit))
+        .get();
+  }
+
+  @override
+  Future<void> seedSampleReviewHanja() async {
+    final DateTime now = DateTime.now();
+    final DateTime yesterday = now.subtract(const Duration(days: 1));
+
+    // 1. 아직 진도 데이터가 없는(또는 'unseen'인) 한자 5개 가져오기
+    final query = _db.select(_db.hanjaTable).join([
+      leftOuterJoin(
+        _db.userProgressTable,
+        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+      ),
+    ])
+      ..where(_db.userProgressTable.id.isNull())
+      ..limit(5);
+
+    final rows = await query.get();
+    if (rows.isEmpty) return;
+
+    // 2. 각 한자에 대해 오답 가득한 진도 데이터 삽입
+    for (final row in rows) {
+      final hanja = row.readTable(_db.hanjaTable);
+      final String id = _uuid.v4();
+
+      // 시도 5회 중 정답 1회 (정확도 20%)
+      const int totalAttempts = 5;
+      const int correctAttempts = 1;
+      const double accuracyRate = correctAttempts / totalAttempts;
+
+      await _db.into(_db.userProgressTable).insertOnConflictUpdate(
+            UserProgressTableCompanion(
+              id: Value(id),
+              hanjaId: Value(hanja.id),
+              status: const Value('review_needed'),
+              totalAttempts: const Value(totalAttempts),
+              correctAttempts: const Value(correctAttempts),
+              accuracyRate: const Value(accuracyRate),
+              lastStudiedAt: Value(yesterday), // 어제 공부한 것으로 설정
+              nextReviewAt: Value(now), // 지금 바로 복습 필요
+              updatedAt: Value(now),
+            ),
+          );
+    }
   }
 }
 

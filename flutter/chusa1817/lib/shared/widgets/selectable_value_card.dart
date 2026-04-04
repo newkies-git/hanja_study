@@ -12,7 +12,7 @@ class SelectableValueCard extends StatelessWidget {
   });
 
   final String valueLabel;
-  final String unitLabel;
+  final String? unitLabel;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -27,7 +27,7 @@ class SelectableValueCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Ink(
-          height: 84,
+          height: 60,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: HanjaColors.outlineVariant),
@@ -47,16 +47,18 @@ class SelectableValueCard extends StatelessWidget {
                   color: isSelected ? Colors.white : HanjaColors.onSurface,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                unitLabel,
-                style: textTheme.labelSmall?.copyWith(
-                  letterSpacing: 2.2,
-                  color: isSelected
-                      ? Colors.white.withValues(alpha: 0.85)
-                      : const Color(0xFF9A9DA0),
+              if (unitLabel != null && unitLabel!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  unitLabel!,
+                  style: textTheme.labelSmall?.copyWith(
+                    letterSpacing: 2.2,
+                    color: isSelected
+                        ? Colors.white.withValues(alpha: 0.85)
+                        : const Color(0xFF9A9DA0),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

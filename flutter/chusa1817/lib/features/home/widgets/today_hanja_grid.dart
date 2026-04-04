@@ -120,41 +120,25 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
             height: widget.size,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isLearning
-                    ? HanjaColors.primary.withValues(alpha: 0.3 + (0.7 * _glowAnimation.value))
-                    : (isCompleted ? Colors.transparent : HanjaColors.surfaceContainerHigh),
-                width: isLearning ? 2.5 : 1,
-              ),
-              boxShadow: isLearning
-                  ? [
-                      BoxShadow(
-                        color: HanjaColors.primary.withValues(alpha: 0.2 * _glowAnimation.value),
-                        blurRadius: 8 * _glowAnimation.value,
-                        spreadRadius: 2 * _glowAnimation.value,
-                      )
-                    ]
-                  : (isCompleted ? null : const [
-                      BoxShadow(
-                        color: HanjaColors.shadow,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      )
-                    ]),
+              borderRadius: BorderRadius.circular(22), // 약간 서클에 더 가깝게 (Squircle)
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.12),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: Center(
               child: Opacity(
-                opacity: isCompleted ? 0.35 : 1.0,
+                opacity: isCompleted ? 0.3 : 1.0,
                 child: Text(
                   widget.character,
                   style: TextStyle(
-                    fontSize: widget.size * 0.45,
+                    fontSize: widget.size * 0.48,
                     fontFamily: 'NotoSerifKR',
-                    fontWeight: isCompleted ? FontWeight.w400 : FontWeight.w900,
-                    color: isCompleted
-                        ? HanjaColors.onSurfaceVariant
-                        : HanjaColors.onSurface,
+                    fontWeight: FontWeight.w900,
+                    color: isCompleted ? Colors.grey : Colors.black87,
                   ),
                 ),
               ),
