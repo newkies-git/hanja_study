@@ -54,11 +54,13 @@ class EditorialTopBar extends ConsumerWidget {
             offset: const Offset(8, 0),
             child: PopupMenuButton<int>(
               onSelected: (value) async {
-                if (value == 1) {
-                  // 비밀번호 변경 화면으로 이동
-                  context.push(AppRoutes.resetPassword);
+                if (value == 0) {
+                  context.push(AppRoutes.planSettings);
+                } else if (value == 1) {
+                  context.push(AppRoutes.contentSync);
                 } else if (value == 2) {
-                  // 로그아웃 수행
+                  context.push(AppRoutes.resetPassword);
+                } else if (value == 3) {
                   await ref.read(authControllerProvider.notifier).signOut();
                   if (context.mounted) context.go(AppRoutes.landing);
                 }
@@ -73,7 +75,38 @@ class EditorialTopBar extends ConsumerWidget {
               tooltip: '계정 메뉴',
               itemBuilder: (context) => [
                 PopupMenuItem(
+                  value: 0,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.school_outlined, size: 20, color: HanjaColors.onSurfaceVariant),
+                      const SizedBox(width: 12),
+                      Text(
+                        '학습 설정',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
                   value: 1,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.cloud_download_outlined,
+                          size: 20, color: HanjaColors.onSurfaceVariant),
+                      const SizedBox(width: 12),
+                      Text(
+                        '데이터 동기화',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 2,
                   child: Row(
                     children: [
                       const Icon(Icons.lock_reset, size: 20, color: HanjaColors.onSurfaceVariant),
@@ -88,7 +121,7 @@ class EditorialTopBar extends ConsumerWidget {
                   ),
                 ),
                 PopupMenuItem(
-                  value: 2,
+                  value: 3,
                   child: Row(
                     children: [
                       const Icon(Icons.logout, size: 20, color: HanjaColors.error),

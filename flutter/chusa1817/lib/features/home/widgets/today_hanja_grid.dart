@@ -5,7 +5,7 @@ import '../../../core/database/app_database.dart';
 /// '오늘의 학습' 한자 목록 그리드.
 ///
 /// 한 줄에 5글자씩 표시하며 상태에 따라 스타일을 변경한다.
-/// - completed: Dim (낮은 투명도)
+/// - completed: 민트(secondaryContainer) — 완료·성공 의미, 예정(흰)·학습중(주황)과 구분
 /// - learning: Glow (테두리 애니메이션)
 /// - planned: 기본 스타일
 class TodayHanjaGrid extends StatelessWidget {
@@ -118,8 +118,9 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
     Color textColor;
     
     if (isCompleted) {
-      backgroundColor = HanjaColors.surfaceVariant; // 파스텔 회색
-      textColor = Colors.black87; // 검정색 유지
+      // 완료: 회색(surfaceVariant)은 홈 배경과 대비가 약함 → 성공 의미의 민트(secondaryContainer)
+      backgroundColor = HanjaColors.secondaryContainer;
+      textColor = HanjaColors.onSurface;
     } else if (isLearning) {
       backgroundColor = HanjaColors.statusWarningContainer; // 파스텔 주황색
       textColor = Colors.black87; // 검정색 유지

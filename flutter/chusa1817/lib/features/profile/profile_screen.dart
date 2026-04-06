@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/auth/auth_providers.dart';
 import '../../core/firebase/content_sync_controller.dart';
 import '../../core/firebase/content_sync_progress.dart';
-import '../../core/firebase/firestore_content_sync.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../shared/widgets/content_sync_progress_section.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
@@ -217,157 +216,17 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              await ref
-                  .read(contentSyncControllerProvider.notifier)
-                  .syncFromFirestoreNow();
-              if (!context.mounted) return;
-              final async = ref.read(contentSyncControllerProvider);
-              final String message;
-              if (async.hasError) {
-                final Object? err = async.error;
-                message = kDebugMode && err != null
-                    ? '동기화 실패: $err'
-                    : '동기화에 실패했습니다.';
-              } else {
-                 final ContentSyncResult? result = async.maybeWhen(
-                  data: (v) => v,
-                  orElse: () => null,
-                );
-                if (result?.remoteContentVersion == -1) {
-                  message = '이미 최신 상태입니다. (변경사항 없음)';
-                } else {
-                  message = result != null ? '동기화 완료' : '동기화가 완료되었습니다.';
-                }
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(message),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
+            onTap: () => context.push(AppRoutes.contentSync),
           ),
-          _buildFirestoreSyncProgress(
-            textTheme,
-            syncProgress,
-            syncState.isLoading,
+          ContentSyncProgressSection(
+            progress: syncProgress,
+            isSyncLoading: syncState.isLoading,
           ),
         ],
       ),
     );
   }
 
-  /// Firestore → 로컬 동기화 시 컬렉션(단계)별 진행 상태.
-  Widget _buildFirestoreSyncProgress(
-    TextTheme textTheme,
-    ContentSyncProgressState? progress,
-    bool isSyncLoading,
-  ) {
-    if (!isSyncLoading && progress == null) {
-      return const SizedBox.shrink();
-    }
-
-    const rows = <(ContentSyncStage, String)>[
-      (ContentSyncStage.resetLocal, '로컬 테이블 초기화'),
-      (ContentSyncStage.hanjaBasis, 'hanja_basis'),
-      (ContentSyncStage.hanjaExtend, 'hanja_extend'),
-      (ContentSyncStage.hanjaStroke, 'hanja_stroke'),
-      (ContentSyncStage.hanjaWord, 'hanja_word'),
-      (ContentSyncStage.savingVersion, 'config/content 버전 저장'),
-    ];
-
-    final ContentSyncStage effective = progress?.stage ??
-        (isSyncLoading ? ContentSyncStage.resetLocal : ContentSyncStage.idle);
-    final String? detail = progress?.detail;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '동기화 진행',
-            style: textTheme.labelLarge?.copyWith(
-              color: HanjaColors.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...rows.map((e) {
-            final ContentSyncStage rowStage = e.$1;
-            final String label = e.$2;
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: _syncStageLeadingIcon(effective, rowStage),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (detail != null && effective == rowStage)
-                          Text(
-                            detail,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: HanjaColors.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _syncStageLeadingIcon(
-    ContentSyncStage current,
-    ContentSyncStage row,
-  ) {
-    const double size = 18;
-    if (current == ContentSyncStage.idle) {
-      return Icon(
-        Icons.radio_button_unchecked,
-        size: size,
-        color: HanjaColors.outlineVariant,
-      );
-    }
-    if (current == ContentSyncStage.done || current.index > row.index) {
-      return Icon(
-        Icons.check_circle,
-        size: size,
-        color: HanjaColors.secondary,
-      );
-    }
-    if (current == row) {
-      return const SizedBox(
-        width: size,
-        height: size,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
-    }
-    return Icon(
-      Icons.radio_button_unchecked,
-      size: size,
-      color: HanjaColors.outlineVariant,
-    );
-  }
 }
 
 /// 정보를 불러오는 동안 표시할 임시 로딩 UI.

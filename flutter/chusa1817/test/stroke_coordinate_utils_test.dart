@@ -1,4 +1,5 @@
 import 'package:chusa1817/core/utils/stroke_coordinate_utils.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -21,5 +22,13 @@ void main() {
         expect(p.dy, inInclusiveRange(0.0, 1.0));
       }
     }
+  });
+
+  test('필기 캔버스 0~1 좌표는 가이드 fit 결과와 같은 축(이미 단위면 항등)', () {
+    final strokes = <List<Offset>>[
+      [const Offset(0.12, 0.34), const Offset(0.56, 0.78)],
+    ];
+    final out = fitStrokesToUnitSquare(strokes);
+    expect(out, strokes);
   });
 }

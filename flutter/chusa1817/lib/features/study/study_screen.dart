@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 
 import '../../core/providers/app_providers.dart';
+import '../../core/study/stroke_evaluator.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/ghost_button.dart';
 import '../../core/router/app_router.dart';
@@ -16,7 +17,7 @@ import '../../core/database/app_database.dart';
 ///
 /// [WritingCanvasWidget]으로 실제 터치 입력을 받고,
 /// [WritingCanvasController]를 통해 초기화·되돌리기를 제어한다.
-/// 획 판정은 Phase 2 엔진 연동 전까지 Mock으로 처리한다.
+/// 획 판정은 [evaluateStrokes]로 순서·방향·형태를 검사한다.
 class StudyScreen extends ConsumerStatefulWidget {
   const StudyScreen({
     super.key,
@@ -73,19 +74,55 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   }
 
   Future<void> _confirmGrade() async {
-    final guideStrokesAsync = ref.read(hanjaStrokePointsProvider(widget.hanjaId));
-    final guideStrokes = guideStrokesAsync.value?.where((s) => s.length >= 2).toList() ?? const [];
+    final List<List<Offset>> guideStrokes = (await ref
+            .read(hanjaStrokePointsProvider(widget.hanjaId).future))
+        .where((s) => s.length >= 2)
+        .toList();
+    final List<String?> directions =
+        await ref.read(hanjaStrokeDirectionsProvider(widget.hanjaId).future);
 
-    final int expected = guideStrokes.length;
-    final int actual = _canvasController.strokeCount;
-    final bool isCorrect = expected > 0 && actual == expected;
-    final double accuracy = expected == 0 ? 0.0 : (actual / expected).clamp(0.0, 1.0);
+    final StrokeEvaluationResult result = evaluateStrokes(
+      userStrokes: _canvasController.strokes,
+      guideStrokes: guideStrokes,
+      strokeDirections: directions,
+    );
 
     setState(() {
       _isGraded = true;
-      _accuracy = accuracy;
-      _isLastResultCorrect = isCorrect;
+      _accuracy = result.overallScore;
+      _isLastResultCorrect = result.isCorrect;
     });
+  }
+
+  Future<bool> _confirmLeaveIfInkPresent() async {
+    if (_canvasController.strokeCount == 0 &&
+        !_canvasController.hasActiveStroke) {
+      return true;
+    }
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('나가기'),
+        content: const Text('필기 내용이 있습니다. 나가시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('나가기'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  Future<void> _onBackPressed() async {
+    if (await _confirmLeaveIfInkPresent()) {
+      if (mounted) context.pop();
+    }
   }
 
   Future<void> _finalizeStudy({required bool isCompleted}) async {
@@ -189,36 +226,52 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
         guideStrokesAsync.value?.where((s) => s.length >= 2).toList();
     final int totalStrokes = guideStrokes?.length ?? hanjaRow.totalStrokes;
 
-    return Scaffold(
-      backgroundColor: HanjaColors.surface,
-      body: SafeArea(
-        child: Column(
-          children: [
-            ListenableBuilder(
-              listenable: _canvasController,
-              builder: (context, child) => _PracticeTopBar(
-                title: '추사 1817',
-                progress: totalStrokes == 0
-                    ? 0.0
-                    : (_canvasController.strokeCount / totalStrokes).clamp(0.0, 1.0),
-                onBack: () => context.pop(),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+    return ListenableBuilder(
+      listenable: _canvasController,
+      builder: (context, _) {
+        final bool canPopWithoutPrompt = _canvasController.strokeCount == 0 &&
+            !_canvasController.hasActiveStroke;
+        return PopScope(
+          canPop: canPopWithoutPrompt,
+          onPopInvokedWithResult: (bool didPop, dynamic result) async {
+            if (didPop) return;
+            if (await _confirmLeaveIfInkPresent()) {
+              if (context.mounted) context.pop();
+            }
+          },
+          child: Scaffold(
+            backgroundColor: HanjaColors.surface,
+            body: SafeArea(
+              child: Column(
                 children: [
-                  _buildHanjaInfoRow(context, totalStrokes: totalStrokes),
-                  const SizedBox(height: 18),
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: WritingCanvasWidget(
-                      hanja: hanja,
-                      controller: _canvasController,
-                      showGuide: false,
-                      guideNormalizedStrokes: _showAnswerOverlay ? guideStrokes : null,
-                    ),
+                  _PracticeTopBar(
+                    title: '추사 1817',
+                    progress: totalStrokes == 0
+                        ? 0.0
+                        : (_canvasController.strokeCount / totalStrokes)
+                            .clamp(0.0, 1.0),
+                    onBack: _onBackPressed,
                   ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                      children: [
+                        _buildHanjaInfoRow(context, totalStrokes: totalStrokes),
+                        const SizedBox(height: 18),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: WritingCanvasWidget(
+                              hanja: hanja,
+                              controller: _canvasController,
+                              showGuide: false,
+                              guideNormalizedStrokes: _showAnswerOverlay
+                                  ? guideStrokes
+                                  : null,
+                            ),
+                          ),
+                        ),
                   if (guideStrokesAsync.hasError)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
@@ -230,14 +283,20 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
                             ),
                       ),
                     ),
-                  const SizedBox(height: 22),
-                  _buildActionGrid(),
+                        const SizedBox(height: 22),
+                        IgnorePointer(
+                          ignoring: _canvasController.hasActiveStroke,
+                          child: _buildActionGrid(),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

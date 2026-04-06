@@ -6,7 +6,7 @@ import '../home/home_screen.dart';
 import '../learn/learn_list_screen.dart';
 import '../review/review_screen.dart';
 import '../statistics/statistics_screen.dart';
-import '../profile/profile_screen.dart';
+import '../quiz/quiz_screen.dart';
 import 'widgets/editorial_drawer.dart';
 import '../../core/auth/auth_providers.dart';
 
@@ -16,10 +16,11 @@ import '../../core/auth/auth_providers.dart';
 ///
 /// 탭 구성:
 ///   0 = 홈 (HomeScreen)
-///   1 = 학습 (LearnListScreen)
+///   1 = 사전 (LearnListScreen)
 ///   2 = 복습 (ReviewScreen)
-///   3 = 통계 (StatisticsScreen)
-///   4 = 프로필 (ProfileScreen)
+///   3 = 퀴즈 (QuizScreen)
+///   4 = 통계 (StatisticsScreen)
+/// 프로필·학습 설정은 상단 바 아바타 메뉴에서 [PlanSettingsScreen] 등으로 진입.
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, this.initialIndex = 0});
 
@@ -36,8 +37,8 @@ class _AppShellState extends ConsumerState<AppShell> {
     HomeScreen(),
     LearnListScreen(),
     ReviewScreen(),
+    QuizScreen(),
     StatisticsScreen(),
-    ProfileScreen(),
   ];
 
   @override

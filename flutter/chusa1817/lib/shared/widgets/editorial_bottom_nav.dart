@@ -18,10 +18,10 @@ class EditorialBottomNav extends StatelessWidget {
 
   static const List<_NavItem> _items = [
     _NavItem(icon: Icons.home, label: '홈'),
-    _NavItem(icon: Icons.menu_book, label: '학습'),
+    _NavItem(icon: Icons.menu_book, label: '사전'),
     _NavItem(icon: Icons.replay_circle_filled, label: '복습'),
+    _NavItem(icon: Icons.quiz_outlined, label: '퀴즈'),
     _NavItem(icon: Icons.analytics, label: '통계'),
-    _NavItem(icon: Icons.person, label: '내 정보'),
   ];
 
   @override

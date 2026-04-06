@@ -75,7 +75,7 @@ class PracticeResultScreen extends ConsumerWidget {
                       ),
                       onPressed: () {
                         ref.invalidate(todayCompletedCountProvider);
-                         context.go('${AppRoutes.home}?tab=3');
+                         context.go('${AppRoutes.home}?tab=4');
                       },
                       child: Text(
                         '학습 통계 보기',

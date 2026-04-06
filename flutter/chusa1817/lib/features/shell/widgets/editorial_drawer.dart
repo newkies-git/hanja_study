@@ -120,7 +120,7 @@ class EditorialDrawer extends StatelessWidget {
                       ),
                       _DrawerMenuItem(
                         icon: Icons.menu_book_outlined,
-                        label: '학습 현황',
+                        label: '사전',
                         isSelected: selectedIndex == 1,
                         onTap: () => onItemSelected(1),
                       ),
@@ -131,14 +131,14 @@ class EditorialDrawer extends StatelessWidget {
                         onTap: () => onItemSelected(2),
                       ),
                       _DrawerMenuItem(
-                        icon: Icons.analytics_outlined,
-                        label: '학습 통계',
+                        icon: Icons.quiz_outlined,
+                        label: '퀴즈',
                         isSelected: selectedIndex == 3,
                         onTap: () => onItemSelected(3),
                       ),
                       _DrawerMenuItem(
-                        icon: Icons.person_outline,
-                        label: '내 정보',
+                        icon: Icons.analytics_outlined,
+                        label: '학습 통계',
                         isSelected: selectedIndex == 4,
                         onTap: () => onItemSelected(4),
                       ),

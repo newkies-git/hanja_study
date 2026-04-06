@@ -113,6 +113,13 @@ final hanjaStrokePointsProvider =
   return v.polylineStrokes;
 });
 
+/// 획순 테이블의 [HanjaStrokeTable.direction] (strokeIndex 오름차순). 채점 힌트용.
+final hanjaStrokeDirectionsProvider =
+    FutureProvider.family<List<String?>, String>((ref, hanjaId) async {
+  final rows = await ref.watch(hanjaRepositoryProvider).fetchStrokes(hanjaId);
+  return rows.map((r) => r.direction).toList();
+});
+
 final hanjaWordsProvider =
     FutureProvider.family<List<HanjaWordTableData>, String>((ref, hanjaId) {
   return ref.watch(hanjaRepositoryProvider).fetchWords(hanjaId);
