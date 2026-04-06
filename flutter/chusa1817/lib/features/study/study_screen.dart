@@ -6,6 +6,7 @@ import 'package:drift/drift.dart' show Value;
 
 import '../../core/providers/app_providers.dart';
 import '../../core/study/stroke_evaluator.dart';
+import '../../core/utils/stroke_svg_render.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/ghost_button.dart';
 import '../../core/router/app_router.dart';
@@ -189,7 +190,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   @override
   Widget build(BuildContext context) {
     final hanjaAsync = ref.watch(hanjaByIdProvider(widget.hanjaId));
-    final guideStrokesAsync = ref.watch(hanjaStrokePointsProvider(widget.hanjaId));
+    final guideVisualAsync = ref.watch(hanjaStrokeVisualProvider(widget.hanjaId));
 
     if (hanjaAsync.isLoading) {
       return const Scaffold(
@@ -222,9 +223,21 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     }
 
     final hanja = hanjaRow.character;
+    final HanjaStrokeVisual? guideVisual = guideVisualAsync.value;
     final guideStrokes =
-        guideStrokesAsync.value?.where((s) => s.length >= 2).toList();
+        guideVisual?.polylineStrokes.where((s) => s.length >= 2).toList();
     final int totalStrokes = guideStrokes?.length ?? hanjaRow.totalStrokes;
+
+    List<Path>? overlayGuidePathsInView;
+    List<List<Offset>>? overlayGuidePolylines;
+    if (_showAnswerOverlay && guideVisual != null) {
+      final List<String>? svg = guideVisual.svgPaths;
+      if (svg != null && svg.isNotEmpty) {
+        overlayGuidePathsInView = pathsInViewCoordinates(svg);
+      } else if (guideStrokes != null && guideStrokes.isNotEmpty) {
+        overlayGuidePolylines = guideStrokes;
+      }
+    }
 
     return ListenableBuilder(
       listenable: _canvasController,
@@ -266,17 +279,16 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
                               hanja: hanja,
                               controller: _canvasController,
                               showGuide: false,
-                              guideNormalizedStrokes: _showAnswerOverlay
-                                  ? guideStrokes
-                                  : null,
+                              guidePathsInView: overlayGuidePathsInView,
+                              guideNormalizedStrokes: overlayGuidePolylines,
                             ),
                           ),
                         ),
-                  if (guideStrokesAsync.hasError)
+                  if (guideVisualAsync.hasError)
                     Padding(
                       padding: const EdgeInsets.only(top: 10),
                       child: Text(
-                        '획순 데이터를 불러오지 못했습니다.\n${guideStrokesAsync.error}',
+                        '획순 데이터를 불러오지 못했습니다.\n${guideVisualAsync.error}',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: HanjaColors.onSurfaceVariant,

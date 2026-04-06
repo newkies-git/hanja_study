@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/hanja_colors.dart';
+import '../../../core/utils/stroke_svg_render.dart';
 import '../../../shared/widgets/won_go_ji_grid.dart';
 
 /// 원고지 밖으로 나간 터치: [kWritingCanvasBoundaryHysteresis]만큼 여유를 둔 뒤,
@@ -20,6 +23,9 @@ class WritingCanvasWidget extends StatefulWidget {
     required this.hanja,
     required this.controller,
     this.showGuide = true,
+    /// [StrokeAnimationPlayer]·`pathsInViewCoordinates`와 동일 (512 뷰박스 Path).
+    /// 있으면 [guideNormalizedStrokes]보다 우선한다 (SVG 출처 획순과 형태 일치).
+    this.guidePathsInView,
     this.guideNormalizedStrokes,
   });
 
@@ -29,8 +35,10 @@ class WritingCanvasWidget extends StatefulWidget {
   /// true이면 반투명 가이드 한자를 배경에 표시한다.
   final bool showGuide;
 
-  /// 정답(가이드) 획 좌표 (0~1 정규화). 있으면 배경에 옅게 렌더링한다.
+  /// `svg_paths`가 없을 때만 사용: 획별 0~1 폴리라인(타일 배치 포함).
   final List<List<Offset>>? guideNormalizedStrokes;
+
+  final List<Path>? guidePathsInView;
 
   @override
   State<WritingCanvasWidget> createState() => _WritingCanvasWidgetState();
@@ -149,6 +157,7 @@ class _WritingCanvasWidgetState extends State<WritingCanvasWidget> {
                         painter: _StrokePainter(
                           strokes: widget.controller.strokes,
                           currentStroke: widget.controller._currentStroke,
+                          guidePathsInView: widget.guidePathsInView,
                           guideNormalizedStrokes: widget.guideNormalizedStrokes,
                         ),
                       ),
@@ -235,11 +244,13 @@ class _StrokePainter extends CustomPainter {
   _StrokePainter({
     required this.strokes,
     required this.currentStroke,
+    required this.guidePathsInView,
     required this.guideNormalizedStrokes,
   });
 
   final List<List<Offset>> strokes;
   final List<Offset> currentStroke;
+  final List<Path>? guidePathsInView;
   final List<List<Offset>>? guideNormalizedStrokes;
 
   static final Paint _strokePaint = Paint()
@@ -251,7 +262,7 @@ class _StrokePainter extends CustomPainter {
 
   static final Paint _guidePaint = Paint()
     ..color = HanjaColors.primaryContainer.withValues(alpha: 0.22)
-    ..strokeWidth = 12
+    ..strokeWidth = 2
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round
     ..style = PaintingStyle.stroke;
@@ -260,10 +271,28 @@ class _StrokePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
 
-    final guides = guideNormalizedStrokes;
-    if (guides != null && guides.isNotEmpty) {
-      for (final stroke in guides) {
-        _drawNormalizedStroke(canvas, stroke, size);
+    final List<Path>? svgGuides = guidePathsInView;
+    if (svgGuides != null && svgGuides.isNotEmpty) {
+      canvas.save();
+      final double sx = size.width / kStrokeSvgViewBox;
+      final double sy = size.height / kStrokeSvgViewBox;
+      canvas.scale(sx, sy);
+      final Paint svgGuidePaint = Paint()
+        ..color = _guidePaint.color
+        ..strokeWidth = 2.0 / math.min(sx, sy)
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke;
+      for (final Path p in svgGuides) {
+        canvas.drawPath(p, svgGuidePaint);
+      }
+      canvas.restore();
+    } else {
+      final guides = guideNormalizedStrokes;
+      if (guides != null && guides.isNotEmpty) {
+        for (final stroke in guides) {
+          _drawNormalizedStroke(canvas, stroke, size);
+        }
       }
     }
 
@@ -298,6 +327,7 @@ class _StrokePainter extends CustomPainter {
   bool shouldRepaint(covariant _StrokePainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.currentStroke != currentStroke ||
+        oldDelegate.guidePathsInView != guidePathsInView ||
         oldDelegate.guideNormalizedStrokes != guideNormalizedStrokes;
   }
 }
