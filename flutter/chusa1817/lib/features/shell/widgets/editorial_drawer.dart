@@ -1,5 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/hanja_colors.dart';
 
 /// 프리미엄 에디토리얼 사이드 드로어.
@@ -141,6 +145,22 @@ class EditorialDrawer extends StatelessWidget {
                         label: '학습 통계',
                         isSelected: selectedIndex == 4,
                         onTap: () => onItemSelected(4),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Divider(color: Colors.white12, height: 1),
+                      ),
+                      _DrawerMenuItem(
+                        icon: Icons.info_outline_rounded,
+                        label: 'About 추사1817',
+                        isSelected: false,
+                        onTap: () {
+                          final ScaffoldState? scaffold = Scaffold.maybeOf(context);
+                          if (scaffold?.isDrawerOpen ?? false) {
+                            Navigator.of(context).pop();
+                          }
+                          context.push(AppRoutes.about);
+                        },
                       ),
                     ],
                   ),

@@ -134,3 +134,159 @@ List<Path> pathsInViewCoordinates(List<String> svgPathStrings) {
   final Matrix4 m = strokeEntityPathToViewMatrix(union);
   return paths.map((p) => p.transform(m.storage)).toList();
 }
+
+/// `stroke_entities.json` 등에서 획 `points`가 **첫 점과 마지막 점이 같음**(닫힌 폴리라인)일 때 true.
+///
+/// 좌표는 0~1 정규화 기준. (ref/viewer/stroke_entities.json 전체 19,682획 검증: 위 조건 100%.)
+bool normalizedPolylineIsClosedLoop(
+  List<Offset> points, {
+  double eps = 1e-5,
+}) {
+  if (points.length < 3) return false;
+  final Offset a = points.first;
+  final Offset b = points.last;
+  return (a.dx - b.dx).abs() < eps && (a.dy - b.dy).abs() < eps;
+}
+
+/// [normalizedPolylineIsClosedLoop]일 때 [PaintingStyle.fill]에 쓸 닫힌 Path.
+/// 마지막 점이 시작과 중복이면 생략하고 [Path.close]로 닫는다.
+Path normalizedClosedPolylineToFillPath(List<Offset> points, Size size) {
+  final Path path = Path();
+  if (!normalizedPolylineIsClosedLoop(points)) return path;
+  final int n = points.length;
+  final double w = size.width;
+  final double h = size.height;
+  final int lastVert = n - 2;
+  path.moveTo(points[0].dx * w, points[0].dy * h);
+  for (int i = 1; i <= lastVert; i++) {
+    path.lineTo(points[i].dx * w, points[i].dy * h);
+  }
+  path.close();
+  return path;
+}
+
+/// view 좌표(예: 512 박스) Path의 **모든** contour가 시작점≈끝점이면 면 fill에 적합.
+bool pathAllContoursEndpointsMeet(
+  Path path, {
+  double tolerance = 2.5,
+}) {
+  bool any = false;
+  for (final PathMetric m in path.computeMetrics()) {
+    any = true;
+    final double len = m.length;
+    if (len < 1e-6) return false;
+    final Offset? a = m.getTangentForOffset(0)?.position;
+    final Offset? b = m.getTangentForOffset(len)?.position;
+    if (a == null || b == null) return false;
+    if ((a - b).distance > tolerance) return false;
+  }
+  return any;
+}
+
+/// 열린 획 **중심선**을 [strokeWidth] 두께의 닫힌 리본(폴리곤)으로 바꾼다.
+///
+/// 단일 곡선만 있을 때 `PaintingStyle.fill`로 칠하면 “붓으로 채운” 것과 비슷한 면이 된다.
+/// (원본 path가 면이 아니면 fill만으로는 채울 수 없어, 법선 방향으로 오프셋을 쌓는 방식.)
+Path pathCenterlineToFilledRibbonPath(Path centerline, double strokeWidth) {
+  final double half = strokeWidth * 0.5;
+  final Path outline = Path();
+  for (final PathMetric metric in centerline.computeMetrics()) {
+    final double len = metric.length;
+    if (len < 1e-6) continue;
+    final int steps = math.max(8, (len / 2.0).ceil()).clamp(8, 400);
+    final List<Offset> left = <Offset>[];
+    final List<Offset> right = <Offset>[];
+    for (int i = 0; i <= steps; i++) {
+      final double d = len * (i / steps);
+      final Tangent? tan = metric.getTangentForOffset(d);
+      if (tan == null) continue;
+      final Offset dir = tan.vector;
+      final double mag = dir.distance;
+      if (mag < 1e-9) continue;
+      final Offset n = Offset(-dir.dy, dir.dx) / mag;
+      final Offset p = tan.position;
+      left.add(p + n * half);
+      right.add(p - n * half);
+    }
+    if (left.length < 2) continue;
+    outline.moveTo(left.first.dx, left.first.dy);
+    for (int i = 1; i < left.length; i++) {
+      outline.lineTo(left[i].dx, left[i].dy);
+    }
+    outline.lineTo(right.last.dx, right.last.dy);
+    for (int i = right.length - 2; i >= 0; i--) {
+      outline.lineTo(right[i].dx, right[i].dy);
+    }
+    outline.close();
+  }
+  return outline;
+}
+
+/// 리본 끝 단면을 둥글게 보이게 시작·끝에 반원을 덧칠한다.
+void paintFilledStrokeRoundCaps(
+  Canvas canvas,
+  Path centerline,
+  double strokeWidth,
+  Paint fillPaint,
+) {
+  final double r = strokeWidth * 0.5;
+  final Paint cap = Paint()
+    ..color = fillPaint.color
+    ..style = PaintingStyle.fill
+    ..isAntiAlias = fillPaint.isAntiAlias;
+  for (final PathMetric metric in centerline.computeMetrics()) {
+    final double len = metric.length;
+    if (len < 1e-6) continue;
+    final Tangent? t0 = metric.getTangentForOffset(0);
+    final Tangent? t1 = metric.getTangentForOffset(len);
+    if (t0 != null) {
+      canvas.drawCircle(t0.position, r, cap);
+    }
+    if (t1 != null) {
+      canvas.drawCircle(t1.position, r, cap);
+    }
+  }
+}
+
+/// 중심선을 실제 fill 면으로 그린다 ([pathCenterlineToFilledRibbonPath] + 끝 캡).
+void paintPathCenterlineAsFilledStroke(
+  Canvas canvas,
+  Path centerline,
+  double strokeWidth,
+  Color color,
+) {
+  final Paint fill = Paint()
+    ..color = color
+    ..style = PaintingStyle.fill
+    ..isAntiAlias = true;
+  canvas.drawPath(
+    pathCenterlineToFilledRibbonPath(centerline, strokeWidth),
+    fill,
+  );
+  paintFilledStrokeRoundCaps(canvas, centerline, strokeWidth, fill);
+}
+
+/// 닫힌 윤곽이면 [path]를 그대로 fill, 아니면 중심선 리본 fill.
+void paintPathFillOrCenterlineRibbon(
+  Canvas canvas,
+  Path path,
+  double ribbonStrokeWidth,
+  Color color,
+) {
+  if (pathAllContoursEndpointsMeet(path)) {
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = true,
+    );
+  } else {
+    paintPathCenterlineAsFilledStroke(
+      canvas,
+      path,
+      ribbonStrokeWidth,
+      color,
+    );
+  }
+}

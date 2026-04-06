@@ -14,6 +14,7 @@ import 'package:chusa1817/features/learn/hanja_detail_screen.dart';
 import 'package:chusa1817/features/profile/content_sync_screen.dart';
 import 'package:chusa1817/features/profile/plan_settings_screen.dart';
 import 'package:chusa1817/features/review/review_screen.dart';
+import 'package:chusa1817/features/about/about_chusa1817_screen.dart';
 import 'package:chusa1817/features/shell/app_shell.dart';
 import 'package:chusa1817/features/onboarding/onboarding_screen.dart';
 import 'package:chusa1817/features/study/practice_result_screen.dart';
@@ -146,6 +147,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'review',
         builder: (context, state) => const ReviewScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.about,
+        name: 'about',
+        builder: (context, state) => const AboutChusa1817Screen(),
+      ),
     ],
   );
 });
@@ -180,4 +186,5 @@ abstract class AppRoutes {
   static const String planSettings = '/plan-settings';
   static const String contentSync = '/content-sync';
   static const String review = '/review';
+  static const String about = '/about';
 }
