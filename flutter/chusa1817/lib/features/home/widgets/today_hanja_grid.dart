@@ -111,7 +111,7 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
 
   @override
   Widget build(BuildContext context) {
-    final bool isCompleted = widget.status == 'completed';
+    final bool isCompleted = widget.status == 'mastered' || widget.status == 'completed';
     final bool isLearning = widget.status == 'learning';
 
     Color backgroundColor;

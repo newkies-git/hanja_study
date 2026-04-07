@@ -206,7 +206,7 @@ class DailyHanjaActivityTable extends Table {
 
   // ── 한자별 활동 상태 ──────────────────────────────────────────────────
   TextColumn get status => text().withDefault(const Constant('planned'))();
-  // 'planned' | 'learning' | 'completed'
+  // 'planned' | 'learning' | 'review_needed' | 'mastered'
 
   // ── 동기화 및 메타 ──────────────────────────────────────────────────────────
   TextColumn get syncStatus => text().withDefault(const Constant('local_only'))();

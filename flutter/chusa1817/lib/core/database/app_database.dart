@@ -56,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +105,46 @@ class AppDatabase extends _$AppDatabase {
           // v6 → v7: 일별 한자 상세 활동 테이블 추가
           if (from < 7) {
             await m.createTable(dailyHanjaActivityTable);
+          }
+
+          // v7 → v8: 용어 통일 (completed → mastered)
+          if (from < 8) {
+            // daily_hanja_activity: 과거 'completed' 상태를 'mastered'로 통일
+            await customStatement(
+              "UPDATE daily_hanja_activity SET status = 'mastered' WHERE status = 'completed';",
+            );
+            // user_progress: 과거 'completed' 상태가 있었다면 'mastered'로 통일
+            await customStatement(
+              "UPDATE user_progress SET status = 'mastered' WHERE status = 'completed';",
+            );
+          }
+
+          // v8 → v9: 일별(mastered) 기록과 누적(user_progress) 상태를 정합화
+          if (from < 9) {
+            // 과거에는 daily_hanja_activity에 mastered가 찍혔지만 user_progress는 learning으로 남는 케이스가 있었다.
+            // 일별 mastered가 존재하는 hanja는 누적도 mastered로 승격한다.
+            await customStatement(
+              "UPDATE user_progress "
+              "SET status = 'mastered' "
+              "WHERE status != 'mastered' "
+              "AND hanja_id IN (SELECT DISTINCT hanja_id FROM daily_hanja_activity WHERE status = 'mastered');",
+            );
+          }
+
+          // v9 → v10: daily_hanja_activity 중복 정리 (hanjaId 당 최신 1건만 유지)
+          // - 이월(carryover) 시 이전 날짜의 진행/예정 데이터는 남지 않아야 한다.
+          // - review_needed는 학습 활동량으로 카운트하지 않으며, 여기서는 "중복 제거"만 수행한다.
+          if (from < 10) {
+            await customStatement(
+              "DELETE FROM daily_hanja_activity AS d1 "
+              "WHERE d1.id != ("
+              "  SELECT d2.id "
+              "  FROM daily_hanja_activity AS d2 "
+              "  WHERE d2.hanja_id = d1.hanja_id "
+              "  ORDER BY d2.updated_at DESC, d2.date DESC, d2.id DESC "
+              "  LIMIT 1"
+              ");",
+            );
           }
         },
 

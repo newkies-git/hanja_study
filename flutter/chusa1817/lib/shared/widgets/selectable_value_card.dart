@@ -27,7 +27,7 @@ class SelectableValueCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Ink(
-          height: 60,
+          height: 55,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: HanjaColors.outlineVariant),

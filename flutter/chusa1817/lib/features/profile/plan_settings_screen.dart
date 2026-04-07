@@ -25,6 +25,7 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
   bool _isAscending = true;
   String _schoolLevel = 'all'; // 'middle' | 'high' | 'all'
   final List<bool> _selectedDays = List.generate(7, (i) => i < 5);
+  int _writingDifficulty = 0; // 0=쉬움, 1=보통, 2=어려움
 
   static const List<int> _dailyGoalOptions = [5, 10, 15, 20, 25];
   static const List<String> _dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
@@ -39,10 +40,14 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
       final orderIndexRaw = await settings.get(AppSettingsKeys.orderIndex);
       final schoolLevelRaw = await settings.get(AppSettingsKeys.schoolLevel);
       final selectedDaysRaw = await settings.get(AppSettingsKeys.selectedDays);
+      final writingDifficultyRaw = await settings.get(
+        AppSettingsKeys.writingDifficulty,
+      );
 
       final dailyGoal = int.tryParse(dailyGoalRaw ?? '');
       final orderIndex = int.tryParse(orderIndexRaw ?? '');
       final isAscendingRaw = await settings.get(AppSettingsKeys.isAscending);
+      final writingDifficulty = int.tryParse(writingDifficultyRaw ?? '');
 
       if (dailyGoal != null) setState(() => _dailyGoal = dailyGoal);
       if (orderIndex != null) setState(() => _orderIndex = orderIndex);
@@ -50,6 +55,9 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
         setState(() => _isAscending = isAscendingRaw.toLowerCase() == 'true');
       }
       if (schoolLevelRaw != null) setState(() => _schoolLevel = schoolLevelRaw);
+      if (writingDifficulty != null) {
+        setState(() => _writingDifficulty = writingDifficulty.clamp(0, 2));
+      }
 
       if (selectedDaysRaw != null && selectedDaysRaw.isNotEmpty) {
         final parsed = selectedDaysRaw
@@ -85,10 +93,14 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 140),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    _buildSectionHeader(
-                      textTheme,
-                      'GOAL & PACE',
+                    Text(
                       '체계적인 학습을 위한 목표를 설정하세요.',
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        height: 1.3,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     _buildSettingsCard(
@@ -110,7 +122,9 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                         selectedDays: _selectedDays,
                         dayLabels: _dayLabels,
                         onDayToggled: (index) {
-                          setState(() => _selectedDays[index] = !_selectedDays[index]);
+                          setState(
+                            () => _selectedDays[index] = !_selectedDays[index],
+                          );
                         },
                       ),
                     ),
@@ -136,7 +150,7 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
         color: HanjaColors.onSurface,
       ),
       title: Text(
-        '학습 계획 설정',
+        'GOAL & PACE',
         style: textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w900,
           letterSpacing: -0.5,
@@ -146,39 +160,16 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
     );
   }
 
-  Widget _buildSectionHeader(TextTheme textTheme, String label, String title) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.primary,
-            letterSpacing: 2.2,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 16, // 폰트 크기 추가 축소 (3차)
-            fontWeight: FontWeight.w900,
-            height: 1.3,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSettingsCard({
     required IconData icon,
     required String title,
     required Widget child,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), // 상하 패딩 축소
+      padding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 16,
+      ), // 상하 패딩 축소
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -232,21 +223,69 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
     );
   }
 
+  Widget _buildWritingDifficultyOptions() {
+    return SizedBox(
+      width: 200,
+      height: 36,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: HanjaColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildSegment(
+                value: 0,
+                selectedValue: _writingDifficulty,
+                label: '쉬움',
+                onTap: (v) => setState(() => _writingDifficulty = v),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: _buildSegment(
+                value: 1,
+                selectedValue: _writingDifficulty,
+                label: '보통',
+                onTap: (v) => setState(() => _writingDifficulty = v),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: _buildSegment(
+                value: 2,
+                selectedValue: _writingDifficulty,
+                label: '어려움',
+                onTap: (v) => setState(() => _writingDifficulty = v),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrderOptions() {
     return Column(
       children: [
         // 1. 학습 방법 세그먼트
         Row(
           children: [
-            const Icon(Icons.sort_rounded, size: 20, color: HanjaColors.primaryContainer),
+            const Icon(
+              Icons.sort_rounded,
+              size: 20,
+              color: HanjaColors.primaryContainer,
+            ),
             const SizedBox(width: 8), // 간격 축소
             Expanded(
               child: Text(
                 '정렬', // '순서' -> '정렬'
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
                 maxLines: 1,
                 softWrap: false,
               ),
@@ -312,15 +351,19 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
         // 2. 학교 구분 세그먼트
         Row(
           children: [
-            const Icon(Icons.category_rounded, size: 20, color: HanjaColors.primaryContainer),
+            const Icon(
+              Icons.category_rounded,
+              size: 20,
+              color: HanjaColors.primaryContainer,
+            ),
             const SizedBox(width: 8), // 간격 축소
             Expanded(
               child: Text(
                 '유형',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14, // 폰트 크기 살짝 축소
-                    ),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14, // 폰트 크기 살짝 축소
+                ),
                 maxLines: 1,
                 softWrap: false,
               ),
@@ -368,6 +411,30 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        // 3. 필기 난도
+        Row(
+          children: [
+            const Icon(
+              Icons.edit_rounded,
+              size: 20,
+              color: HanjaColors.primaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '난도',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+                maxLines: 1,
+                softWrap: false,
+              ),
+            ),
+            _buildWritingDifficultyOptions(),
+          ],
+        ),
       ],
     );
   }
@@ -381,7 +448,8 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
   }) {
     final bool isSelected = value == selectedValue;
     // 0 = 가나다, 1 = 획순, 2 = 랜덤
-    final bool showArrow = isSelected && isAscending != null && (value == 0 || value == 1);
+    final bool showArrow =
+        isSelected && isAscending != null && (value == 0 || value == 1);
 
     return GestureDetector(
       onTap: () => onTap(value),
@@ -411,7 +479,9 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                  color: isSelected ? HanjaColors.primary : HanjaColors.onSurfaceVariant,
+                  color: isSelected
+                      ? HanjaColors.primary
+                      : HanjaColors.onSurfaceVariant,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -453,22 +523,29 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                 final settings = ref.read(settingsRepositoryProvider);
                 await settings.set(AppSettingsKeys.dailyGoal, '$_dailyGoal');
                 await settings.set(AppSettingsKeys.orderIndex, '$_orderIndex');
-                await settings.set(AppSettingsKeys.isAscending, '$_isAscending');
+                await settings.set(
+                  AppSettingsKeys.isAscending,
+                  '$_isAscending',
+                );
                 await settings.set(AppSettingsKeys.schoolLevel, _schoolLevel);
+                await settings.set(
+                  AppSettingsKeys.writingDifficulty,
+                  '$_writingDifficulty',
+                );
                 await settings.set(
                   AppSettingsKeys.selectedDays,
                   '[${_selectedDays.map((e) => e.toString()).join(',')}]',
                 );
-                
+
                 if (!context.mounted) return;
-                
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('학습 계획이 저장되었습니다.'),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
-                
+
                 if (context.canPop()) {
                   context.pop();
                 } else {

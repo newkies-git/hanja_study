@@ -83,6 +83,9 @@ abstract class ProgressRepository {
   /// 마스터한 한자의 총 갯수를 조회한다.
   Future<int> fetchMasteredCount();
 
+  /// 학습중(learning) 한자의 총 갯수를 조회한다.
+  Future<int> fetchLearningCount();
+
   /// 오늘 학습할/학습한 한자 목록을 반환한다.
   ///
   /// [dailyGoal] 만큼의 한자를 포함하며, 오늘 이미 학습한 한자와 다음에 학습할 한자를 조합한다.
@@ -90,6 +93,15 @@ abstract class ProgressRepository {
     int dailyGoal = 5,
     int orderIndex = 0,
     bool isAscending = true,
+    String schoolLevel = 'all', // 'middle' | 'high' | 'all'
+  });
+
+  /// 최근 N일(오늘 포함) 일별 상태별(learning/completed) 활동 수를 반환한다.
+  ///
+  /// 반환 Map의 key는 `DateTime(year, month, day)`이고,
+  /// value는 `(completedCount, learningCount)` 튜플이다. (planned는 제외)
+  Future<Map<DateTime, (int completed, int learning)>> fetchDailyActivityStatusCounts({
+    int days = 7,
   });
 
   /// 오답률이 높은(정확도가 낮은) 한자 목록을 반환한다 (오늘 학습하지 않은 것 위주).

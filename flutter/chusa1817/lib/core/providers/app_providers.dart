@@ -72,6 +72,11 @@ final masteredHanjaCountProvider = FutureProvider<int>((ref) {
   return ref.watch(progressRepositoryProvider).fetchMasteredCount();
 });
 
+/// 학습중(learning) 한자 갯수 FutureProvider.
+final learningHanjaCountProvider = FutureProvider<int>((ref) {
+  return ref.watch(progressRepositoryProvider).fetchLearningCount();
+});
+
 /// 학습 탭 그리드. Firestore `구분`에 따라 `schoolLevel`이 middle/high/both로 갈리므로
 /// 중학만 필터하면 데이터가 비는 경우가 있다 — 동기화된 전체 한자를 쓴다.
 final learnHanjaListProvider = FutureProvider<List<HanjaTableData>>((ref) {
@@ -150,6 +155,28 @@ final weeklyStudyCountsProvider = FutureProvider<List<int>>((ref) async {
   });
 });
 
+final weeklyActivityBreakdownProvider =
+    FutureProvider<({List<int> completed, List<int> learning, List<int> total})>((ref) async {
+  final map = await ref.watch(progressRepositoryProvider).fetchDailyActivityStatusCounts(days: 7);
+  final DateTime now = DateTime.now();
+  final DateTime start =
+      DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+  final completed = <int>[];
+  final learning = <int>[];
+  final total = <int>[];
+  for (int i = 0; i < 7; i++) {
+    final date = start.add(Duration(days: i));
+    final day = DateTime(date.year, date.month, date.day);
+    final v = map[day];
+    final c = v?.$1 ?? 0;
+    final l = v?.$2 ?? 0;
+    completed.add(c);
+    learning.add(l);
+    total.add(c + l);
+  }
+  return (completed: completed, learning: learning, total: total);
+});
+
 final upcomingReviewHanjaProvider =
     FutureProvider<List<(String hanjaId, String hanja, String meaning, DateTime nextReviewAt, double accuracy)>>(
         (ref) async {
@@ -198,6 +225,13 @@ final isAscendingProvider = FutureProvider<bool>((ref) async {
   final settings = ref.watch(settingsRepositoryProvider);
   final raw = await settings.get(AppSettingsKeys.isAscending);
   return raw?.toLowerCase() == 'true' || raw == null; // 기본값 true
+});
+
+final schoolLevelProvider = FutureProvider<String>((ref) async {
+  final settings = ref.watch(settingsRepositoryProvider);
+  final raw = await settings.get(AppSettingsKeys.schoolLevel);
+  // 'middle' | 'high' | 'all'
+  return (raw == null || raw.isEmpty) ? 'all' : raw;
 });
 
 final recommendedReviewHanjaProvider =
@@ -275,10 +309,12 @@ final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, Stri
   final goal = await ref.watch(dailyGoalProvider.future);
   final orderIndex = await ref.watch(orderIndexProvider.future);
   final isAscending = await ref.watch(isAscendingProvider.future);
+  final schoolLevel = await ref.watch(schoolLevelProvider.future);
   final repo = ref.watch(progressRepositoryProvider);
   return repo.fetchTodayLearningHanja(
     dailyGoal: goal,
     orderIndex: orderIndex,
     isAscending: isAscending,
+    schoolLevel: schoolLevel,
   );
 });

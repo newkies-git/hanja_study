@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
@@ -168,7 +169,8 @@ class LocalProgressRepository implements ProgressRepository {
       DateTime.now().day,
     );
     final query = _db.select(_db.dailyHanjaActivityTable)
-      ..where((t) => t.date.equals(startOfDay) & t.status.equals('completed'));
+      ..where((t) =>
+          t.date.equals(startOfDay) & t.status.isIn(['mastered', 'completed']));
     final rows = await query.get();
     
     // 동일 한자에 대한 중복 row 방지를 위해 고유 hanjaId 개수로 계산
@@ -194,6 +196,44 @@ class LocalProgressRepository implements ProgressRepository {
       counts.update(day, (v) => v + 1, ifAbsent: () => 1);
     }
     return counts;
+  }
+
+  @override
+  Future<Map<DateTime, (int completed, int learning)>> fetchDailyActivityStatusCounts({
+    int days = 7,
+  }) async {
+    final DateTime now = DateTime.now();
+    final DateTime start = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: days - 1));
+
+    final rows = await (_db.select(_db.dailyHanjaActivityTable)
+          ..where((t) =>
+              t.date.isBiggerOrEqualValue(start) &
+              // NOTE: review_needed는 "복습 대상"이며 주간 활동량(학습 진행/완료)에는 포함하지 않는다.
+              t.status.isIn(['learning', 'mastered', 'completed'])))
+        .get();
+
+    final Map<DateTime, Set<String>> completedByDay = {};
+    final Map<DateTime, Set<String>> learningByDay = {};
+    for (final r in rows) {
+      final d = r.date;
+      final day = DateTime(d.year, d.month, d.day);
+      if (r.status == 'mastered' || r.status == 'completed') {
+        (completedByDay[day] ??= <String>{}).add(r.hanjaId);
+      } else if (r.status == 'learning') {
+        (learningByDay[day] ??= <String>{}).add(r.hanjaId);
+      }
+    }
+
+    final Map<DateTime, (int completed, int learning)> out = {};
+    final Set<DateTime> allDays = {...completedByDay.keys, ...learningByDay.keys};
+    for (final day in allDays) {
+      out[day] = (
+        completedByDay[day]?.length ?? 0,
+        learningByDay[day]?.length ?? 0,
+      );
+    }
+    return out;
   }
 
   @override
@@ -258,7 +298,7 @@ class LocalProgressRepository implements ProgressRepository {
     required DateTime studiedAt,
     required bool isCorrect,
     bool? isBookmarked,
-    String? forceStatus, // 'learning' or 'completed'
+    String? forceStatus, // 'learning' | 'mastered'
   }) async {
     final existing = await fetchProgress(hanjaId);
     final DateTime now = DateTime.now();
@@ -300,14 +340,19 @@ class LocalProgressRepository implements ProgressRepository {
     if (ef < 1.3) ef = 1.3;
     nextReviewAt = DateTime(now.year, now.month, now.day).add(Duration(days: interval));
 
+    final String progressStatus = (isCorrect
+        ? (n >= 4 ? 'mastered' : 'learning')
+        : 'review_needed');
+    final String resolvedStatus = (forceStatus == null || forceStatus.isEmpty)
+        ? progressStatus
+        : forceStatus;
+
     await _db.into(_db.userProgressTable).insertOnConflictUpdate(
           UserProgressTableCompanion(
             id: Value(id),
             userId: Value(existing?.userId ?? ''),
             hanjaId: Value(hanjaId),
-            status: Value(isCorrect 
-                ? (n >= 4 ? 'mastered' : 'learning') 
-                : 'review_needed'),
+            status: Value(resolvedStatus),
             totalAttempts: Value(totalAttempts),
             correctAttempts: Value(correctAttempts),
             accuracyRate: Value(accuracyRate),
@@ -346,7 +391,10 @@ class LocalProgressRepository implements ProgressRepository {
     // ── 일별 한자 활동 기록 ───────────────────────────────────────────────
     // 어떤 한자를 공부했는지 상세 목록에 기록
     final activityId = '${date.millisecondsSinceEpoch}_${userId}_$hanjaId';
-    final isMastered = (isCorrect && (accuracyRate > 0.8)); // 임시 마스터 판정 기준
+    // 일별 집계는 "전체 누적 진도"와 같은 기준을 써야 주간/전체 현황이 일관된다.
+    // - userProgress.status == mastered → daily status = mastered
+    // - learning/review_needed → daily status = learning (주간 그래프에서는 학습중으로 함께 집계)
+    final bool isMastered = resolvedStatus == 'mastered';
 
     await _db.into(_db.dailyHanjaActivityTable).insertOnConflictUpdate(
           DailyHanjaActivityTableCompanion(
@@ -354,7 +402,7 @@ class LocalProgressRepository implements ProgressRepository {
             date: Value(date),
             userId: Value(userId),
             hanjaId: Value(hanjaId),
-            status: Value(forceStatus ?? (isMastered ? 'completed' : 'learning')),
+            status: Value(isMastered ? 'mastered' : (resolvedStatus == 'review_needed' ? 'review_needed' : 'learning')),
             updatedAt: Value(now),
           ),
         );
@@ -371,10 +419,21 @@ class LocalProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<int> fetchLearningCount() async {
+    final countExp = _db.userProgressTable.id.count();
+    final query = _db.selectOnly(_db.userProgressTable)
+      ..where(_db.userProgressTable.status.isIn(['learning', 'review_needed']))
+      ..addColumns([countExp]);
+    final result = await query.map((row) => row.read(countExp)).getSingle();
+    return result ?? 0;
+  }
+
+  @override
   Future<List<(HanjaTableData hanja, String status, bool isBookmarked)>> fetchTodayLearningHanja({
     int dailyGoal = 5,
     int orderIndex = 0,
     bool isAscending = true,
+    String schoolLevel = 'all',
   }) async {
     final DateTime now = DateTime.now();
     final DateTime todayDate = DateTime(now.year, now.month, now.day);
@@ -401,10 +460,10 @@ class LocalProgressRepository implements ProgressRepository {
         }
       }
 
-      // 1-2. [이월] 어제까지 학습을 다 하지 못한(status != 'completed') 단어들을 오늘로 이동
+      // 1-2. [이월] 어제까지 학습을 다 하지 못한(status != 'mastered') 단어들을 오늘로 이동
       final incomplete = await (_db.select(_db.dailyHanjaActivityTable)
             ..where((t) =>
-                t.status.equals('completed').not() &
+                t.status.equals('mastered').not() &
                 t.date.isSmallerThanValue(todayDate))
             ..limit(dailyGoal))
           .get();
@@ -446,8 +505,9 @@ class LocalProgressRepository implements ProgressRepository {
       final int todayCount =
           (await countQuery.map((row) => row.read(countExp)).getSingle()) ?? 0;
 
-      // 1-4. [최초 할당] 오늘 할 일이 아예 없는 경우에만 목표량만큼 신규 한자 채우기
-      if (todayCount == 0) {
+      // 1-4. [신규 할당] 이월된 수를 뺀 나머지(=목표량에서 부족한 수)만큼 신규 한자 채우기
+      final int remaining = math.max(0, dailyGoal - todayCount);
+      if (remaining > 0) {
         final nextHanjasQuery = _db.select(_db.hanjaTable).join([
           leftOuterJoin(
             _db.userProgressTable,
@@ -456,6 +516,11 @@ class LocalProgressRepository implements ProgressRepository {
         ])
           ..where(_db.userProgressTable.status.isNull() |
               _db.userProgressTable.status.equals('unseen'));
+
+        // 유형(학교급) 필터: 'all'이면 전체, 아니면 해당 school_level만
+        if (schoolLevel != 'all') {
+          nextHanjasQuery.where(_db.hanjaTable.schoolLevel.equals(schoolLevel));
+        }
 
         final mode = isAscending ? OrderingMode.asc : OrderingMode.desc;
 
@@ -470,7 +535,13 @@ class LocalProgressRepository implements ProgressRepository {
               [OrderingTerm(expression: _db.hanjaTable.reading, mode: mode)]);
         }
 
-        nextHanjasQuery.limit(dailyGoal);
+        // 중복 방지(오늘 이미 할당/이월된 한자 제외) + 필요한 수만큼만
+        if (currentTodayHanjaIds.isNotEmpty) {
+          nextHanjasQuery.where(
+            _db.hanjaTable.id.isNotIn(currentTodayHanjaIds.toList()),
+          );
+        }
+        nextHanjasQuery.limit(remaining);
 
         final nextRows = await nextHanjasQuery.get();
         for (final row in nextRows) {
@@ -518,12 +589,12 @@ class LocalProgressRepository implements ProgressRepository {
       final status = row.readTable(_db.dailyHanjaActivityTable).status;
       final bool isBookmarked = row.readTableOrNull(_db.userProgressTable)?.isBookmarked ?? false;
       
-      // 상태 업데이트 우선순위: completed > learning > planned
+      // 상태 업데이트 우선순위: mastered > learning > planned
       if (!uniqueMap.containsKey(hanja.id)) {
         uniqueMap[hanja.id] = (hanja, status, isBookmarked);
       } else {
         final existingStatus = uniqueMap[hanja.id]!.$2;
-        if (status == 'completed' || (status == 'learning' && existingStatus == 'planned')) {
+        if (status == 'mastered' || (status == 'learning' && existingStatus == 'planned')) {
           uniqueMap[hanja.id] = (hanja, status, isBookmarked);
         }
       }

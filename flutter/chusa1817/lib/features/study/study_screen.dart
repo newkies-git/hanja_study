@@ -10,6 +10,7 @@ import '../../core/utils/stroke_svg_render.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/ghost_button.dart';
 import '../../core/router/app_router.dart';
+import '../../core/settings/app_settings_keys.dart';
 import 'widgets/practice_action_tile.dart';
 import 'widgets/writing_canvas_widget.dart';
 import '../../core/database/app_database.dart';
@@ -40,6 +41,315 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   bool _isGraded = false;
   double _accuracy = 0.0;
   bool _isLastResultCorrect = false;
+  List<SingleStrokeEvaluation> _lastPerStroke = const [];
+  bool _lastStrokeCountMatch = false;
+
+  Future<void> _showScoringGuidePopup() async {
+    final settings = ref.read(settingsRepositoryProvider);
+    final rawDifficulty = await settings.get(AppSettingsKeys.writingDifficulty);
+    final int difficulty = int.tryParse(rawDifficulty ?? '') ?? 0;
+
+    final String difficultyLabel = switch (difficulty) {
+      2 => '어려움(2)',
+      1 => '보통(1)',
+      _ => '쉬움(0)',
+    };
+
+    final int basePct = (_accuracy * 100).round();
+    final int bonus = 15 * (3 - difficulty);
+    final int adjustedPct = (basePct + bonus).clamp(0, 100);
+    final int score = _scoreFromAdjustedPercent(adjustedPct);
+
+    final int strokeN = _lastPerStroke.length;
+    int passCount(bool Function(SingleStrokeEvaluation e) pick) =>
+        _lastPerStroke.where(pick).length;
+    String ratioLabel(int pass) {
+      if (strokeN <= 0) return '-';
+      final pct = ((pass / strokeN) * 100).round();
+      return '$pass/$strokeN ($pct%)';
+    }
+
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        final textTheme = Theme.of(ctx).textTheme;
+        TextStyle? headerStyle = textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w900,
+          color: HanjaColors.onSurface,
+        );
+        TextStyle? bodyStyle = textTheme.bodySmall?.copyWith(
+          height: 1.35,
+          color: HanjaColors.onSurface,
+        );
+        TextStyle? dimStyle = textTheme.bodySmall?.copyWith(
+          height: 1.35,
+          color: HanjaColors.outline,
+        );
+
+        Widget row(String left, String right) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(left, style: dimStyle),
+                  Text(right, style: bodyStyle?.copyWith(fontWeight: FontWeight.w800)),
+                ],
+              ),
+            );
+
+        return AlertDialog(
+          title: Text('채점 기준', style: headerStyle),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 420),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('난도: $difficultyLabel', style: bodyStyle),
+                  const SizedBox(height: 8),
+                  Text('일치율 산출 근거', style: headerStyle?.copyWith(fontSize: 14)),
+                  const SizedBox(height: 6),
+                  Text(
+                    '채점은 가이드 획과 사용자가 쓴 획을 비교하여 획별로 4가지 항목을 평가합니다.\n'
+                    '- 시작점 일치(start)\n'
+                    '- 끝점 일치(end)\n'
+                    '- 방향(direction)\n'
+                    '- 형태(shape: DTW 평균거리)\n\n'
+                    '각 획은 통과한 항목 수 / 4 로 점수가 계산되고, 전체 일치율은 모든 획 점수의 평균(0~1)을 %로 환산한 값입니다.\n'
+                    '※ 획 수가 가이드와 다르면 패널티가 적용됩니다.',
+                    style: dimStyle,
+                  ),
+                  const SizedBox(height: 10),
+                  Text('항목별 점수(통과)', style: headerStyle?.copyWith(fontSize: 14)),
+                  const SizedBox(height: 6),
+                  row('획 수 일치', _lastPerStroke.isEmpty ? '-' : (_lastStrokeCountMatch ? '일치' : '불일치')),
+                  row('시작점 일치', ratioLabel(passCount((e) => e.startPass))),
+                  row('끝점 일치', ratioLabel(passCount((e) => e.endPass))),
+                  row('방향', ratioLabel(passCount((e) => e.directionPass))),
+                  row('형태(DTW)', ratioLabel(passCount((e) => e.shapePass))),
+                  const SizedBox(height: 10),
+                  Text(
+                    '보정식: 일치율 + 15 × (3 - 난도)\n'
+                    '100 초과 시 100으로 제한',
+                    style: dimStyle,
+                  ),
+                  const SizedBox(height: 10),
+                  row('일치율', '$basePct%'),
+                  row('가산점', '+$bonus'),
+                  row('보정 후', '$adjustedPct%'),
+                  row('현재 점수(6단계)', '$score'),
+                  const SizedBox(height: 12),
+                  Text('6단계 점수표', style: headerStyle?.copyWith(fontSize: 14)),
+                  const SizedBox(height: 6),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('100~91', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('90~81', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('80~71', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('70~61', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('60~51', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('50~', style: dimStyle),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text('100', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('90', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('80', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('70', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('60', style: dimStyle),
+                            const SizedBox(height: 4),
+                            Text('50', style: dimStyle),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _resetGradingAndInk() {
+    setState(() {
+      _isGraded = false;
+      _accuracy = 0.0;
+      _isLastResultCorrect = false;
+      _showAnswerOverlay = false;
+      _canvasController.reset();
+    });
+  }
+
+  int _adjustedAccuracyPercent({
+    required double accuracy01,
+    required int difficulty,
+  }) {
+    // 쉬움=0, 보통=1, 어려움=2
+    // adjusted = pct + 15*(3-difficulty), cap to 100
+    final int pct = (accuracy01 * 100).round();
+    final int adjusted = pct + (15 * (3 - difficulty));
+    return adjusted.clamp(0, 100);
+  }
+
+  int _scoreFromAdjustedPercent(int adjustedPct) {
+    // 100~91, 90~81, 80~71, 70~61, 60~51, 50~
+    if (adjustedPct >= 91) return 100;
+    if (adjustedPct >= 81) return 90;
+    if (adjustedPct >= 71) return 80;
+    if (adjustedPct >= 61) return 70;
+    if (adjustedPct >= 51) return 60;
+    return 50;
+  }
+
+  String _praiseMessageForScore(int score) {
+    switch (score) {
+      case 100:
+        return '완벽해요! 정말 멋져요.';
+      case 90:
+        return '아주 좋아요! 조금만 더 하면 완벽해요.';
+      case 80:
+        return '좋아요! 흐름이 점점 안정적이에요.';
+      case 70:
+        return '괜찮아요! 꾸준히 하면 더 좋아져요.';
+      case 60:
+        return '잘했어요! 조금만 더 정확하게 해볼까요?';
+      case 50:
+      default:
+        return '좋은 시작이에요! 천천히 따라 쓰면 금방 늘어요.';
+    }
+  }
+
+  Future<void> _showPraisePopup({
+    required int difficulty,
+    required double accuracy01,
+    required int adjustedPct,
+    required int score,
+  }) async {
+    final textTheme = Theme.of(context).textTheme;
+    final String difficultyLabel = switch (difficulty) {
+      2 => '어려움',
+      1 => '보통',
+      _ => '쉬움',
+    };
+
+    final (IconData icon, Color color, String badge) = switch (score) {
+      100 => (Icons.emoji_events_rounded, const Color(0xFFFFB300), 'S'),
+      90 => (Icons.star_rounded, const Color(0xFFFFD54F), 'A'),
+      80 => (Icons.thumb_up_rounded, const Color(0xFF66BB6A), 'B'),
+      70 => (Icons.rocket_launch_rounded, const Color(0xFF42A5F5), 'C'),
+      60 => (Icons.favorite_rounded, const Color(0xFFEF5350), 'D'),
+      _ => (Icons.lightbulb_rounded, const Color(0xFF8D6E63), 'E'),
+    };
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          '채점 결과',
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Icon(icon, size: 48, color: color),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.10),
+                            blurRadius: 10,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        badge,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              difficultyLabel,
+              style: textTheme.labelLarge?.copyWith(
+                color: HanjaColors.outline,
+                fontWeight: FontWeight.w800,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _praiseMessageForScore(score),
+              style: textTheme.bodyMedium?.copyWith(height: 1.4),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -75,6 +385,23 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   }
 
   Future<void> _confirmGrade() async {
+    if (_canvasController.strokeCount == 0 && !_canvasController.hasActiveStroke) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('채점 불가'),
+          content: const Text('작성된 획이 없어 채점할 수 없습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final List<List<Offset>> guideStrokes = (await ref
             .read(hanjaStrokePointsProvider(widget.hanjaId).future))
         .where((s) => s.length >= 2)
@@ -92,7 +419,26 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
       _isGraded = true;
       _accuracy = result.overallScore;
       _isLastResultCorrect = result.isCorrect;
+      _lastPerStroke = result.perStroke;
+      _lastStrokeCountMatch = result.strokeCountMatch;
     });
+
+    // 난도(쉬움/보통/어려움)를 가져와 점수 산정 및 칭찬 팝업 표시
+    final settings = ref.read(settingsRepositoryProvider);
+    final rawDifficulty = await settings.get(AppSettingsKeys.writingDifficulty);
+    final int difficulty = int.tryParse(rawDifficulty ?? '') ?? 0;
+    final int adjustedPct = _adjustedAccuracyPercent(
+      accuracy01: result.overallScore,
+      difficulty: difficulty,
+    );
+    final int score = _scoreFromAdjustedPercent(adjustedPct);
+    if (!mounted) return;
+    await _showPraisePopup(
+      difficulty: difficulty,
+      accuracy01: result.overallScore,
+      adjustedPct: adjustedPct,
+      score: score,
+    );
   }
 
   Future<bool> _confirmLeaveIfInkPresent() async {
@@ -166,7 +512,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
           studiedAt: DateTime.now(),
           isCorrect: _isLastResultCorrect,
           isBookmarked: isCompleted, // 학습완료 시 책갈피
-          forceStatus: isCompleted ? 'completed' : 'learning',
+          forceStatus: isCompleted ? 'mastered' : 'learning',
         );
 
     if (!mounted) return;
@@ -360,6 +706,7 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
   }
 
   Widget _buildActionGrid() {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       children: [
         // 상단 행: 기본 도구 및 확인 버튼 (항상 노출)
@@ -401,16 +748,17 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(left: 6),
                 child: PracticeActionTile(
-                  label: '확인',
+                  icon: _isGraded ? Icons.refresh_rounded : null,
+                  label: _isGraded ? '다시' : '채점',
                   variant: PracticeActionTileVariant.primary,
-                  onTap: _confirmGrade,
+                  onTap: _isGraded ? _resetGradingAndInk : _confirmGrade,
                 ),
               ),
             ),
           ],
         ),
         
-        // 하단 행: 정답률 및 처리 버튼 (확인 버튼을 누른 후에만 노출)
+        // 하단 행: 처리 버튼 (확인 버튼을 누른 후에만 노출)
         if (_isGraded) ...[
           const SizedBox(height: 16),
           Row(
@@ -418,27 +766,59 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
               Expanded(
                 flex: 2,
                 child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
-                      children: [
-                        const TextSpan(
-                          text: '정답률(%)  ',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                  padding: const EdgeInsets.only(left: 8, right: 8),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: _showScoringGuidePopup,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '일치율',
+                                  style: textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: HanjaColors.onSurface,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${(_accuracy * 100).toStringAsFixed(2)} %',
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                    color: HanjaColors.onSurface,
+                                    letterSpacing: -0.2,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              size: 16,
+                              color: HanjaColors.outlineVariant,
+                            ),
+                          ],
                         ),
-                        TextSpan(
-                          text: (_accuracy * 100).toStringAsFixed(2),
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.only(right: 6),
                   child: PracticeActionTile(
                     icon: Icons.check_circle_rounded,
                     label: '완료',

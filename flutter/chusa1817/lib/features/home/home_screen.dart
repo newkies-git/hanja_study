@@ -6,6 +6,7 @@ import '../../core/theme/hanja_colors.dart';
 import '../../core/providers/app_providers.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
+import '../../core/database/app_database.dart';
 
 import 'widgets/today_progress_card.dart';
 import 'widgets/streak_badge.dart';
@@ -19,6 +20,14 @@ import 'widgets/today_hanja_grid.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
+  String _buildHanjaDetailRoute(HanjaTableData hanja) {
+    return '${AppRoutes.hanjaDetail}/${hanja.id}'
+        '?meaning=${Uri.encodeComponent(hanja.meaning)}'
+        '&radical=${Uri.encodeComponent(hanja.radical)}'
+        '&radicalLabel=${Uri.encodeComponent('')}'
+        '&totalStrokes=${hanja.totalStrokes}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
@@ -29,10 +38,14 @@ class HomeScreen extends ConsumerWidget {
     final nextToLearnAsync = ref.watch(nextHanjaToLearnProvider);
     final todayHanjaListAsync = ref.watch(todayLearningHanjaListProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent, // 부모 AppShell의 배경색 유지
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100), // FAB 공간 확보를 위해 하단 패딩 증가
+    // AppShell의 단일 Scaffold에서 drawer를 열어야 하므로 여기서는 Scaffold를 쓰지 않는다.
+    // (중첩 Scaffold면 Scaffold.of(context)가 내부를 잡아 햄버거가 동작하지 않음)
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100), // FAB과 겹치지 않도록 하단 여유
         children: [
           const EditorialTopBar(title: '추사 1817'),
           const SizedBox(height: 14),
@@ -60,10 +73,7 @@ class HomeScreen extends ConsumerWidget {
             onTap: () {
               final hanja = nextToLearnAsync.value;
               if (hanja != null) {
-                final meaning = '${hanja.meaning} ${hanja.reading}'.trim();
-                context.push(
-                  '${AppRoutes.study}/${hanja.id}?meaning=${Uri.encodeComponent(meaning)}',
-                );
+                context.push(_buildHanjaDetailRoute(hanja));
               } else {
                 context.go('${AppRoutes.home}?tab=1');
               }
@@ -71,9 +81,10 @@ class HomeScreen extends ConsumerWidget {
             hanjaGrid: todayHanjaListAsync.when(
               data: (list) => TodayHanjaGrid(
                 hanjaList: list,
-                onTap: (id, meaning) => context.push(
-                  '${AppRoutes.study}/$id?meaning=${Uri.encodeComponent(meaning)}',
-                ),
+                onTap: (id, _) {
+                  final row = list.firstWhere((e) => e.$1.id == id).$1;
+                  context.push(_buildHanjaDetailRoute(row));
+                },
               ),
               loading: () => const Center(
                 child: Padding(
@@ -133,36 +144,37 @@ class HomeScreen extends ConsumerWidget {
                   .map((row) => {'hanjaId': row.$1, 'hanja': row.$2, 'meaning': row.$3, 'subInfo': row.$4})
                   .toList(),
               textTheme: textTheme,
-              onStudyTap: (hanjaId, meaning) => context.push(
-                '${AppRoutes.study}/$hanjaId?meaning=${Uri.encodeComponent(meaning)}',
-              ),
+              onStudyTap: (hanjaId, _) => context.push('${AppRoutes.hanjaDetail}/$hanjaId'),
               onSeedTap: () async {
                 await ref.read(progressRepositoryProvider).seedSampleReviewHanja();
                 ref.invalidate(recommendedReviewHanjaProvider);
               },
             ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: HanjaColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.bolt_rounded),
-        label: const Text(
-          '학습 이어가기',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          ),
         ),
-        onPressed: () {
-          final hanja = nextToLearnAsync.value;
-          if (hanja != null) {
-            final meaning = '${hanja.meaning} ${hanja.reading}'.trim();
-            context.push(
-              '${AppRoutes.study}/${hanja.id}?meaning=${Uri.encodeComponent(meaning)}',
-            );
-          } else {
-            context.go('${AppRoutes.home}?tab=1');
-          }
-        },
-      ),
+        Positioned(
+          right: 20,
+          bottom: 20,
+          child: FloatingActionButton.extended(
+            backgroundColor: HanjaColors.primary,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.bolt_rounded),
+            label: const Text(
+              '학습 이어가기',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            onPressed: () {
+              final hanja = nextToLearnAsync.value;
+              if (hanja != null) {
+                context.push(_buildHanjaDetailRoute(hanja));
+              } else {
+                context.go('${AppRoutes.home}?tab=1');
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 }
