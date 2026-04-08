@@ -304,6 +304,46 @@ final hanjaProgressProvider =
   return repo.fetchProgress(hanjaId);
 });
 
+/// 오답 노트: 학습 이력이 있고 정확도가 낮은 전체 한자 목록.
+///
+/// 정확도 오름차순(오답률 높은 순) + 시도횟수 내림차순으로 정렬한다.
+/// [recommendedReviewHanjaProvider]와 달리 limit 없이 전수를 반환한다.
+final wrongAnswerHanjaProvider = FutureProvider<
+    List<({String hanjaId, String hanja, String reading, String meaning, double accuracy, int totalAttempts, int correctAttempts})>>(
+  (ref) async {
+    final progressRepository = ref.watch(progressRepositoryProvider);
+    final hanjaRepository = ref.watch(hanjaRepositoryProvider);
+
+    // limit을 크게 잡아 전체 오답 한자를 가져온다.
+    final errorList =
+        await progressRepository.fetchTopErrorProneHanja(limit: 9999);
+    final results = <({
+      String hanjaId,
+      String hanja,
+      String reading,
+      String meaning,
+      double accuracy,
+      int totalAttempts,
+      int correctAttempts,
+    })>[];
+
+    for (final entry in errorList) {
+      final hanjaRow = await hanjaRepository.fetchById(entry.hanjaId);
+      if (hanjaRow == null) continue;
+      results.add((
+        hanjaId: hanjaRow.id,
+        hanja: hanjaRow.character,
+        reading: hanjaRow.reading,
+        meaning: hanjaRow.meaning,
+        accuracy: entry.accuracyRate,
+        totalAttempts: entry.totalAttempts,
+        correctAttempts: entry.correctAttempts,
+      ));
+    }
+    return results;
+  },
+);
+
 /// 오늘 학습할 한자 목록 (목표량 기준).
 final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, String, bool)>>((ref) async {
   final goal = await ref.watch(dailyGoalProvider.future);

@@ -30,7 +30,22 @@ class ReviewScreen extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
         const EditorialTopBar(title: '복습'),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
+        // ── 오답노트 바로가기 ───────────────────────────────────────
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => context.push(AppRoutes.wrongAnswers),
+            icon: const Icon(Icons.error_outline_rounded, size: 16),
+            label: const Text('오답노트'),
+            style: TextButton.styleFrom(
+              foregroundColor: HanjaColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              textStyle: textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
         // ── 오늘 복습 섹션 ──────────────────────────────────────────
         _SectionHeader(
           label: 'DUE TODAY',

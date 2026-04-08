@@ -12,7 +12,7 @@ import '../../shared/widgets/hanja_card.dart';
 import '../../core/router/app_router.dart';
 import '../../core/database/app_database.dart';
 
-/// 학습 한자 목록 화면.
+/// 한자 사전 목록 화면.
 ///
 /// 정렬 필터(가나다순, 획수순, 랜덤)를 Pill 형태로 제공한다.
 class LearnListScreen extends ConsumerStatefulWidget {
@@ -28,6 +28,9 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
   int _currentPage = 0;
   final TextEditingController _searchController = TextEditingController();
 
+  // 사전 화면의 페이지 크기는 학습 목표와 무관하게 고정
+  static const int _itemsPerPage = 30;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -37,8 +40,6 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
   @override
   Widget build(BuildContext context) {
     final hanjaListAsync = ref.watch(learnHanjaListProvider);
-    final limitAsync = ref.watch(dailyGoalProvider);
-    final itemsPerPage = limitAsync.value ?? 5;
 
     return Column(
       children: [
@@ -136,15 +137,18 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                   sorted.shuffle(Random(seed));
               }
 
-              final int totalPages = (sorted.length + itemsPerPage - 1) ~/ itemsPerPage;
-              
+              final int totalPages =
+                  (sorted.length + _itemsPerPage - 1) ~/ _itemsPerPage;
+
               // 검색어 변경 등으로 현재 페이지가 범위를 벗어날 수 있으므로 안전 처리
               final int maxPage = totalPages > 0 ? totalPages - 1 : 0;
               final int safeCurrentPage = _currentPage.clamp(0, maxPage);
-              
-              final int startIndex = safeCurrentPage * itemsPerPage;
-              final int endIndex = (startIndex + itemsPerPage).clamp(0, sorted.length);
-              final List<HanjaTableData> paginatedList = sorted.sublist(startIndex, endIndex);
+
+              final int startIndex = safeCurrentPage * _itemsPerPage;
+              final int endIndex =
+                  (startIndex + _itemsPerPage).clamp(0, sorted.length);
+              final List<HanjaTableData> paginatedList =
+                  sorted.sublist(startIndex, endIndex);
 
               return Column(
                 children: [
@@ -181,7 +185,13 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                       },
                     ),
                   ),
-                  _buildPaginationControls(safeCurrentPage, totalPages),
+                  _buildPaginationControls(
+                    safeCurrentPage,
+                    totalPages,
+                    startIndex + 1,
+                    endIndex,
+                    sorted.length,
+                  ),
                 ],
               );
             },
@@ -191,20 +201,27 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
     );
   }
 
-  Widget _buildPaginationControls(int currentPage, int totalPages) {
+  Widget _buildPaginationControls(
+    int currentPage,
+    int totalPages,
+    int rangeStart,
+    int rangeEnd,
+    int total,
+  ) {
     if (totalPages <= 1) return const SizedBox.shrink();
 
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
       decoration: const BoxDecoration(
         color: HanjaColors.surface,
-        border: Border(top: BorderSide(color: HanjaColors.surfaceSoft)),
+        border: Border(top: BorderSide(color: HanjaColors.surfaceVariant)),
       ),
       child: SafeArea(
         top: false,
         bottom: false,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
               onPressed: currentPage > 0
@@ -213,12 +230,26 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
               icon: const Icon(Icons.chevron_left),
               color: HanjaColors.primary,
               disabledColor: HanjaColors.outlineVariant,
+              visualDensity: VisualDensity.compact,
             ),
-            Text(
-              '${currentPage + 1} / $totalPages',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${currentPage + 1} / $totalPages 페이지',
+                    style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                    textAlign: TextAlign.center,
                   ),
+                  Text(
+                    '$rangeStart–$rangeEnd / $total자',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: HanjaColors.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
             IconButton(
               onPressed: currentPage < totalPages - 1
@@ -227,6 +258,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
               icon: const Icon(Icons.chevron_right),
               color: HanjaColors.primary,
               disabledColor: HanjaColors.outlineVariant,
+              visualDensity: VisualDensity.compact,
             ),
           ],
         ),

@@ -1,8 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 
 import 'package:chusa1817/features/auth/login_screen.dart';
 import 'package:chusa1817/features/auth/sign_up_screen.dart';
@@ -19,6 +19,10 @@ import 'package:chusa1817/features/shell/app_shell.dart';
 import 'package:chusa1817/features/onboarding/onboarding_screen.dart';
 import 'package:chusa1817/features/study/practice_result_screen.dart';
 import 'package:chusa1817/features/study/study_screen.dart';
+import 'package:chusa1817/features/review/wrong_answer_screen.dart';
+import 'package:chusa1817/features/quiz/quiz_play_screen.dart';
+import 'package:chusa1817/features/quiz/quiz_result_screen.dart';
+import 'package:chusa1817/features/quiz/quiz_models.dart';
 
 import '../auth/auth_providers.dart';
 import '../providers/app_providers.dart';
@@ -152,9 +156,46 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'about',
         builder: (context, state) => const AboutChusa1817Screen(),
       ),
+      GoRoute(
+        path: AppRoutes.wrongAnswers,
+        name: 'wrong-answers',
+        builder: (_, _) => const WrongAnswerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.quizPlay,
+        name: 'quiz-play',
+        builder: (_, state) {
+          final questions = state.extra as List<QuizQuestion>? ?? const [];
+          return QuizPlayScreen(questions: questions);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.quizResult,
+        name: 'quiz-result',
+        builder: (_, state) {
+          final result = state.extra as QuizResultData?;
+          if (result == null) return const _QuizResultFallback();
+          return QuizResultScreen(result: result);
+        },
+      ),
     ],
   );
 });
+
+class _QuizResultFallback extends StatelessWidget {
+  const _QuizResultFallback();
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: TextButton(
+          onPressed: () => context.go(AppRoutes.home),
+          child: const Text('홈으로'),
+        ),
+      ),
+    );
+  }
+}
 
 final class _GoRouterRefreshNotifier extends ChangeNotifier {
   _GoRouterRefreshNotifier(Stream<dynamic> stream) {
@@ -187,4 +228,7 @@ abstract class AppRoutes {
   static const String contentSync = '/content-sync';
   static const String review = '/review';
   static const String about = '/about';
+  static const String wrongAnswers = '/wrong-answers';
+  static const String quizPlay = '/quiz/play';
+  static const String quizResult = '/quiz/result';
 }
