@@ -164,10 +164,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.quizPlay,
         name: 'quiz-play',
-        builder: (_, state) {
-          final questions = state.extra as List<QuizQuestion>? ?? const [];
-          return QuizPlayScreen(questions: questions);
-        },
+        redirect: (_, state) =>
+            state.extra is! QuizSession ? AppRoutes.home : null,
+        builder: (_, state) =>
+            QuizPlayScreen(session: state.extra as QuizSession),
       ),
       GoRoute(
         path: AppRoutes.quizResult,

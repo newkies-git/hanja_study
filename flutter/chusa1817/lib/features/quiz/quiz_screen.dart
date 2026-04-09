@@ -16,8 +16,7 @@ import 'quiz_models.dart';
 
 /// 퀴즈 탭 — 설정(로비) 화면.
 ///
-/// 문제 유형, 출제 수를 선택하고 퀴즈를 시작한다.
-/// 시작 버튼을 누르면 문항을 생성한 뒤 [QuizPlayScreen]으로 push 한다.
+/// 문제 유형, 출제 수, 타이머, 범위(학교급)를 선택하고 퀴즈를 시작한다.
 class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key});
 
@@ -28,17 +27,36 @@ class QuizScreen extends ConsumerStatefulWidget {
 class _QuizScreenState extends ConsumerState<QuizScreen> {
   QuizTypeOption _selectedType = QuizTypeOption.readingChoice;
   int _questionCount = 10;
+  QuizTimerOption _selectedTimer = QuizTimerOption.none;
+  QuizLevelFilter _levelFilter = QuizLevelFilter.all;
 
   static const List<int> _countOptions = [5, 10, 20];
 
-  void _startQuiz(List<HanjaTableData> pool) {
-    if (pool.isEmpty) return;
-    context.push(AppRoutes.quizPlay, extra: _generateQuestions(pool));
+  void _startQuiz(List<HanjaTableData> all) {
+    final pool = _applyLevelFilter(all);
+    if (pool.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('선택한 범위에 해당하는 한자 데이터가 없습니다.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final session = QuizSession(
+      questions: _generateQuestions(pool),
+      timerSeconds: _selectedTimer.seconds,
+    );
+    context.push(AppRoutes.quizPlay, extra: session);
+  }
+
+  List<HanjaTableData> _applyLevelFilter(List<HanjaTableData> all) {
+    if (_levelFilter == QuizLevelFilter.all) return all;
+    return all.where((h) => h.schoolLevel == _levelFilter.value).toList();
   }
 
   List<QuizQuestion> _generateQuestions(List<HanjaTableData> pool) {
     final rng = Random();
-    // 풀을 한 번만 셔플해 selected와 distractor 모두 재사용한다.
     final shuffled = List.of(pool)..shuffle(rng);
     final count = _questionCount.clamp(1, shuffled.length);
     final selected = shuffled.sublist(0, count);
@@ -49,13 +67,25 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       final QuizQuestionType type = switch (_selectedType) {
         QuizTypeOption.readingChoice => QuizQuestionType.readingChoice,
         QuizTypeOption.characterChoice => QuizQuestionType.characterChoice,
+        QuizTypeOption.writing => QuizQuestionType.writing,
         QuizTypeOption.mixed =>
           i.isEven ? QuizQuestionType.readingChoice : QuizQuestionType.characterChoice,
       };
 
-      // 미리 셔플된 풀에서 현재 한자를 제외한 첫 3개를 오답 보기로 사용한다.
-      final wrongs = shuffled.where((h) => h != hanja).take(3).toList();
+      // writing 유형은 선택지가 필요 없다.
+      if (type == QuizQuestionType.writing) {
+        return QuizQuestion(
+          hanjaId: hanja.id,
+          character: hanja.character,
+          reading: hanja.reading,
+          meaning: hanja.meaning,
+          choices: const [],
+          correctIndex: 0,
+          type: type,
+        );
+      }
 
+      final wrongs = shuffled.where((h) => h != hanja).take(3).toList();
       final correctPos = rng.nextInt(4);
       final allItems = <HanjaTableData>[];
       int wrongIdx = 0;
@@ -91,6 +121,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       children: [
         const EditorialTopBar(title: '퀴즈'),
         const SizedBox(height: 4),
+
+        // ── 문제 유형 ─────────────────────────────────────────────────────────
         const SectionHeader(tag: 'QUIZ TYPE', title: '문제 유형'),
         const SizedBox(height: 14),
         ...QuizTypeOption.values.map((opt) => Padding(
@@ -103,6 +135,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
               ),
             )),
         const SizedBox(height: 24),
+
+        // ── 문제 수 ───────────────────────────────────────────────────────────
         const SectionHeader(tag: 'QUESTIONS', title: '문제 수'),
         const SizedBox(height: 14),
         Row(
@@ -121,7 +155,59 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             );
           }),
         ),
+        const SizedBox(height: 24),
+
+        // ── 범위 필터 ─────────────────────────────────────────────────────────
+        const SectionHeader(tag: 'RANGE', title: '범위'),
+        const SizedBox(height: 14),
+        Row(
+          children: QuizLevelFilter.values.map((filter) {
+            final isSelected = _levelFilter == filter;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(filter.label),
+                selected: isSelected,
+                onSelected: (_) => setState(() => _levelFilter = filter),
+                selectedColor: HanjaColors.primaryContainer,
+                labelStyle: textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? Colors.white : HanjaColors.onSurface,
+                ),
+                backgroundColor: Colors.white,
+                side: BorderSide(
+                  color: isSelected ? Colors.transparent : HanjaColors.outlineVariant,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 24),
+
+        // ── 타이머 ────────────────────────────────────────────────────────────
+        const SectionHeader(tag: 'TIMER', title: '문제당 시간'),
+        const SizedBox(height: 14),
+        Row(
+          children: QuizTimerOption.values.map((opt) {
+            final isSelected = _selectedTimer == opt;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: opt != QuizTimerOption.values.last ? 8 : 0,
+                ),
+                child: _TimerChip(
+                  option: opt,
+                  isSelected: isSelected,
+                  onTap: () => setState(() => _selectedTimer = opt),
+                  textTheme: textTheme,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
         const SizedBox(height: 32),
+
         hanjaAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => const Center(child: Text('한자 데이터를 불러오지 못했습니다.')),
@@ -201,6 +287,46 @@ class _TypeCard extends StatelessWidget {
               if (isSelected)
                 const Icon(Icons.check_circle_rounded, color: Colors.white, size: 22),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimerChip extends StatelessWidget {
+  const _TimerChip({
+    required this.option,
+    required this.isSelected,
+    required this.onTap,
+    required this.textTheme,
+  });
+
+  final QuizTimerOption option;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? HanjaColors.primaryContainer : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : HanjaColors.outlineVariant,
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          option.label,
+          style: textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : HanjaColors.onSurface,
           ),
         ),
       ),
