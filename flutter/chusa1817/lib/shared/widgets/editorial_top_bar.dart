@@ -31,7 +31,7 @@ class EditorialTopBar extends ConsumerWidget {
           Transform.translate(
             offset: const Offset(-8, 0),
             child: IconButton(
-              onPressed: onMenuPressed ?? () => Scaffold.of(context).openDrawer(),
+              onPressed: onMenuPressed ?? () => Scaffold.maybeOf(context)?.openDrawer(),
               icon: const Icon(Icons.menu),
               color: HanjaColors.neutralIcon,
               visualDensity: VisualDensity.compact,

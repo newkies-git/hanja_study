@@ -32,6 +32,7 @@ class AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<AppShell> {
   late int _selectedIndex;
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   static const List<Widget> _pages = [
     HomeScreen(),
@@ -59,8 +60,8 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   void _onNavigationItemTap(int index) {
     setState(() => _selectedIndex = index);
-    if (context.mounted && Scaffold.of(context).isDrawerOpen) {
-      Navigator.pop(context); // Drawer 닫기
+    if (_scaffoldKey.currentState?.isDrawerOpen == true) {
+      _scaffoldKey.currentState?.closeDrawer();
     }
   }
 
@@ -69,6 +70,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     final user = ref.watch(firebaseAuthProvider).currentUser;
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: null, // EditorialTopBar는 각 페이지 내부에 위치함
       drawer: EditorialDrawer(
         selectedIndex: _selectedIndex,

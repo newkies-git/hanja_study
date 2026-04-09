@@ -37,7 +37,9 @@ class SelectableValueCard extends StatelessWidget {
                   )
                 : null,
           ),
-          child: Column(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -60,6 +62,7 @@ class SelectableValueCard extends StatelessWidget {
                 ),
               ],
             ],
+          ),
           ),
         ),
       ),
