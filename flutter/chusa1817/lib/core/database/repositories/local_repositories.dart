@@ -150,11 +150,10 @@ class LocalProgressRepository implements ProgressRepository {
     return (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
-                t.status.equals('mastered') &
-                t.accuracyRate.isSmallerThanValue(0.5) &
+                t.status.isIn(['learning', 'mastered', 'review_needed']) &
                 t.nextReviewAt.isSmallerOrEqualValue(now),
           )
-          ..orderBy([(t) => OrderingTerm.asc(t.accuracyRate)])
+          ..orderBy([(t) => OrderingTerm.asc(t.nextReviewAt)])
           ..limit(limit))
         .get();
   }
@@ -165,8 +164,7 @@ class LocalProgressRepository implements ProgressRepository {
     return (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
-                t.status.equals('mastered') &
-                t.accuracyRate.isSmallerThanValue(0.5) &
+                t.status.isIn(['learning', 'mastered', 'review_needed']) &
                 t.nextReviewAt.isBiggerThanValue(now),
           )
           ..orderBy([(t) => OrderingTerm.asc(t.nextReviewAt)])
@@ -180,8 +178,7 @@ class LocalProgressRepository implements ProgressRepository {
     final rows = await (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
-                t.status.equals('mastered') &
-                t.accuracyRate.isSmallerThanValue(0.5) &
+                t.status.isIn(['learning', 'mastered', 'review_needed']) &
                 t.nextReviewAt.isBiggerThanValue(now),
           ))
         .get();
@@ -361,9 +358,10 @@ class LocalProgressRepository implements ProgressRepository {
     if (ef < 1.3) ef = 1.3;
     nextReviewAt = DateTime(now.year, now.month, now.day).add(Duration(days: interval));
 
-    final String progressStatus = (isCorrect
+    // SM-2: 오답 시 lapse — learning 단계로 복귀
+    final String progressStatus = isCorrect
         ? (n >= 4 ? 'mastered' : 'learning')
-        : 'review_needed');
+        : 'learning';
     final String resolvedStatus = (forceStatus == null || forceStatus.isEmpty)
         ? progressStatus
         : forceStatus;
@@ -395,7 +393,7 @@ class LocalProgressRepository implements ProgressRepository {
     // 상태별 COUNT — 전체 행을 Dart로 읽지 않고 DB에서 집계
     final inProgressCountExp = _db.userProgressTable.id.count();
     final inProgressQuery = _db.selectOnly(_db.userProgressTable)
-      ..where(_db.userProgressTable.status.isIn(['learning', 'review_needed']))
+      ..where(_db.userProgressTable.status.equals('learning'))
       ..addColumns([inProgressCountExp]);
     final inProgress =
         (await inProgressQuery.map((r) => r.read(inProgressCountExp)).getSingle()) ?? 0;
@@ -422,8 +420,7 @@ class LocalProgressRepository implements ProgressRepository {
     // 어떤 한자를 공부했는지 상세 목록에 기록
     final activityId = '${date.millisecondsSinceEpoch}_${userId}_$hanjaId';
     // 일별 집계는 "전체 누적 진도"와 같은 기준을 써야 주간/전체 현황이 일관된다.
-    // - userProgress.status == mastered → daily status = mastered
-    // - learning/review_needed → daily status = learning (주간 그래프에서는 학습중으로 함께 집계)
+    // SM-2: mastered → 'mastered', 그 외 → 'learning'
     final bool isMastered = resolvedStatus == 'mastered';
 
     await _db.into(_db.dailyHanjaActivityTable).insertOnConflictUpdate(
@@ -432,7 +429,7 @@ class LocalProgressRepository implements ProgressRepository {
             date: Value(date),
             userId: Value(userId),
             hanjaId: Value(hanjaId),
-            status: Value(isMastered ? 'mastered' : (resolvedStatus == 'review_needed' ? 'review_needed' : 'learning')),
+            status: Value(isMastered ? 'mastered' : 'learning'),
             updatedAt: Value(now),
           ),
         );
@@ -452,7 +449,7 @@ class LocalProgressRepository implements ProgressRepository {
   Future<int> fetchLearningCount() async {
     final countExp = _db.userProgressTable.id.count();
     final query = _db.selectOnly(_db.userProgressTable)
-      ..where(_db.userProgressTable.status.isIn(['learning', 'review_needed']))
+      ..where(_db.userProgressTable.status.equals('learning'))
       ..addColumns([countExp]);
     final result = await query.map((row) => row.read(countExp)).getSingle();
     return result ?? 0;

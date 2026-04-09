@@ -50,17 +50,19 @@ abstract class ProgressRepository {
 
   /// 복습이 필요한 한자 목록을 반환한다.
   ///
-  /// 조건: status = 'mastered' AND accuracyRate < 0.5 AND nextReviewAt <= now
+  /// SM-2: status IN (learning, mastered) AND nextReviewAt <= now
+  /// nextReviewAt 오름차순(가장 오래된 것 우선).
   Future<List<UserProgressTableData>> fetchDueForReview({int limit = 10});
 
   /// 예정된 복습 목록을 반환한다.
   ///
-  /// 조건: status = 'mastered' AND accuracyRate < 0.5 AND nextReviewAt > now
+  /// SM-2: status IN (learning, mastered) AND nextReviewAt > now
+  /// nextReviewAt 오름차순(가장 빠른 것 우선).
   Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 10});
 
   /// 예정된 복습 대상의 총 갯수를 반환한다 (limit 없음).
   ///
-  /// 조건: status = 'mastered' AND accuracyRate < 0.5 AND nextReviewAt > now
+  /// SM-2: status IN (learning, mastered) AND nextReviewAt > now
   Future<int> fetchUpcomingForReviewCount();
 
   /// 오늘의 학습 완료 수를 반환한다.
