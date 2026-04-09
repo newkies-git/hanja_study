@@ -47,4 +47,14 @@ abstract final class HanjaColors {
   static const Color statusSuccess = Color(0xFF2E7D32);
   static const Color statusWarning = Color(0xFFE65100);
   static const Color statusWarningContainer = Color(0xFFFFE0B2); // Pastel Orange
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// 정확도(0.0~1.0)에 따른 시맨틱 색상.
+  /// 85% 이상 → 성공, 60% 이상 → 경고, 그 이하 → 오류.
+  static Color forAccuracy(double accuracy) {
+    if (accuracy >= 0.85) return statusSuccess;
+    if (accuracy >= 0.60) return statusWarning;
+    return error;
+  }
 }

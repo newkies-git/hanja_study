@@ -185,13 +185,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                       },
                     ),
                   ),
-                  _buildPaginationControls(
-                    safeCurrentPage,
-                    totalPages,
-                    startIndex + 1,
-                    endIndex,
-                    sorted.length,
-                  ),
+                  _buildPaginationControls(safeCurrentPage, totalPages, sorted.length),
                 ],
               );
             },
@@ -201,16 +195,12 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
     );
   }
 
-  Widget _buildPaginationControls(
-    int currentPage,
-    int totalPages,
-    int rangeStart,
-    int rangeEnd,
-    int total,
-  ) {
+  Widget _buildPaginationControls(int currentPage, int totalPages, int total) {
     if (totalPages <= 1) return const SizedBox.shrink();
 
     final textTheme = Theme.of(context).textTheme;
+    final rangeStart = currentPage * _itemsPerPage + 1;
+    final rangeEnd = ((currentPage + 1) * _itemsPerPage).clamp(0, total);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),

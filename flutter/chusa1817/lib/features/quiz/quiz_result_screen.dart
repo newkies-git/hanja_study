@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../shared/widgets/hanja_character_badge.dart';
 import 'quiz_models.dart';
 
 /// 퀴즈 결과 화면.
@@ -15,12 +15,6 @@ class QuizResultScreen extends StatelessWidget {
 
   final QuizResultData result;
 
-  Color get _scoreColor {
-    if (result.accuracy >= 0.85) return HanjaColors.statusSuccess;
-    if (result.accuracy >= 0.60) return HanjaColors.statusWarning;
-    return HanjaColors.error;
-  }
-
   String get _scoreMessage {
     if (result.accuracy >= 0.85) return '훌륭합니다!';
     if (result.accuracy >= 0.60) return '잘 하고 있어요';
@@ -30,6 +24,7 @@ class QuizResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final scoreColor = HanjaColors.forAccuracy(result.accuracy);
     final wrongIndices = result.wrongIndices;
 
     return Scaffold(
@@ -48,33 +43,19 @@ class QuizResultScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
-            // ── 점수 카드 ─────────────────────────────────────────
             _ScoreCard(
               result: result,
-              scoreColor: _scoreColor,
+              scoreColor: scoreColor,
               scoreMessage: _scoreMessage,
               textTheme: textTheme,
             ),
             const SizedBox(height: 24),
-
-            // ── 오답 목록 ─────────────────────────────────────────
             if (wrongIndices.isNotEmpty) ...[
-              Text(
-                'WRONG ANSWERS',
-                style: textTheme.labelSmall?.copyWith(
-                  color: HanjaColors.error,
-                  letterSpacing: 2.5,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '틀린 문제 (${wrongIndices.length}개)',
-                style: textTheme.headlineSmall?.copyWith(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
+              _QuizSectionHeader(
+                tag: 'WRONG ANSWERS',
+                title: '틀린 문제 (${wrongIndices.length}개)',
+                tagColor: HanjaColors.error,
+                textTheme: textTheme,
               ),
               const SizedBox(height: 14),
               ...wrongIndices.map((idx) {
@@ -88,8 +69,6 @@ class QuizResultScreen extends StatelessWidget {
               }),
               const SizedBox(height: 24),
             ],
-
-            // ── 하단 버튼 ─────────────────────────────────────────
             _buildButtons(context),
           ],
         ),
@@ -102,10 +81,7 @@ class QuizResultScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.icon(
-          onPressed: () {
-            // 퀴즈 탭(index=3)으로 돌아가기
-            context.go('${AppRoutes.home}?tab=3');
-          },
+          onPressed: () => context.go('${AppRoutes.home}?tab=3'),
           icon: const Icon(Icons.refresh_rounded),
           label: const Text('다시 풀기'),
           style: FilledButton.styleFrom(
@@ -163,7 +139,6 @@ class _ScoreCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          // 정답률 원형 표시
           SizedBox(
             width: 120,
             height: 120,
@@ -203,24 +178,9 @@ class _ScoreCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _StatChip(
-                label: '총 문제',
-                value: '${result.totalCount}',
-                color: HanjaColors.onSurface,
-                textTheme: textTheme,
-              ),
-              _StatChip(
-                label: '정답',
-                value: '${result.correctCount}',
-                color: HanjaColors.statusSuccess,
-                textTheme: textTheme,
-              ),
-              _StatChip(
-                label: '오답',
-                value: '${result.totalCount - result.correctCount}',
-                color: HanjaColors.error,
-                textTheme: textTheme,
-              ),
+              _StatChip(label: '총 문제', value: '${result.totalCount}', color: HanjaColors.onSurface, textTheme: textTheme),
+              _StatChip(label: '정답', value: '${result.correctCount}', color: HanjaColors.statusSuccess, textTheme: textTheme),
+              _StatChip(label: '오답', value: '${result.totalCount - result.correctCount}', color: HanjaColors.error, textTheme: textTheme),
             ],
           ),
         ],
@@ -246,20 +206,9 @@ class _StatChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          value,
-          style: textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w900,
-            color: color,
-          ),
-        ),
+        Text(value, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, color: color)),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.onSurfaceVariant,
-          ),
-        ),
+        Text(label, style: textTheme.labelSmall?.copyWith(color: HanjaColors.onSurfaceVariant)),
       ],
     );
   }
@@ -293,26 +242,7 @@ class _WrongAnswerCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // 한자 표시
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: HanjaColors.primaryFixed,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Text(
-                  question.character,
-                  style: GoogleFonts.notoSerif(
-                    textStyle: textTheme.headlineSmall?.copyWith(
-                      color: HanjaColors.primaryContainer,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            HanjaCharacterBadge(character: question.character, size: 56),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -320,24 +250,12 @@ class _WrongAnswerCard extends StatelessWidget {
                 children: [
                   Text(
                     '${question.reading}  ${question.meaning}',
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 6),
-                  _AnswerRow(
-                    icon: Icons.close,
-                    color: HanjaColors.error,
-                    label: '내 답: $userAnswerText',
-                    textTheme: textTheme,
-                  ),
+                  _AnswerRow(icon: Icons.close, color: HanjaColors.error, label: '내 답: $userAnswerText', textTheme: textTheme),
                   const SizedBox(height: 3),
-                  _AnswerRow(
-                    icon: Icons.check,
-                    color: HanjaColors.statusSuccess,
-                    label: '정답: $correctText',
-                    textTheme: textTheme,
-                  ),
+                  _AnswerRow(icon: Icons.check, color: HanjaColors.statusSuccess, label: '정답: $correctText', textTheme: textTheme),
                 ],
               ),
             ),
@@ -372,6 +290,47 @@ class _AnswerRow extends StatelessWidget {
             label,
             style: textTheme.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w600),
             overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 퀴즈 화면 전용 섹션 헤더 (ALL-CAPS 태그 + 한국어 제목).
+class _QuizSectionHeader extends StatelessWidget {
+  const _QuizSectionHeader({
+    required this.tag,
+    required this.title,
+    required this.textTheme,
+    this.tagColor = HanjaColors.primaryContainer,
+  });
+
+  final String tag;
+  final String title;
+  final TextTheme textTheme;
+  final Color tagColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tag,
+          style: textTheme.labelSmall?.copyWith(
+            color: tagColor,
+            letterSpacing: 2.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: textTheme.headlineSmall?.copyWith(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
           ),
         ),
       ],

@@ -32,15 +32,15 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   void _startQuiz(List<HanjaTableData> pool) {
     if (pool.isEmpty) return;
-    final questions = _generateQuestions(pool);
-    context.push(AppRoutes.quizPlay, extra: questions);
+    context.push(AppRoutes.quizPlay, extra: _generateQuestions(pool));
   }
 
   List<QuizQuestion> _generateQuestions(List<HanjaTableData> pool) {
     final rng = Random();
+    // 풀을 한 번만 셔플해 selected와 distractor 모두 재사용한다.
     final shuffled = List.of(pool)..shuffle(rng);
     final count = _questionCount.clamp(1, shuffled.length);
-    final selected = shuffled.take(count).toList();
+    final selected = shuffled.sublist(0, count);
 
     return List.generate(count, (i) {
       final hanja = selected[i];
@@ -52,10 +52,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           i.isEven ? QuizQuestionType.readingChoice : QuizQuestionType.characterChoice,
       };
 
-      // 오답 보기: 출제 한자를 제외한 풀에서 3개 선택
-      final wrongPool = List.of(pool)..remove(hanja);
-      wrongPool.shuffle(rng);
-      final wrongs = wrongPool.take(3).toList();
+      // 미리 셔플된 풀에서 현재 한자를 제외한 첫 3개를 오답 보기로 사용한다.
+      final wrongs = shuffled.where((h) => h != hanja).take(3).toList();
 
       final correctPos = rng.nextInt(4);
       final allItems = <HanjaTableData>[];
@@ -92,25 +90,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       children: [
         const EditorialTopBar(title: '퀴즈'),
         const SizedBox(height: 4),
-
-        // ── 유형 선택 ───────────────────────────────────────────
-        Text(
-          'QUIZ TYPE',
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.primaryContainer,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '문제 유형',
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-        ),
+        _QuizSectionHeader(tag: 'QUIZ TYPE', title: '문제 유형', textTheme: textTheme),
         const SizedBox(height: 14),
         ...QuizTypeOption.values.map((opt) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -121,27 +101,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                 textTheme: textTheme,
               ),
             )),
-
         const SizedBox(height: 24),
-
-        // ── 문제 수 선택 ─────────────────────────────────────────
-        Text(
-          'QUESTIONS',
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.primaryContainer,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '문제 수',
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-        ),
+        _QuizSectionHeader(tag: 'QUESTIONS', title: '문제 수', textTheme: textTheme),
         const SizedBox(height: 14),
         Row(
           children: List.generate(_countOptions.length, (idx) {
@@ -159,10 +120,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             );
           }),
         ),
-
         const SizedBox(height: 32),
-
-        // ── 시작 버튼 ────────────────────────────────────────────
         hanjaAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => const Center(child: Text('한자 데이터를 불러오지 못했습니다.')),
@@ -172,6 +130,45 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                   label: '퀴즈 시작',
                   onPressed: () => _startQuiz(list),
                 ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ALL-CAPS 태그 + 한국어 제목으로 구성된 섹션 헤더.
+class _QuizSectionHeader extends StatelessWidget {
+  const _QuizSectionHeader({
+    required this.tag,
+    required this.title,
+    required this.textTheme,
+  });
+
+  final String tag;
+  final String title;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tag,
+          style: textTheme.labelSmall?.copyWith(
+            color: HanjaColors.primaryContainer,
+            letterSpacing: 2.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: textTheme.headlineSmall?.copyWith(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
         ),
       ],
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,23 +23,26 @@ class QuizPlayScreen extends StatefulWidget {
 }
 
 class _QuizPlayScreenState extends State<QuizPlayScreen> {
+  static const Duration _answerFeedbackDelay = Duration(milliseconds: 700);
+
   int _currentIndex = 0;
   final List<int> _userAnswers = [];
-  int? _selectedAnswer; // 현재 문제 선택값 (null = 미선택)
-  bool _answered = false;
+  int? _selectedAnswer;
+  Timer? _feedbackTimer;
 
   QuizQuestion get _current => widget.questions[_currentIndex];
   int get _total => widget.questions.length;
 
-  void _onChoiceTap(int index) {
-    if (_answered) return;
-    setState(() {
-      _selectedAnswer = index;
-      _answered = true;
-    });
+  @override
+  void dispose() {
+    _feedbackTimer?.cancel();
+    super.dispose();
+  }
 
-    // 300ms 후 다음 문제로 이동
-    Future.delayed(const Duration(milliseconds: 700), _goNext);
+  void _onChoiceTap(int index) {
+    if (_selectedAnswer != null) return;
+    setState(() => _selectedAnswer = index);
+    _feedbackTimer = Timer(_answerFeedbackDelay, _goNext);
   }
 
   void _goNext() {
@@ -48,10 +53,8 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
       setState(() {
         _currentIndex++;
         _selectedAnswer = null;
-        _answered = false;
       });
     } else {
-      // 모든 문제 완료 → 결과 화면
       final result = QuizResultData(
         questions: widget.questions,
         userAnswers: _userAnswers,
@@ -64,7 +67,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final q = _current;
-    final progress = (_currentIndex + 1) / _total;
+    final answered = _selectedAnswer != null;
 
     return Scaffold(
       backgroundColor: HanjaColors.surface,
@@ -83,7 +86,7 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
-            value: progress,
+            value: (_currentIndex + 1) / _total,
             backgroundColor: HanjaColors.surfaceVariant,
             valueColor: const AlwaysStoppedAnimation<Color>(HanjaColors.primaryContainer),
             minHeight: 4,
@@ -96,20 +99,17 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── 문제 영역 ──────────────────────────────────────
               Expanded(
                 flex: 3,
                 child: _QuestionDisplay(question: q, textTheme: textTheme),
               ),
               const SizedBox(height: 24),
-
-              // ── 선택지 영역 ────────────────────────────────────
               Expanded(
                 flex: 4,
                 child: _ChoiceGrid(
                   question: q,
                   selectedAnswer: _selectedAnswer,
-                  answered: _answered,
+                  answered: answered,
                   onChoiceTap: _onChoiceTap,
                   textTheme: textTheme,
                 ),
@@ -143,7 +143,6 @@ class _QuizPlayScreenState extends State<QuizPlayScreen> {
   }
 }
 
-/// 문제 표시 위젯.
 class _QuestionDisplay extends StatelessWidget {
   const _QuestionDisplay({required this.question, required this.textTheme});
 
@@ -167,7 +166,6 @@ class _QuestionDisplay extends StatelessWidget {
   }
 }
 
-/// 한자 제시 (훈음 선택 문제)
 class _CharacterPrompt extends StatelessWidget {
   const _CharacterPrompt({required this.question, required this.textTheme});
 
@@ -202,7 +200,6 @@ class _CharacterPrompt extends StatelessWidget {
   }
 }
 
-/// 훈음 제시 (한자 선택 문제)
 class _ReadingPrompt extends StatelessWidget {
   const _ReadingPrompt({required this.question, required this.textTheme});
 
@@ -243,7 +240,6 @@ class _ReadingPrompt extends StatelessWidget {
   }
 }
 
-/// 4지선다 선택지 그리드
 class _ChoiceGrid extends StatelessWidget {
   const _ChoiceGrid({
     required this.question,

@@ -172,30 +172,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.quizResult,
         name: 'quiz-result',
-        builder: (_, state) {
-          final result = state.extra as QuizResultData?;
-          if (result == null) return const _QuizResultFallback();
-          return QuizResultScreen(result: result);
-        },
+        redirect: (_, state) =>
+            state.extra is! QuizResultData ? AppRoutes.home : null,
+        builder: (_, state) =>
+            QuizResultScreen(result: state.extra as QuizResultData),
       ),
     ],
   );
 });
-
-class _QuizResultFallback extends StatelessWidget {
-  const _QuizResultFallback();
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: TextButton(
-          onPressed: () => context.go(AppRoutes.home),
-          child: const Text('홈으로'),
-        ),
-      ),
-    );
-  }
-}
 
 final class _GoRouterRefreshNotifier extends ChangeNotifier {
   _GoRouterRefreshNotifier(Stream<dynamic> stream) {

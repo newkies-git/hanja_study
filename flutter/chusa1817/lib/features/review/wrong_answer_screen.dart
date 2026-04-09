@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../shared/widgets/accuracy_progress_row.dart';
+import '../../shared/widgets/hanja_character_badge.dart';
 
 /// 오답노트 화면.
 ///
@@ -34,29 +35,22 @@ class WrongAnswerScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('오답 목록을 불러오지 못했습니다.\n$e')),
         data: (list) {
-          if (list.isEmpty) {
-            return _EmptyState(textTheme: textTheme);
-          }
+          if (list.isEmpty) return _EmptyState(textTheme: textTheme);
 
           return Column(
             children: [
-              // 헤더 요약
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
                 child: Row(
                   children: [
                     Text(
                       '총 ${list.length}개',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '정확도 낮은 순',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: HanjaColors.onSurfaceVariant,
-                      ),
+                      style: textTheme.bodySmall?.copyWith(color: HanjaColors.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -106,16 +100,8 @@ class _WrongAnswerTile extends StatelessWidget {
   final TextTheme textTheme;
   final VoidCallback onStudyTap;
 
-  Color get _accuracyColor {
-    if (item.accuracy >= 0.85) return HanjaColors.statusSuccess;
-    if (item.accuracy >= 0.60) return HanjaColors.statusWarning;
-    return HanjaColors.error;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final pct = (item.accuracy * 100).toInt();
-
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -126,70 +112,22 @@ class _WrongAnswerTile extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           child: Row(
             children: [
-              // 한자
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: HanjaColors.primaryFixed,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(
-                    item.hanja,
-                    style: GoogleFonts.notoSerif(
-                      textStyle: textTheme.headlineSmall?.copyWith(
-                        color: HanjaColors.primaryContainer,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              HanjaCharacterBadge(character: item.hanja, size: 58),
               const SizedBox(width: 14),
-              // 정보
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${item.reading}  ${item.meaning}',
-                      style: textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: item.accuracy,
-                              minHeight: 5,
-                              backgroundColor: HanjaColors.surfaceContainerLow,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                _accuracyColor,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$pct%',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: _accuracyColor,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
+                    AccuracyProgressRow(accuracy: item.accuracy),
                     const SizedBox(height: 4),
                     Text(
                       '${item.correctAttempts}/${item.totalAttempts}회 정답',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: HanjaColors.onSurfaceVariant,
-                      ),
+                      style: textTheme.bodySmall?.copyWith(color: HanjaColors.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -228,7 +166,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_outline_rounded,
               size: 64,
               color: HanjaColors.statusSuccess,
