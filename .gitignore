@@ -28,6 +28,7 @@ flutter/**/*.iml
 \!use/
 admin/python/output/
 flutter/chusa1817/to-do.md
+flutter/chusa1817/.claude/
 
 # Admin frontend (Vite)
 admin/frontend/node_modules/
