@@ -9,8 +9,8 @@ import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../shared/widgets/filter_pill.dart';
 import '../../shared/widgets/hanja_card.dart';
-import '../../core/router/app_router.dart';
 import '../../core/database/app_database.dart';
+import '../../core/utils/route_builders.dart';
 
 /// 한자 사전 목록 화면.
 ///
@@ -174,13 +174,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                           meaning: meaning,
                           totalStrokes: hanjaRow.totalStrokes,
                           radical: hanjaRow.radical,
-                          onTap: () => context.push(
-                            '${AppRoutes.hanjaDetail}/$hanjaId'
-                            '?meaning=${Uri.encodeComponent(meaning)}'
-                            '&radical=${Uri.encodeComponent(hanjaRow.radical)}'
-                            '&radicalLabel=${Uri.encodeComponent('')}'
-                            '&totalStrokes=${hanjaRow.totalStrokes}',
-                          ),
+                          onTap: () => context.push(RouteBuilders.hanjaDetail(hanjaId)),
                         );
                       },
                     ),

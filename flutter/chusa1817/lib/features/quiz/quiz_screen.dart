@@ -10,6 +10,7 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
+import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/selectable_value_card.dart';
 import 'quiz_models.dart';
 
@@ -90,7 +91,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       children: [
         const EditorialTopBar(title: '퀴즈'),
         const SizedBox(height: 4),
-        _QuizSectionHeader(tag: 'QUIZ TYPE', title: '문제 유형', textTheme: textTheme),
+        const SectionHeader(tag: 'QUIZ TYPE', title: '문제 유형'),
         const SizedBox(height: 14),
         ...QuizTypeOption.values.map((opt) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -102,7 +103,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
               ),
             )),
         const SizedBox(height: 24),
-        _QuizSectionHeader(tag: 'QUESTIONS', title: '문제 수', textTheme: textTheme),
+        const SectionHeader(tag: 'QUESTIONS', title: '문제 수'),
         const SizedBox(height: 14),
         Row(
           children: List.generate(_countOptions.length, (idx) {
@@ -130,45 +131,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                   label: '퀴즈 시작',
                   onPressed: () => _startQuiz(list),
                 ),
-        ),
-      ],
-    );
-  }
-}
-
-/// ALL-CAPS 태그 + 한국어 제목으로 구성된 섹션 헤더.
-class _QuizSectionHeader extends StatelessWidget {
-  const _QuizSectionHeader({
-    required this.tag,
-    required this.title,
-    required this.textTheme,
-  });
-
-  final String tag;
-  final String title;
-  final TextTheme textTheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tag,
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.primaryContainer,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
         ),
       ],
     );

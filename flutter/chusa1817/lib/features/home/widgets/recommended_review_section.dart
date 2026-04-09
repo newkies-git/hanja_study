@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/hanja_colors.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../../shared/widgets/hanja_character_badge.dart';
 
 /// 추천 복습 한자 섹션.
 class RecommendedReviewSection extends StatelessWidget {
@@ -126,26 +126,7 @@ class RecommendedReviewSection extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // 8 -> 6로 축소
                     child: Row(
                       children: [
-                        Container(
-                          width: 40, // 44 -> 40
-                          height: 40, // 44 -> 40
-                          decoration: BoxDecoration(
-                            color: HanjaColors.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              hanja,
-                              style: GoogleFonts.notoSerif(
-                                textStyle: textTheme.titleMedium?.copyWith(
-                                  color: HanjaColors.primaryContainer,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 16, // 약간 축소
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        HanjaCharacterBadge(character: hanja, size: 40),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(

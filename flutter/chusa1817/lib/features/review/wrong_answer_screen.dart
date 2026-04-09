@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers/app_providers.dart';
-import '../../core/router/app_router.dart';
+import '../../core/utils/route_builders.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/accuracy_progress_row.dart';
 import '../../shared/widgets/hanja_character_badge.dart';
@@ -66,8 +66,7 @@ class WrongAnswerScreen extends ConsumerWidget {
                       item: item,
                       textTheme: textTheme,
                       onStudyTap: () => context.push(
-                        '${AppRoutes.study}/${item.hanjaId}'
-                        '?meaning=${Uri.encodeComponent('${item.reading} ${item.meaning}')}',
+                        RouteBuilders.study(item.hanjaId, '${item.reading} ${item.meaning}'),
                       ),
                     );
                   },

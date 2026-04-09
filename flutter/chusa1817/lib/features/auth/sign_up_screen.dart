@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +9,7 @@ import '../../shared/widgets/editorial_input_group.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
 import '../../shared/widgets/ghost_divider.dart';
+import '../../shared/widgets/glass_card.dart';
 import '../../shared/widgets/social_auth_button.dart';
 import '../../shared/widgets/editorial_modal.dart';
 import '../../shared/widgets/terms_modal_content.dart';
@@ -268,18 +268,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           ),
                         );
                       },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 480),
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(32),
-                            ),
-                            child: Form(
+                      child: GlassCard(
+                        padding: const EdgeInsets.all(24),
+                        child: Form(
                               key: _formKey,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -480,8 +471,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                 ],
                               ),
                             ),
-                          ),
-                        ),
                       ),
                     ),
                   ],

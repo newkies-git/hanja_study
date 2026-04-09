@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
 import '../../shared/widgets/hanja_character_badge.dart';
+import '../../shared/widgets/section_header.dart';
 import 'quiz_models.dart';
 
 /// 퀴즈 결과 화면.
@@ -51,11 +52,10 @@ class QuizResultScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             if (wrongIndices.isNotEmpty) ...[
-              _QuizSectionHeader(
+              SectionHeader(
                 tag: 'WRONG ANSWERS',
                 title: '틀린 문제 (${wrongIndices.length}개)',
                 tagColor: HanjaColors.error,
-                textTheme: textTheme,
               ),
               const SizedBox(height: 14),
               ...wrongIndices.map((idx) {
@@ -297,43 +297,3 @@ class _AnswerRow extends StatelessWidget {
   }
 }
 
-/// 퀴즈 화면 전용 섹션 헤더 (ALL-CAPS 태그 + 한국어 제목).
-class _QuizSectionHeader extends StatelessWidget {
-  const _QuizSectionHeader({
-    required this.tag,
-    required this.title,
-    required this.textTheme,
-    this.tagColor = HanjaColors.primaryContainer,
-  });
-
-  final String tag;
-  final String title;
-  final TextTheme textTheme;
-  final Color tagColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          tag,
-          style: textTheme.labelSmall?.copyWith(
-            color: tagColor,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ],
-    );
-  }
-}

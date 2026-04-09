@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +10,7 @@ import '../../shared/widgets/ghost_divider.dart';
 import '../../shared/widgets/gradient_primary_button.dart';
 import '../../core/router/app_router.dart';
 import '../../core/auth/firebase_auth_error_message.dart';
+import '../../shared/widgets/glass_card.dart';
 import '../../shared/widgets/social_auth_button.dart';
 
 /// 이메일/비밀번호 로그인 화면 (Premium Re-design).
@@ -204,17 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         );
                       },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 480),
-                            padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(32),
-                            ),
+                      child: GlassCard(
                             child: Form(
                               key: _formKey,
                               child: Column(
@@ -348,8 +338,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ],
                               ),
                             ),
-                          ),
-                        ),
                       ),
                     ),
                   ],

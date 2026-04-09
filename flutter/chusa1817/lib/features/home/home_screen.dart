@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/hanja_colors.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/utils/route_builders.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../core/router/app_router.dart';
-import '../../core/database/app_database.dart';
 
 import 'widgets/today_progress_card.dart';
 import 'widgets/streak_badge.dart';
@@ -19,14 +19,6 @@ import 'widgets/today_hanja_grid.dart';
 /// 연속 학습일 스트릭 뱃지, 추천 복습 섹션을 표시한다.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
-
-  String _buildHanjaDetailRoute(HanjaTableData hanja) {
-    return '${AppRoutes.hanjaDetail}/${hanja.id}'
-        '?meaning=${Uri.encodeComponent(hanja.meaning)}'
-        '&radical=${Uri.encodeComponent(hanja.radical)}'
-        '&radicalLabel=${Uri.encodeComponent('')}'
-        '&totalStrokes=${hanja.totalStrokes}';
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -73,7 +65,7 @@ class HomeScreen extends ConsumerWidget {
             onTap: () {
               final hanja = nextToLearnAsync.value;
               if (hanja != null) {
-                context.push(_buildHanjaDetailRoute(hanja));
+                context.push(RouteBuilders.hanjaDetail(hanja.id));
               } else {
                 context.go('${AppRoutes.home}?tab=1');
               }
@@ -83,7 +75,7 @@ class HomeScreen extends ConsumerWidget {
                 hanjaList: list,
                 onTap: (id, _) {
                   final row = list.firstWhere((e) => e.$1.id == id).$1;
-                  context.push(_buildHanjaDetailRoute(row));
+                  context.push(RouteBuilders.hanjaDetail(row.id));
                 },
               ),
               loading: () => const Center(
@@ -167,7 +159,7 @@ class HomeScreen extends ConsumerWidget {
             onPressed: () {
               final hanja = nextToLearnAsync.value;
               if (hanja != null) {
-                context.push(_buildHanjaDetailRoute(hanja));
+                context.push(RouteBuilders.hanjaDetail(hanja.id));
               } else {
                 context.go('${AppRoutes.home}?tab=1');
               }

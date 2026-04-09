@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/study_status.dart';
 import '../../../core/theme/hanja_colors.dart';
 import '../../../core/database/app_database.dart';
 
@@ -88,7 +89,7 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    if (widget.status == 'learning') {
+    if (widget.status == StudyStatus.learning) {
       _controller.repeat(reverse: true);
     }
   }
@@ -96,9 +97,9 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
   @override
   void didUpdateWidget(_HanjaGridItem oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.status == 'learning' && !_controller.isAnimating) {
+    if (widget.status == StudyStatus.learning && !_controller.isAnimating) {
       _controller.repeat(reverse: true);
-    } else if (widget.status != 'learning' && _controller.isAnimating) {
+    } else if (widget.status != StudyStatus.learning && _controller.isAnimating) {
       _controller.stop();
     }
   }
@@ -111,8 +112,8 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
 
   @override
   Widget build(BuildContext context) {
-    final bool isCompleted = widget.status == 'mastered' || widget.status == 'completed';
-    final bool isLearning = widget.status == 'learning';
+    final bool isCompleted = widget.status == StudyStatus.mastered || widget.status == StudyStatus.completed;
+    final bool isLearning = widget.status == StudyStatus.learning;
 
     Color backgroundColor;
     Color textColor;

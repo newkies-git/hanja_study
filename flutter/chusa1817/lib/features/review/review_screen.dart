@@ -1,37 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../core/utils/route_builders.dart';
+import '../../shared/widgets/accuracy_progress_row.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
+import '../../shared/widgets/hanja_character_badge.dart';
+import '../../shared/widgets/section_header.dart';
 import '../../core/router/app_router.dart';
 
 /// 오답노트·복습 화면.
 ///
 /// SM-2 알고리즘 기반 복습 대상 한자를 보여주고,
 /// 쓰기 연습으로 바로 진입할 수 있다.
-/// Phase 3에서 Drift DB 및 Riverpod Provider로 실데이터 교체.
 class ReviewScreen extends ConsumerWidget {
   const ReviewScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
     final dueAsync = ref.watch(dueForReviewHanjaProvider);
     final upcomingAsync = ref.watch(upcomingReviewHanjaProvider);
 
     final dueToday = dueAsync.value ?? const <(String, String, String, double)>[];
     final upcoming = upcomingAsync.value ??
-        const <(String hanjaId, String hanja, String meaning, DateTime nextReviewAt, double accuracy)>[];
+        const <(String, String, String, DateTime, double)>[];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
         const EditorialTopBar(title: '복습'),
         const SizedBox(height: 8),
-        // ── 오답노트 바로가기 ───────────────────────────────────────
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
@@ -46,79 +47,48 @@ class ReviewScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 6),
-        // ── 오늘 복습 섹션 ──────────────────────────────────────────
-        _SectionHeader(
-          label: 'DUE TODAY',
-          title: '오늘의 복습 (${dueToday.length}자)',
-          textTheme: textTheme,
-        ),
+        SectionHeader(tag: 'DUE TODAY', title: '오늘의 복습 (${dueToday.length}자)'),
         const SizedBox(height: 12),
         if (dueAsync.isLoading)
           const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
         else if (dueAsync.hasError)
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(
-              '복습 목록을 불러오지 못했습니다.\n${dueAsync.error}',
-              textAlign: TextAlign.center,
-            ),
+            child: Text('복습 목록을 불러오지 못했습니다.\n${dueAsync.error}',
+                textAlign: TextAlign.center),
           )
         else if (dueToday.isEmpty)
-          _EmptyCard(textTheme: textTheme)
+          const _EmptyCard()
         else
           ...dueToday.map((item) => _ReviewCard(
-                item: _ReviewItem(
-                  hanjaId: item.$1,
-                  hanja: item.$2,
-                  meaning: item.$3,
-                  dueLabel: '복습',
-                  accuracy: item.$4,
-                ),
-                textTheme: textTheme,
-                onStudyTap: () => context.push(
-                  '${AppRoutes.study}/${item.$1}'
-                  '?meaning=${Uri.encodeComponent(item.$3)}',
-                ),
+                hanjaId: item.$1,
+                hanja: item.$2,
+                meaning: item.$3,
+                dueLabel: '복습',
+                accuracy: item.$4,
+                onStudyTap: () => context.push(RouteBuilders.study(item.$1, item.$3)),
               )),
         const SizedBox(height: 22),
-        // ── 예정 복습 섹션 ──────────────────────────────────────────
-        _SectionHeader(
-          label: 'UPCOMING',
-          title: '다가오는 복습 (${upcoming.length}자)',
-          textTheme: textTheme,
-        ),
+        SectionHeader(tag: 'UPCOMING', title: '다가오는 복습 (${upcoming.length}자)'),
         const SizedBox(height: 12),
         if (upcomingAsync.isLoading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: CircularProgressIndicator(),
-            ),
-          )
+          const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
         else if (upcomingAsync.hasError)
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Text(
-              '예정 복습을 불러오지 못했습니다.\n${upcomingAsync.error}',
-              textAlign: TextAlign.center,
-            ),
+            child: Text('예정 복습을 불러오지 못했습니다.\n${upcomingAsync.error}',
+                textAlign: TextAlign.center),
           )
         else if (upcoming.isEmpty)
-          _EmptyCard(textTheme: textTheme)
+          const _EmptyCard()
         else
           ...upcoming.map((item) => _ReviewCard(
-                item: _ReviewItem(
-                  hanjaId: item.$1,
-                  hanja: item.$2,
-                  meaning: item.$3,
-                  dueLabel: _formatUpcomingLabel(item.$4),
-                  accuracy: item.$5,
-                ),
-                textTheme: textTheme,
-                onStudyTap: () => context.push(
-                  '${AppRoutes.study}/${item.$1}'
-                  '?meaning=${Uri.encodeComponent(item.$3)}',
-                ),
+                hanjaId: item.$1,
+                hanja: item.$2,
+                meaning: item.$3,
+                dueLabel: _formatUpcomingLabel(item.$4),
+                accuracy: item.$5,
+                onStudyTap: () => context.push(RouteBuilders.study(item.$1, item.$3)),
               )),
       ],
     );
@@ -126,96 +96,36 @@ class ReviewScreen extends ConsumerWidget {
 }
 
 String _formatUpcomingLabel(DateTime nextReviewAt) {
-  final DateTime now = DateTime.now();
-  final DateTime startOfToday = DateTime(now.year, now.month, now.day);
-  final DateTime startOfTarget =
-      DateTime(nextReviewAt.year, nextReviewAt.month, nextReviewAt.day);
-  final int days = startOfTarget.difference(startOfToday).inDays;
+  final now = DateTime.now();
+  final days = DateTime(nextReviewAt.year, nextReviewAt.month, nextReviewAt.day)
+      .difference(DateTime(now.year, now.month, now.day))
+      .inDays;
   if (days <= 0) return '곧 복습';
   if (days == 1) return '내일';
   if (days < 7) return '$days일 후';
-  final int weeks = (days / 7).ceil();
-  return '$weeks주 후';
+  return '${(days / 7).ceil()}주 후';
 }
 
-/// 복습 항목 데이터 모델 (더미).
-class _ReviewItem {
-  const _ReviewItem({
+class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({
     required this.hanjaId,
     required this.hanja,
     required this.meaning,
     required this.dueLabel,
     required this.accuracy,
+    required this.onStudyTap,
   });
 
   final String hanjaId;
   final String hanja;
   final String meaning;
   final String dueLabel;
-
-  /// 0.0 ~ 1.0 정확도.
   final double accuracy;
-}
-
-/// 섹션 헤더.
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.label,
-    required this.title,
-    required this.textTheme,
-  });
-
-  final String label;
-  final String title;
-  final TextTheme textTheme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: textTheme.labelSmall?.copyWith(
-            color: HanjaColors.primaryContainer,
-            letterSpacing: 2.5,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          title,
-          style: textTheme.headlineSmall?.copyWith(
-            fontSize: 22, // DESIGN.md: Title-LG (1.375rem = 22px)
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 복습 카드.
-class _ReviewCard extends StatelessWidget {
-  const _ReviewCard({
-    required this.item,
-    required this.textTheme,
-    required this.onStudyTap,
-  });
-
-  final _ReviewItem item;
-  final TextTheme textTheme;
   final VoidCallback onStudyTap;
 
-  Color get _accuracyColor {
-    if (item.accuracy >= 0.85) return HanjaColors.statusSuccess;
-    if (item.accuracy >= 0.60) return HanjaColors.statusWarning;
-    return HanjaColors.error;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
@@ -228,87 +138,33 @@ class _ReviewCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // 한자 아이콘
-                Container(
-                  width: 62,
-                  height: 62,
-                  decoration: BoxDecoration(
-                    color: HanjaColors.primaryFixed,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      item.hanja,
-                      style: GoogleFonts.notoSerif(
-                        textStyle: textTheme.headlineMedium?.copyWith(
-                          color: HanjaColors.primaryContainer,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                HanjaCharacterBadge(character: hanja, size: 62),
                 const SizedBox(width: 14),
-                // 정보 영역
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item.meaning,
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
+                        meaning,
+                        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(
-                            Icons.schedule,
-                            size: 13,
-                            color: HanjaColors.onSurfaceVariant,
-                          ),
+                          const Icon(Icons.schedule, size: 13, color: HanjaColors.onSurfaceVariant),
                           const SizedBox(width: 4),
                           Text(
-                            item.dueLabel,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: HanjaColors.onSurfaceVariant,
-                            ),
+                            dueLabel,
+                            style: textTheme.bodySmall?.copyWith(color: HanjaColors.onSurfaceVariant),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // 정확도 바
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: item.accuracy,
-                                minHeight: 5,
-                                backgroundColor: HanjaColors.surfaceContainerLow,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  _accuracyColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${(item.accuracy * 100).toInt()}%',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: _accuracyColor,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
+                      AccuracyProgressRow(accuracy: accuracy),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                // 연습 버튼
                 Container(
                   decoration: BoxDecoration(
                     color: HanjaColors.primaryContainer,
@@ -329,20 +185,15 @@ class _ReviewCard extends StatelessWidget {
   }
 }
 
-/// 복습 목록이 비었을 때 표시하는 카드.
 class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.textTheme});
-
-  final TextTheme textTheme;
+  const _EmptyCard();
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
       child: Column(
         children: [
           const Text('🎉', style: TextStyle(fontSize: 40)),
@@ -356,9 +207,7 @@ class _EmptyCard extends StatelessWidget {
           Text(
             '훌륭합니다. 내일도 꾸준히 이어가세요.',
             textAlign: TextAlign.center,
-            style: textTheme.bodySmall?.copyWith(
-              color: HanjaColors.onSurfaceVariant,
-            ),
+            style: textTheme.bodySmall?.copyWith(color: HanjaColors.onSurfaceVariant),
           ),
         ],
       ),

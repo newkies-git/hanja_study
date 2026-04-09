@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
-import '../../core/router/app_router.dart';
+import '../../core/utils/route_builders.dart';
 
 import 'widgets/hanja_hero_section.dart';
 import 'widgets/hanja_tab_bar.dart';
@@ -200,10 +200,7 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10, right: 4),
       child: FloatingActionButton.extended(
-        onPressed: () => context.push(
-          '${AppRoutes.study}/$hanjaId'
-          '?meaning=${Uri.encodeComponent(meaning)}',
-        ),
+        onPressed: () => context.push(RouteBuilders.study(hanjaId, meaning)),
         backgroundColor: HanjaColors.primary,
         elevation: 8,
         highlightElevation: 12,
