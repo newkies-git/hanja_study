@@ -8,6 +8,4 @@ abstract final class StudyStatus {
   static const String mastered = 'mastered';
   static const String reviewNeeded = 'review_needed';
   static const String planned = 'planned';
-  /// [mastered]의 레거시 별칭 — DB 마이그레이션 v8에서 통일됨.
-  static const String completed = 'completed';
 }

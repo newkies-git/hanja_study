@@ -488,6 +488,12 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
       if (proceed != true) return;
     }
 
+    // DB 저장 전에 목록 캡처 — 저장 이후 provider가 stale 상태여도 올바른 순서 보장
+    final list = ref.read(todayLearningHanjaListProvider).value ?? [];
+    final currentIndex = list.indexWhere((e) => e.$1.id == widget.hanjaId);
+
+    final bool isMastered = isCompleted;
+
     final sessionId = _sessionId;
     if (sessionId != null) {
       await ref.read(studySessionRepositoryProvider).saveAnswer(
@@ -511,17 +517,15 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
           hanjaId: widget.hanjaId,
           studiedAt: DateTime.now(),
           isCorrect: _isLastResultCorrect,
-          isBookmarked: isCompleted, // 학습완료 시 책갈피
-          forceStatus: isCompleted ? 'mastered' : 'learning',
+          isBookmarked: isMastered,
+          forceStatus: isMastered ? 'mastered' : 'learning',
         );
 
+    // 저장 완료 후 provider invalidate — 홈 복귀 시 최신 데이터 로드
+    ref.invalidate(dailyPlanProvider);
+
     if (!mounted) return;
-    
-    // 다음 한자 탐색
-    final todayListAsync = ref.read(todayLearningHanjaListProvider);
-    final list = todayListAsync.value ?? [];
-    final currentIndex = list.indexWhere((e) => e.$1.id == widget.hanjaId);
-    
+
     if (currentIndex != -1 && currentIndex < list.length - 1) {
       final nextHanja = list[currentIndex + 1].$1;
       final meaning = '${nextHanja.meaning} ${nextHanja.reading}'.trim();

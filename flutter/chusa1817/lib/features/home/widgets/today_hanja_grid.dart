@@ -113,13 +113,13 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
 
   @override
   Widget build(BuildContext context) {
-    final bool isCompleted = widget.status == StudyStatus.mastered || widget.status == StudyStatus.completed;
+    final bool isMastered = widget.status == StudyStatus.mastered;
     final bool isLearning = widget.status == StudyStatus.learning;
 
     Color backgroundColor;
     Color textColor;
     
-    if (isCompleted) {
+    if (isMastered) {
       // 완료: 회색(surfaceVariant)은 홈 배경과 대비가 약함 → 성공 의미의 민트(secondaryContainer)
       backgroundColor = HanjaColors.secondaryContainer;
       textColor = HanjaColors.onSurface;
@@ -143,9 +143,9 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
                 height: widget.size,
                 decoration: BoxDecoration(
                   color: backgroundColor,
-                  borderRadius: BorderRadius.circular(widget.size / 2), // 완벽한 원형 (이미지 준수)
-                  boxShadow: (isCompleted || isLearning)
-                      ? [] // 완료된/학습중인 항목은 평면으로 표시 (이미지 준수)
+                  borderRadius: BorderRadius.circular(widget.size / 2),
+                  boxShadow: (isMastered || isLearning)
+                      ? []
                       : [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -166,6 +166,16 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
                   ),
                 ),
               ),
+              if (isMastered && widget.isBookmarked)
+                Positioned(
+                  top: widget.size * 0.04,
+                  right: widget.size * 0.04,
+                  child: Icon(
+                    Icons.bookmark_rounded,
+                    size: widget.size * 0.28,
+                    color: HanjaColors.primaryContainer,
+                  ),
+                ),
             ],
           );
         },

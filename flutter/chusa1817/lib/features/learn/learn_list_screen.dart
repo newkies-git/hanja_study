@@ -28,8 +28,6 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
   int _currentPage = 0;
   final TextEditingController _searchController = TextEditingController();
 
-  // 사전 화면의 페이지 크기는 학습 목표와 무관하게 고정
-  static const int _itemsPerPage = 30;
 
   @override
   void dispose() {
@@ -40,6 +38,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
   @override
   Widget build(BuildContext context) {
     final hanjaListAsync = ref.watch(learnHanjaListProvider);
+    final int itemsPerPage = ref.watch(dailyGoalProvider).value ?? 10;
 
     return Column(
       children: [
@@ -138,15 +137,15 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
               }
 
               final int totalPages =
-                  (sorted.length + _itemsPerPage - 1) ~/ _itemsPerPage;
+                  (sorted.length + itemsPerPage - 1) ~/ itemsPerPage;
 
               // 검색어 변경 등으로 현재 페이지가 범위를 벗어날 수 있으므로 안전 처리
               final int maxPage = totalPages > 0 ? totalPages - 1 : 0;
               final int safeCurrentPage = _currentPage.clamp(0, maxPage);
 
-              final int startIndex = safeCurrentPage * _itemsPerPage;
+              final int startIndex = safeCurrentPage * itemsPerPage;
               final int endIndex =
-                  (startIndex + _itemsPerPage).clamp(0, sorted.length);
+                  (startIndex + itemsPerPage).clamp(0, sorted.length);
               final List<HanjaTableData> paginatedList =
                   sorted.sublist(startIndex, endIndex);
 
@@ -179,7 +178,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                       },
                     ),
                   ),
-                  _buildPaginationControls(safeCurrentPage, totalPages, sorted.length),
+                  _buildPaginationControls(safeCurrentPage, totalPages, sorted.length, itemsPerPage),
                 ],
               );
             },
@@ -189,12 +188,12 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
     );
   }
 
-  Widget _buildPaginationControls(int currentPage, int totalPages, int total) {
+  Widget _buildPaginationControls(int currentPage, int totalPages, int total, int itemsPerPage) {
     if (totalPages <= 1) return const SizedBox.shrink();
 
     final textTheme = Theme.of(context).textTheme;
-    final rangeStart = currentPage * _itemsPerPage + 1;
-    final rangeEnd = ((currentPage + 1) * _itemsPerPage).clamp(0, total);
+    final rangeStart = currentPage * itemsPerPage + 1;
+    final rangeEnd = ((currentPage + 1) * itemsPerPage).clamp(0, total);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),

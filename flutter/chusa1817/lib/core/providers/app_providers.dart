@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
 import '../firebase/firestore_content_sync.dart';
 
+import '../auth/auth_providers.dart';
 import '../database/repositories/local_repositories.dart';
 import '../database/repositories/repository_interfaces.dart';
 import '../settings/app_settings_keys.dart';
@@ -28,11 +29,15 @@ final progressRepositoryProvider = Provider<ProgressRepository>((ref) {
   return LocalProgressRepository(
     ref.watch(appDatabaseProvider),
     ref.watch(settingsRepositoryProvider),
+    ref.watch(firebaseAuthProvider),
   );
 });
 
 final studySessionRepositoryProvider = Provider<StudySessionRepository>((ref) {
-  return LocalStudySessionRepository(ref.watch(appDatabaseProvider));
+  return LocalStudySessionRepository(
+    ref.watch(appDatabaseProvider),
+    ref.watch(firebaseAuthProvider),
+  );
 });
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
@@ -351,20 +356,38 @@ final wrongAnswerHanjaProvider = FutureProvider<
   },
 );
 
-/// 오늘 학습할 한자 목록 (목표량 기준).
+/// 일일 학습 계획 갱신 Notifier (쓰기 전담).
+///
+/// 설정(목표량·정렬·학교급)이 변경될 때마다 재실행되어
+/// [ProgressRepository.refreshDailyPlan]으로 이월 및 신규 채우기를 수행한다.
+class DailyPlanNotifier extends AsyncNotifier<void> {
+  @override
+  Future<void> build() async {
+    final (goal, orderIndex, isAscending, schoolLevel) = await (
+      ref.watch(dailyGoalProvider.future),
+      ref.watch(orderIndexProvider.future),
+      ref.watch(isAscendingProvider.future),
+      ref.watch(schoolLevelProvider.future),
+    ).wait;
+    await ref.read(progressRepositoryProvider).refreshDailyPlan(
+      dailyGoal: goal,
+      orderIndex: orderIndex,
+      isAscending: isAscending,
+      schoolLevel: schoolLevel,
+    );
+  }
+}
+
+final dailyPlanProvider =
+    AsyncNotifierProvider<DailyPlanNotifier, void>(DailyPlanNotifier.new);
+
+/// 오늘 학습할 한자 목록 (순수 읽기).
+///
+/// [dailyPlanProvider] 갱신 완료 후 읽기만 수행한다.
 final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, String, bool)>>((ref) async {
-  final (goal, orderIndex, isAscending, schoolLevel) = await (
-    ref.watch(dailyGoalProvider.future),
-    ref.watch(orderIndexProvider.future),
-    ref.watch(isAscendingProvider.future),
-    ref.watch(schoolLevelProvider.future),
-  ).wait;
-  return ref.watch(progressRepositoryProvider).fetchTodayLearningHanja(
-    dailyGoal: goal,
-    orderIndex: orderIndex,
-    isAscending: isAscending,
-    schoolLevel: schoolLevel,
-  );
+  await ref.watch(dailyPlanProvider.future); // 쓰기 완료 대기
+  final goal = await ref.watch(dailyGoalProvider.future);
+  return ref.read(progressRepositoryProvider).readTodayHanjaList(dailyGoal: goal);
 });
 
 // ── 테마 모드 ──────────────────────────────────────────────────────────────────

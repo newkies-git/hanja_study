@@ -89,14 +89,22 @@ abstract class ProgressRepository {
   /// 학습중(learning) 한자의 총 갯수를 조회한다.
   Future<int> fetchLearningCount();
 
-  /// 오늘 학습할/학습한 한자 목록을 반환한다.
+  /// 일일 학습 계획을 갱신한다 (쓰기 전담).
   ///
-  /// [dailyGoal] 만큼의 한자를 포함하며, 오늘 이미 학습한 한자와 다음에 학습할 한자를 조합한다.
-  Future<List<(HanjaTableData hanja, String status, bool isBookmarked)>> fetchTodayLearningHanja({
+  /// - 이월: 당일 최초 1회만 수행 (날짜 게이트)
+  /// - 신규 채우기: 목표량 변경에 대응하기 위해 항상 실행 (멱등)
+  Future<void> refreshDailyPlan({
+    required int dailyGoal,
+    required int orderIndex,
+    required bool isAscending,
+    required String schoolLevel,
+  });
+
+  /// 오늘의 학습 한자 목록을 읽어 반환한다 (순수 읽기).
+  ///
+  /// [refreshDailyPlan] 호출 이후에 사용해야 한다.
+  Future<List<(HanjaTableData hanja, String status, bool isBookmarked)>> readTodayHanjaList({
     int dailyGoal = 5,
-    int orderIndex = 0,
-    bool isAscending = true,
-    String schoolLevel = 'all', // 'middle' | 'high' | 'all'
   });
 
   /// 최근 N일(오늘 포함) 일별 상태별(learning/completed) 활동 수를 반환한다.

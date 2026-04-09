@@ -729,6 +729,12 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                   '$_notificationMinute',
                 );
 
+                // 설정 저장 후 관련 Provider 무효화 — DailyPlanNotifier 재실행 유도
+                ref.invalidate(dailyGoalProvider);
+                ref.invalidate(orderIndexProvider);
+                ref.invalidate(isAscendingProvider);
+                ref.invalidate(schoolLevelProvider);
+
                 if (_notificationsEnabled) {
                   final granted = await NotificationService.requestPermissions();
                   if (granted) {
