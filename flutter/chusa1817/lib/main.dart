@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/firebase/firebase_bootstrap.dart';
 import 'core/firebase/initial_content_sync.dart';
+import 'core/notifications/notification_service.dart';
 import 'core/providers/app_providers.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/hanja_theme.dart';
@@ -10,6 +11,7 @@ import 'core/theme/hanja_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await bootstrapFirebase();
+  await NotificationService.initialize();
   runApp(
     const ProviderScope(
       child: InitialContentSync(child: HanjaApp()),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/notifications/notification_service.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/settings/app_settings_keys.dart';
@@ -26,6 +27,10 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
   String _schoolLevel = 'all'; // 'middle' | 'high' | 'all'
   final List<bool> _selectedDays = List.generate(7, (i) => i < 5);
   int _writingDifficulty = 0; // 0=쉬움, 1=보통, 2=어려움
+
+  bool _notificationsEnabled = false;
+  int _notificationHour = 9;
+  int _notificationMinute = 0;
 
   static const List<int> _dailyGoalOptions = [5, 10, 15, 20, 25];
   static const List<String> _dayLabels = ['월', '화', '수', '목', '금', '토', '일'];
@@ -57,6 +62,22 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
       if (schoolLevelRaw != null) setState(() => _schoolLevel = schoolLevelRaw);
       if (writingDifficulty != null) {
         setState(() => _writingDifficulty = writingDifficulty.clamp(0, 2));
+      }
+
+      final notifEnabledRaw = await settings.get(AppSettingsKeys.notificationsEnabled);
+      final notifHourRaw    = await settings.get(AppSettingsKeys.notificationHour);
+      final notifMinuteRaw  = await settings.get(AppSettingsKeys.notificationMinute);
+
+      if (notifEnabledRaw != null) {
+        setState(() => _notificationsEnabled = notifEnabledRaw.toLowerCase() == 'true');
+      }
+      if (notifHourRaw != null) {
+        final h = int.tryParse(notifHourRaw);
+        if (h != null) setState(() => _notificationHour = h.clamp(0, 23));
+      }
+      if (notifMinuteRaw != null) {
+        final m = int.tryParse(notifMinuteRaw);
+        if (m != null) setState(() => _notificationMinute = m.clamp(0, 59));
       }
 
       if (selectedDaysRaw != null && selectedDaysRaw.isNotEmpty) {
@@ -107,6 +128,12 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                       icon: Icons.wb_sunny_rounded,
                       title: '디스플레이',
                       child: _buildThemeModeOptions(),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSettingsCard(
+                      icon: Icons.notifications_rounded,
+                      title: '알림',
+                      child: _buildNotificationOptions(),
                     ),
                     const SizedBox(height: 16),
                     _buildSettingsCard(
@@ -267,6 +294,94 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildNotificationOptions() {
+    final timeStr =
+        '${_notificationHour.toString().padLeft(2, '0')}:'
+        '${_notificationMinute.toString().padLeft(2, '0')}';
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '일일 학습 리마인더',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Switch.adaptive(
+              value: _notificationsEnabled,
+              onChanged: (v) => setState(() => _notificationsEnabled = v),
+              activeTrackColor: HanjaColors.primary,
+            ),
+          ],
+        ),
+        if (_notificationsEnabled) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(
+                Icons.access_time_rounded,
+                size: 18,
+                color: HanjaColors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '알림 시간',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: HanjaColors.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay(
+                      hour: _notificationHour,
+                      minute: _notificationMinute,
+                    ),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _notificationHour = picked.hour;
+                      _notificationMinute = picked.minute;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: HanjaColors.primaryContainer,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    timeStr,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '선택한 학습 요일에 맞춰 알림이 전송됩니다.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: HanjaColors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -601,6 +716,31 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                   AppSettingsKeys.selectedDays,
                   '[${_selectedDays.map((e) => e.toString()).join(',')}]',
                 );
+                await settings.set(
+                  AppSettingsKeys.notificationsEnabled,
+                  '$_notificationsEnabled',
+                );
+                await settings.set(
+                  AppSettingsKeys.notificationHour,
+                  '$_notificationHour',
+                );
+                await settings.set(
+                  AppSettingsKeys.notificationMinute,
+                  '$_notificationMinute',
+                );
+
+                if (_notificationsEnabled) {
+                  final granted = await NotificationService.requestPermissions();
+                  if (granted) {
+                    await NotificationService.scheduleWeeklyReminders(
+                      selectedDays: _selectedDays,
+                      hour: _notificationHour,
+                      minute: _notificationMinute,
+                    );
+                  }
+                } else {
+                  await NotificationService.cancelDailyReminders();
+                }
 
                 if (!context.mounted) return;
 
