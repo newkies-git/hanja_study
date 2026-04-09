@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../core/theme/hanja_theme.dart';
 import '../../shared/widgets/hanja_character_badge.dart';
 import '../../shared/widgets/section_header.dart';
 import 'quiz_models.dart';
@@ -125,7 +126,7 @@ class _ScoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(28),
       ),
       padding: const EdgeInsets.all(28),
@@ -235,7 +236,7 @@ class _WrongAnswerCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cardSurface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: HanjaColors.tertiaryContainer),
         ),

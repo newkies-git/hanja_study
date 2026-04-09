@@ -104,13 +104,19 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
                     ),
                     const SizedBox(height: 24),
                     _buildSettingsCard(
+                      icon: Icons.wb_sunny_rounded,
+                      title: '디스플레이',
+                      child: _buildThemeModeOptions(),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSettingsCard(
                       icon: Icons.auto_graph_rounded,
                       title: '하루 학습량 (Chars)',
                       child: _buildDailyGoalGrid(),
                     ),
                     const SizedBox(height: 16),
                     _buildSettingsCard(
-                      icon: Icons.tune_rounded, // '학습 방법' 전체 설정을 대표하는 아이콘
+                      icon: Icons.tune_rounded,
                       title: '학습 방법',
                       child: _buildOrderOptions(),
                     ),
@@ -171,7 +177,7 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
         vertical: 16,
       ), // 상하 패딩 축소
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -202,6 +208,65 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
           child,
         ],
       ),
+    );
+  }
+
+  Widget _buildThemeModeOptions() {
+    final currentMode = ref.watch(themeModeProvider);
+    final options = [
+      (ThemeMode.light,  Icons.wb_sunny_rounded,   '라이트'),
+      (ThemeMode.system, Icons.brightness_auto,     '시스템'),
+      (ThemeMode.dark,   Icons.nights_stay_rounded, '다크'),
+    ];
+
+    return Row(
+      children: options.map((opt) {
+        final (mode, icon, label) = opt;
+        final isSelected = currentMode == mode;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: mode != ThemeMode.dark ? 8 : 0,
+            ),
+            child: GestureDetector(
+              onTap: () => ref.read(themeModeProvider.notifier).setMode(mode),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? HanjaColors.primaryContainer
+                      : HanjaColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : HanjaColors.outlineVariant,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: isSelected ? Colors.white : HanjaColors.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected ? Colors.white : HanjaColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -510,7 +575,7 @@ class _PlanSettingsScreenState extends ConsumerState<PlanSettingsScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.surfaceContainerLowest.withValues(alpha: 0.85),
             padding: EdgeInsets.fromLTRB(
               20,
               16,

@@ -8,5 +8,6 @@ abstract final class AppSettingsKeys {
 
   static const String onboardingCompleted = 'onboarding.completed';
   static const String lastDailyActivityRefreshedAt = 'plan.lastDailyActivityRefreshedAt'; // 'yyyy-MM-dd'
+  static const String themeMode = 'ui.themeMode'; // 'light' | 'dark' | 'system'
 }
 

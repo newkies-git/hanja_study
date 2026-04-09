@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/router/app_router.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../core/theme/hanja_theme.dart';
 import '../study/widgets/writing_canvas_widget.dart';
 import 'quiz_models.dart';
 
@@ -469,7 +470,7 @@ class _QuestionDisplay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(28),
       ),
       padding: const EdgeInsets.all(24),
@@ -615,11 +616,11 @@ class _ChoiceTile extends StatelessWidget {
   final bool isCharacterChoice;
   final TextTheme textTheme;
 
-  Color get _bgColor {
-    if (!answered) return Colors.white;
+  Color _bgColor(BuildContext context) {
+    if (!answered) return context.cardSurface;
     if (index == correctIndex) return HanjaColors.secondaryContainer;
     if (index == selectedAnswer) return HanjaColors.tertiaryContainer;
-    return Colors.white;
+    return context.cardSurface;
   }
 
   Color get _borderColor {
@@ -639,7 +640,7 @@ class _ChoiceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: _bgColor,
+      color: _bgColor(context),
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: answered ? null : onTap,

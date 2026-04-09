@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/study_status.dart';
 import '../../../core/theme/hanja_colors.dart';
+import '../../../core/theme/hanja_theme.dart';
 import '../../../core/database/app_database.dart';
 
 /// '오늘의 학습' 한자 목록 그리드.
@@ -126,8 +127,8 @@ class _HanjaGridItemState extends State<_HanjaGridItem>
       backgroundColor = HanjaColors.statusWarningContainer; // 파스텔 주황색
       textColor = Colors.black87; // 검정색 유지
     } else {
-      backgroundColor = Colors.white;
-      textColor = Colors.black87; // 검정색 유지
+      backgroundColor = context.cardSurface;
+      textColor = context.isDark ? Colors.white70 : Colors.black87;
     }
 
     return GestureDetector(

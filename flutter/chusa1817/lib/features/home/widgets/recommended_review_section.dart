@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/hanja_colors.dart';
+import '../../../core/theme/hanja_theme.dart';
 import '../../../shared/widgets/hanja_character_badge.dart';
 
 /// 추천 복습 한자 섹션.
@@ -58,7 +59,7 @@ class RecommendedReviewSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: context.cardSurface.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: HanjaColors.outline.withValues(alpha: 0.1),
@@ -117,7 +118,7 @@ class RecommendedReviewSection extends StatelessWidget {
               final String subInfo = item['subInfo']!;
 
               return Material(
-                color: Colors.white,
+                color: context.cardSurface,
                 borderRadius: BorderRadius.circular(18),
                 child: InkWell(
                   onTap: () => onStudyTap(hanjaId, meaning),

@@ -366,3 +366,41 @@ final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, Stri
     schoolLevel: schoolLevel,
   );
 });
+
+// ── 테마 모드 ──────────────────────────────────────────────────────────────────
+
+/// 앱 전역 테마 모드 노티파이어.
+/// 시작 시 DB에서 저장된 값을 비동기 로드하며, 변경 즉시 영구 저장한다.
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() {
+    // 비동기 초기화: 로드 전까지는 시스템 기본값 사용
+    Future(() async {
+      final settings = ref.read(settingsRepositoryProvider);
+      final raw = await settings.get(AppSettingsKeys.themeMode);
+      state = _parse(raw);
+    });
+    return ThemeMode.system;
+  }
+
+  Future<void> setMode(ThemeMode mode) async {
+    state = mode;
+    final settings = ref.read(settingsRepositoryProvider);
+    await settings.set(AppSettingsKeys.themeMode, _serialize(mode));
+  }
+
+  static ThemeMode _parse(String? raw) => switch (raw) {
+    'light' => ThemeMode.light,
+    'dark'  => ThemeMode.dark,
+    _       => ThemeMode.system,
+  };
+
+  static String _serialize(ThemeMode mode) => switch (mode) {
+    ThemeMode.light => 'light',
+    ThemeMode.dark  => 'dark',
+    _               => 'system',
+  };
+}
+
+final themeModeProvider =
+    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);

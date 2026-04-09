@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/hanja_colors.dart';
+
 import '../../shared/widgets/editorial_bottom_nav.dart';
 import '../home/home_screen.dart';
 import '../learn/learn_list_screen.dart';
@@ -69,7 +69,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     final user = ref.watch(firebaseAuthProvider).currentUser;
 
     return Scaffold(
-      backgroundColor: HanjaColors.surface,
       appBar: null, // EditorialTopBar는 각 페이지 내부에 위치함
       drawer: EditorialDrawer(
         selectedIndex: _selectedIndex,

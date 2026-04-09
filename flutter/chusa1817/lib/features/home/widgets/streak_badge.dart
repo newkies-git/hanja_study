@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/hanja_colors.dart';
+import '../../../core/theme/hanja_theme.dart';
 
 /// 연속 학습일 스트릭 뱃지.
 class StreakBadge extends StatelessWidget {
@@ -13,7 +14,7 @@ class StreakBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
