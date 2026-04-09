@@ -48,11 +48,20 @@ abstract class ProgressRepository {
   /// 특정 한자의 학습 진도를 반환한다.
   Future<UserProgressTableData?> fetchProgress(String hanjaId);
 
-  /// 복습이 필요한 한자 목록을 반환한다 (nextReviewAt <= now).
-  Future<List<UserProgressTableData>> fetchDueForReview();
+  /// 복습이 필요한 한자 목록을 반환한다.
+  ///
+  /// 조건: status = 'mastered' AND accuracyRate < 0.5 AND nextReviewAt <= now
+  Future<List<UserProgressTableData>> fetchDueForReview({int limit = 10});
 
-  /// 예정된 복습 목록을 반환한다 (nextReviewAt > now).
-  Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 20});
+  /// 예정된 복습 목록을 반환한다.
+  ///
+  /// 조건: status = 'mastered' AND accuracyRate < 0.5 AND nextReviewAt > now
+  Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 10});
+
+  /// 예정된 복습 대상의 총 갯수를 반환한다 (limit 없음).
+  ///
+  /// 조건: status = 'mastered' AND accuracyRate < 0.5 AND nextReviewAt > now
+  Future<int> fetchUpcomingForReviewCount();
 
   /// 오늘의 학습 완료 수를 반환한다.
   Future<int> fetchTodayCompletedCount();

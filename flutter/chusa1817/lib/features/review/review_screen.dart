@@ -25,8 +25,9 @@ class ReviewScreen extends ConsumerWidget {
     final upcomingAsync = ref.watch(upcomingReviewHanjaProvider);
 
     final dueToday = dueAsync.value ?? const <(String, String, String, double)>[];
-    final upcoming = upcomingAsync.value ??
-        const <(String, String, String, DateTime, double)>[];
+    final upcomingData = upcomingAsync.value;
+    final upcoming = upcomingData?.items ?? const <(String, String, String, DateTime, double)>[];
+    final upcomingRemaining = upcomingData?.remaining ?? 0;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
@@ -81,7 +82,7 @@ class ReviewScreen extends ConsumerWidget {
           )
         else if (upcoming.isEmpty)
           const _EmptyCard()
-        else
+        else ...[
           ...upcoming.map((item) => _ReviewCard(
                 hanjaId: item.$1,
                 hanja: item.$2,
@@ -90,6 +91,16 @@ class ReviewScreen extends ConsumerWidget {
                 accuracy: item.$5,
                 onStudyTap: () => context.push(RouteBuilders.study(item.$1, item.$3)),
               )),
+          if (upcomingRemaining > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                '잔여 복습할 한자는 $upcomingRemaining개 입니다',
+                style: textTheme.bodySmall?.copyWith(color: HanjaColors.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
       ],
     );
   }

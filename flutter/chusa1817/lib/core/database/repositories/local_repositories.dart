@@ -145,30 +145,47 @@ class LocalProgressRepository implements ProgressRepository {
           .getSingleOrNull();
 
   @override
-  Future<List<UserProgressTableData>> fetchDueForReview() {
+  Future<List<UserProgressTableData>> fetchDueForReview({int limit = 10}) {
     final DateTime now = DateTime.now();
     return (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
-                t.nextReviewAt.isSmallerOrEqualValue(now) &
-                t.status.isNotIn(['unseen']),
+                t.status.equals('mastered') &
+                t.accuracyRate.isSmallerThanValue(0.5) &
+                t.nextReviewAt.isSmallerOrEqualValue(now),
           )
-          ..orderBy([(t) => OrderingTerm.asc(t.nextReviewAt)]))
+          ..orderBy([(t) => OrderingTerm.asc(t.accuracyRate)])
+          ..limit(limit))
         .get();
   }
 
   @override
-  Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 20}) {
+  Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 10}) {
     final DateTime now = DateTime.now();
     return (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
-                t.nextReviewAt.isBiggerThanValue(now) &
-                t.status.isNotIn(['unseen']),
+                t.status.equals('mastered') &
+                t.accuracyRate.isSmallerThanValue(0.5) &
+                t.nextReviewAt.isBiggerThanValue(now),
           )
           ..orderBy([(t) => OrderingTerm.asc(t.nextReviewAt)])
           ..limit(limit))
         .get();
+  }
+
+  @override
+  Future<int> fetchUpcomingForReviewCount() async {
+    final DateTime now = DateTime.now();
+    final rows = await (_db.select(_db.userProgressTable)
+          ..where(
+            (t) =>
+                t.status.equals('mastered') &
+                t.accuracyRate.isSmallerThanValue(0.5) &
+                t.nextReviewAt.isBiggerThanValue(now),
+          ))
+        .get();
+    return rows.length;
   }
 
   @override

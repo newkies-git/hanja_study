@@ -182,20 +182,24 @@ final weeklyActivityBreakdownProvider =
   return (completed: completed, learning: learning, total: total);
 });
 
-final upcomingReviewHanjaProvider =
-    FutureProvider<List<(String hanjaId, String hanja, String meaning, DateTime nextReviewAt, double accuracy)>>(
-        (ref) async {
+final upcomingReviewHanjaProvider = FutureProvider<
+    ({
+      List<(String hanjaId, String hanja, String meaning, DateTime nextReviewAt, double accuracy)> items,
+      int remaining,
+    })>((ref) async {
   final progressRepository = ref.watch(progressRepositoryProvider);
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
+  final limit = await ref.watch(dailyGoalProvider.future);
 
-  final upcoming = await progressRepository.fetchUpcomingForReview(limit: 20);
-  if (upcoming.isEmpty) return [];
+  final totalCount = await progressRepository.fetchUpcomingForReviewCount();
+  final upcoming = await progressRepository.fetchUpcomingForReview(limit: limit);
+  if (upcoming.isEmpty) return (items: <(String, String, String, DateTime, double)>[], remaining: 0);
   final hanjaMap = {
     for (final h in await hanjaRepository.fetchByIds(
         upcoming.map((r) => r.hanjaId).toList()))
       h.id: h
   };
-  return upcoming
+  final items = upcoming
       .where((r) => hanjaMap.containsKey(r.hanjaId) && r.nextReviewAt != null)
       .map((r) {
         final h = hanjaMap[r.hanjaId]!;
@@ -208,6 +212,8 @@ final upcomingReviewHanjaProvider =
         );
       })
       .toList();
+  final remaining = (totalCount - limit).clamp(0, totalCount);
+  return (items: items, remaining: remaining);
 });
 
 final dailyGoalProvider = FutureProvider<int>((ref) async {
@@ -273,8 +279,9 @@ final dueForReviewHanjaProvider =
     FutureProvider<List<(String hanjaId, String hanja, String meaning, double accuracy)>>((ref) async {
   final progressRepository = ref.watch(progressRepositoryProvider);
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
+  final limit = await ref.watch(dailyGoalProvider.future);
 
-  final dueList = await progressRepository.fetchDueForReview();
+  final dueList = await progressRepository.fetchDueForReview(limit: limit);
   if (dueList.isEmpty) return [];
   final hanjaMap = {
     for (final h in await hanjaRepository.fetchByIds(
