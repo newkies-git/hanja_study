@@ -2,6 +2,7 @@
 import { computed, onUnmounted, ref, watch } from "vue";
 import { doc, getDoc } from "firebase/firestore";
 import { getFirestoreDb } from "@/firebase";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 
 const props = defineProps<{
   open: boolean;
@@ -9,6 +10,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ close: [] }>();
+
+const containerRef = ref<HTMLElement | null>(null);
+useFocusTrap(containerRef, () => props.open);
 
 const isExtendDocumentLoading = ref(false);
 const error = ref<string | null>(null);
@@ -96,6 +100,7 @@ onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
       @click.self="emit('close')"
     >
       <div
+        ref="containerRef"
         class="flex max-h-[min(90vh,52rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant/90 bg-surface-lowest shadow-[0_24px_80px_rgba(25,28,30,0.14)] ring-1 ring-black/[0.03]"
       >
         <!-- 헤더 -->

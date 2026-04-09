@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { collection, doc, serverTimestamp, setDoc, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, serverTimestamp, setDoc, writeBatch } from "firebase/firestore";
 import { getFirestoreDb } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationsStore } from "@/stores/notifications";
+import { useFocusTrap } from "@/composables/useFocusTrap";
 
 type Row = Record<string, unknown>;
 
@@ -20,6 +22,10 @@ const emit = defineEmits<{
 }>();
 
 const auth = useAuthStore();
+const notifications = useNotificationsStore();
+
+const containerRef = ref<HTMLElement | null>(null);
+useFocusTrap(containerRef, () => props.open);
 
 const form = ref<Record<string, string>>({});
 const busy = ref(false);
@@ -110,6 +116,15 @@ async function save() {
     const db = getFirestoreDb();
     const colRef = collection(db, "hanja_basis");
 
+    // 추가 모드에서 동일 ID 문서가 이미 존재하는지 확인
+    if (props.mode === "add") {
+      const existing = await getDoc(doc(colRef, newId));
+      if (existing.exists()) {
+        error.value = `${newId} 는 이미 존재합니다. 수정 모드로 열거나 다른 한자·ID를 입력하세요.`;
+        return;
+      }
+    }
+
     const payload: Record<string, unknown> = {};
     for (const c of COLUMN_ORDER) payload[c] = c === "id" ? newId : (form.value[c] ?? "");
     payload._importedAt = serverTimestamp();
@@ -129,10 +144,14 @@ async function save() {
       await setDoc(doc(colRef, newId), payload);
     }
 
+    const label = props.mode === "add" ? "추가" : "수정";
+    notifications.success(`hanja_basis ${label} 완료: ${newId}`);
     emit("saved", newId);
     emit("close");
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "저장에 실패했습니다.";
+    const msg = e instanceof Error ? e.message : "저장에 실패했습니다.";
+    error.value = msg;
+    notifications.error(msg);
   } finally {
     busy.value = false;
   }
@@ -150,6 +169,7 @@ async function save() {
       @click.self="close"
     >
       <div
+        ref="containerRef"
         class="flex max-h-[min(92vh,52rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant/90 bg-surface-lowest shadow-[0_24px_80px_rgba(25,28,30,0.14)] ring-1 ring-black/[0.03]"
       >
         <!-- 헤더 -->

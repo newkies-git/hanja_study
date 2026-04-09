@@ -4,6 +4,7 @@ import { RouterLink } from "vue-router";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationsStore } from "@/stores/notifications";
 import {
   textIncludesQueryIgnoreCase,
   usePaginatedCollection,
@@ -14,6 +15,7 @@ import {
 } from "@/utils/firestoreStrokeMerge";
 
 const auth = useAuthStore();
+const notifications = useNotificationsStore();
 
 /** ETL 열 기준: 전체 / Yes(Y) / No(N) */
 const filterEtl = ref<"" | "Y" | "N">("");
@@ -301,9 +303,12 @@ async function saveHanjaStrokeJson() {
     // setDoc 기본 동작: 문서 전체 덮어쓰기(필드 병합 아님)
     await setDoc(doc(db, "hanja_stroke", docId), parsed as Record<string, unknown>);
     strokeJsonBaseline.value = strokeJsonEditorText.value;
+    notifications.success(`hanja_stroke 저장 완료: ${docId}`);
     await loadStrokesFromFirestore();
   } catch (e) {
-    strokeJsonSaveError.value = e instanceof Error ? e.message : "저장에 실패했습니다.";
+    const msg = e instanceof Error ? e.message : "저장에 실패했습니다.";
+    strokeJsonSaveError.value = msg;
+    notifications.error(msg);
   } finally {
     isStrokeJsonSaving.value = false;
   }
@@ -408,7 +413,9 @@ async function loadStrokesFromFirestore() {
     strokeFirestoreDocId.value = null;
     strokeJsonEditorText.value = "";
     strokeJsonBaseline.value = "";
-    console.error("[ETL] hanja_stroke 로드 실패", e instanceof Error ? e.message : e);
+    const msg = e instanceof Error ? e.message : "hanja_stroke 로드에 실패했습니다.";
+    strokeJsonSaveError.value = msg;
+    notifications.error(`hanja_stroke 로드 실패: ${msg}`);
   } finally {
     if (token === strokeLoadToken) isStrokeFirestoreLoading.value = false;
   }
@@ -646,9 +653,17 @@ onMounted(() => { void loadAll(); });
     </div>
     <div
       v-if="error"
-      class="rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-900 shadow-sm"
+      class="flex items-start justify-between gap-3 rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-900 shadow-sm"
     >
-      {{ error }}
+      <span>{{ error }}</span>
+      <button
+        type="button"
+        class="shrink-0 rounded-md border border-red-300/80 bg-white/70 px-2.5 py-1 text-xs font-medium text-red-900 transition hover:bg-white disabled:opacity-50"
+        :disabled="isLoading"
+        @click="() => void loadAll(true)"
+      >
+        재시도
+      </button>
     </div>
     <div
       v-else-if="isLoading"

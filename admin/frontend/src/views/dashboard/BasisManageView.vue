@@ -4,14 +4,17 @@ import { collection, doc, writeBatch } from "firebase/firestore";
 import ExtendLookupModal from "@/components/dashboard/ExtendLookupModal.vue";
 import StrokeModal from "@/components/dashboard/StrokeModal.vue";
 import BasisFormModal from "@/components/dashboard/BasisFormModal.vue";
+import ConfirmModal from "@/components/app/ConfirmModal.vue";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationsStore } from "@/stores/notifications";
 import {
   textIncludesQueryIgnoreCase,
   usePaginatedCollection,
 } from "@/composables/usePaginatedCollection";
 
 const auth = useAuthStore();
+const notifications = useNotificationsStore();
 
 // 필터 ref
 const filter구분 = ref<string>("");
@@ -39,7 +42,6 @@ const {
   paginationItems,
   loadAll,
   loadMore,
-  invalidate,
   goToPage,
   prevPage,
   nextPage,
@@ -127,6 +129,7 @@ const extendModalOpen = ref(false);
 const strokeModalOpen = ref(false);
 const basisFormModalOpen = ref(false);
 const basisFormMode = ref<"add" | "edit">("add");
+const deleteConfirmOpen = ref(false);
 
 function openExtendLookupModal() {
   if (!soleSelectedEntry.value || !isFirebaseConfigured()) return;
@@ -151,19 +154,18 @@ function openBasisEditModal() {
 
 async function onBasisSaved(newId: string) {
   selectedBasisDocId.value = newId;
-  invalidate();
-  await loadAll();
+  await loadAll(true);
 }
 
-async function deleteSelectedBasis() {
+function deleteSelectedBasis() {
+  if (!canMutateBasis.value || !selectedBasisDocId.value) return;
+  deleteConfirmOpen.value = true;
+}
+
+async function confirmDelete() {
+  deleteConfirmOpen.value = false;
   const toDelete = selectedBasisDocId.value;
-  if (!canMutateBasis.value || !toDelete) return;
-  if (
-    !confirm("선택한 1건을 hanja_basis에서 삭제합니다. 되돌릴 수 없습니다. 계속할까요?")
-  ) {
-    return;
-  }
-  if (!isFirebaseConfigured()) {
+  if (!toDelete || !isFirebaseConfigured()) {
     error.value = "Firebase가 설정되지 않았습니다.";
     return;
   }
@@ -175,11 +177,13 @@ async function deleteSelectedBasis() {
     const batch = writeBatch(db);
     batch.delete(doc(collection(db, "hanja_basis"), toDelete));
     await batch.commit();
+    notifications.success(`hanja_basis 삭제 완료: ${toDelete}`);
     selectedBasisDocId.value = null;
-    invalidate();
-    await loadAll();
+    await loadAll(true);
   } catch (e) {
-    error.value = e instanceof Error ? e.message : "삭제에 실패했습니다.";
+    const msg = e instanceof Error ? e.message : "삭제에 실패했습니다.";
+    error.value = msg;
+    notifications.error(msg);
   } finally {
     isLoading.value = false;
   }
@@ -450,9 +454,17 @@ onMounted(() => { void loadAll(); });
     </div>
     <div
       v-if="error"
-      class="rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-900 shadow-sm"
+      class="flex items-start justify-between gap-3 rounded-xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-900 shadow-sm"
     >
-      {{ error }}
+      <span>{{ error }}</span>
+      <button
+        type="button"
+        class="shrink-0 rounded-md border border-red-300/80 bg-white/70 px-2.5 py-1 text-xs font-medium text-red-900 transition hover:bg-white disabled:opacity-50"
+        :disabled="isLoading"
+        @click="() => void loadAll(true)"
+      >
+        재시도
+      </button>
     </div>
     <div
       v-else-if="isLoading"
@@ -656,6 +668,15 @@ onMounted(() => { void loadAll(); });
       :entry="basisFormMode === 'edit' ? soleSelectedEntry : null"
       @close="basisFormModalOpen = false"
       @saved="onBasisSaved"
+    />
+    <ConfirmModal
+      :open="deleteConfirmOpen"
+      title="항목 삭제"
+      :message="`'${selectedBasisDocId}'를 hanja_basis에서 삭제합니다. 되돌릴 수 없습니다.`"
+      confirm-label="삭제"
+      :danger="true"
+      @confirm="confirmDelete"
+      @cancel="deleteConfirmOpen = false"
     />
 
     <!-- 도움말 툴팁 -->

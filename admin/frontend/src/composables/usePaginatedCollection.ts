@@ -14,6 +14,24 @@ import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 
 export type DocEntry = { id: string; data: Record<string, unknown> };
 
+/** 지수 백오프 재시도 헬퍼 */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 3,
+  baseDelayMs = 1000,
+): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (e) {
+      attempt++;
+      if (attempt >= maxAttempts) throw e;
+      await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** (attempt - 1)));
+    }
+  }
+}
+
 /** 대소문자 무시 부분 일치 검색 헬퍼 */
 export function textIncludesQueryIgnoreCase(text: string, query: string): boolean {
   if (!query.trim()) return true;
@@ -158,26 +176,28 @@ export function usePaginatedCollection(
     cache.loadedAt.value = null;
   }
 
-  /** 실제 Firestore getDocs를 수행합니다. 캐시 엔트리만 업데이트합니다. */
+  /** 실제 Firestore getDocs를 수행합니다. 캐시 엔트리만 업데이트합니다. 최대 3회 재시도. */
   async function loadCollectionBatchFromFirestore(): Promise<void> {
     if (!isFirebaseConfigured()) {
       throw new Error("Firebase가 설정되지 않았습니다.");
     }
-    const db = getFirestoreDb();
-    const q = query(
-      collection(db, collectionName),
-      orderBy(documentId()),
-      limit(LOAD_CAP),
-    );
-    const snap = await getDocs(q);
-    cache.allDocs.value = snap.docs.map((d) => ({
-      id: d.id,
-      data: d.data() as Record<string, unknown>,
-    }));
-    cache.lastDoc.value = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : null;
-    cache.hasMore.value = snap.docs.length >= LOAD_CAP;
-    cache.filterWarning.value = buildWarning(cache.allDocs.value.length, cache.hasMore.value);
-    cache.loadedAt.value = Date.now();
+    await withRetry(async () => {
+      const db = getFirestoreDb();
+      const q = query(
+        collection(db, collectionName),
+        orderBy(documentId()),
+        limit(LOAD_CAP),
+      );
+      const snap = await getDocs(q);
+      cache.allDocs.value = snap.docs.map((d) => ({
+        id: d.id,
+        data: d.data() as Record<string, unknown>,
+      }));
+      cache.lastDoc.value = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1]! : null;
+      cache.hasMore.value = snap.docs.length >= LOAD_CAP;
+      cache.filterWarning.value = buildWarning(cache.allDocs.value.length, cache.hasMore.value);
+      cache.loadedAt.value = Date.now();
+    });
   }
 
   /**

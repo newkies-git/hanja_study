@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { getFirebaseAuth, getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationsStore } from "@/stores/notifications";
 
 /** Firestore 컬렉션 권장 업로드 순서 (단계는 자유 선택 가능, 후속 단계는 선행 컬렉션 존재 시에만 반영) */
 const UPLOAD_STEPS = [
@@ -58,6 +59,7 @@ type JsonPreview = {
 };
 
 const auth = useAuthStore();
+const notifications = useNotificationsStore();
 /** 선택된 파일 (1~4단계). 3·4단계는 JSON일 때 복수 선택 가능 */
 const selectedFiles = ref<File[]>([]);
 const busy = ref(false);
@@ -77,6 +79,19 @@ const uploadBatchCurrent = ref(0);
 const uploadBatchTotal = ref(0);
 const uploadStartedAt = ref(0);
 const uploadElapsedMs = ref(0);
+
+/** 업로드 취소 요청 플래그 */
+const cancelRequested = ref(false);
+
+function requestCancel() {
+  cancelRequested.value = true;
+}
+
+function notifyCancelled(total: number, unit: "행" | "건") {
+  const msg = `업로드가 취소되었습니다. ${total}${unit}이 이미 반영되었습니다.`;
+  message.value = msg;
+  notifications.warning(msg);
+}
 
 const currentStepIndex = ref<StepIndex>(0);
 
@@ -623,6 +638,7 @@ function batchChunkForCollection(coll: string): number {
 async function onUpload() {
   message.value = null;
   uploadError.value = null;
+  cancelRequested.value = false;
   const step = currentStep.value;
   if (!step || selectedFiles.value.length === 0 || !canUpload.value || !uploadPreview.value)
     return;
@@ -706,6 +722,7 @@ async function onUpload() {
       let batchIdx = 0;
 
       for (let start = 1; start < rows.length; start += chunk) {
+        if (cancelRequested.value) break;
         batchIdx += 1;
         uploadBatchCurrent.value = batchIdx;
         const batch = writeBatch(db);
@@ -751,10 +768,12 @@ async function onUpload() {
         importedRows: total,
         durationMs,
       };
+      if (cancelRequested.value) { notifyCancelled(total, "행"); return; }
       message.value =
         collName === "hanja_basis"
           ? `${total}행을 ${collName}에 반영했습니다. (${formatDuration(durationMs)} · 문서 ID: 한자 기준 H+16진, 필드 id 동기화)`
           : `${total}행을 ${collName}에 반영했습니다. (${formatDuration(durationMs)} · 문서 ID: 첫 번째 열)`;
+      notifications.success(message.value!);
     } else {
       const items = preview.items;
       const headers = normalizedHeaders.value;
@@ -803,6 +822,7 @@ async function onUpload() {
       let jsonBatchIdx = 0;
 
       for (let start = 0; start < items.length; start += chunk) {
+        if (cancelRequested.value) break;
         jsonBatchIdx += 1;
         uploadBatchCurrent.value = jsonBatchIdx;
         const batch = writeBatch(db);
@@ -845,7 +865,9 @@ async function onUpload() {
           : collName === "hanja_stroke"
             ? "stroke_data_id"
             : "word_id";
+      if (cancelRequested.value) { notifyCancelled(total, "건"); return; }
       message.value = `${total}건을 ${collName}에 반영했습니다. (${formatDuration(jsonDurationMs)} · 문서 ID: ${idHint})`;
+      notifications.success(message.value!);
     }
 
     sessionCompleted.value = [
@@ -856,6 +878,11 @@ async function onUpload() {
     clearFileState();
   } catch (e) {
     uploadError.value = parseFirestoreUploadError(e);
+    const errMsg =
+      uploadError.value?.kind === "plain"
+        ? uploadError.value.message
+        : "업로드에 실패했습니다. 권한을 확인하세요.";
+    notifications.error(errMsg);
   } finally {
     busy.value = false;
     resetUploadProgress();
@@ -1300,7 +1327,7 @@ onUnmounted(() => {
             class="flex flex-wrap items-baseline justify-between gap-2 text-xs text-onSurface"
           >
             <span class="font-semibold text-primary">
-              {{ uploadProgressPhaseLabel }}
+              {{ cancelRequested ? "취소 중…" : uploadProgressPhaseLabel }}
             </span>
             <span class="tabular-nums text-onSurface-variant">
               경과 {{ formatDuration(uploadElapsedMs) }}{{ uploadThroughputLabel }}
@@ -1310,27 +1337,38 @@ onUnmounted(() => {
             class="h-2.5 overflow-hidden rounded-full bg-surface-low ring-1 ring-outline-variant/40"
           >
             <div
-              class="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
+              class="h-full rounded-full transition-[width] duration-200 ease-out"
+              :class="cancelRequested ? 'bg-amber-500' : 'bg-primary'"
               :style="{ width: `${uploadProgressPercent}%` }"
             />
           </div>
-          <p class="text-xs text-onSurface-variant">
-            <span class="font-medium tabular-nums text-onSurface">
-              {{ uploadProgressDone.toLocaleString("ko-KR") }}
-            </span>
-            /
-            <span class="tabular-nums text-onSurface">
-              {{ uploadProgressTotal.toLocaleString("ko-KR") }}
-            </span>
-            건 처리
-            <span
-              v-if="uploadProgressPhase === 'upload' && uploadBatchTotal > 1"
-              class="text-onSurface-variant"
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-xs text-onSurface-variant">
+              <span class="font-medium tabular-nums text-onSurface">
+                {{ uploadProgressDone.toLocaleString("ko-KR") }}
+              </span>
+              /
+              <span class="tabular-nums text-onSurface">
+                {{ uploadProgressTotal.toLocaleString("ko-KR") }}
+              </span>
+              건 처리
+              <span
+                v-if="uploadProgressPhase === 'upload' && uploadBatchTotal > 1"
+                class="text-onSurface-variant"
+              >
+                · 배치 {{ uploadBatchCurrent.toLocaleString("ko-KR") }} /
+                {{ uploadBatchTotal.toLocaleString("ko-KR") }}
+              </span>
+            </p>
+            <button
+              v-if="uploadProgressPhase === 'upload' && !cancelRequested"
+              type="button"
+              class="shrink-0 rounded-md border border-amber-300/80 bg-amber-50/90 px-2.5 py-1 text-xs font-medium text-amber-900 transition hover:bg-amber-100 disabled:opacity-50"
+              @click="requestCancel"
             >
-              · 배치 {{ uploadBatchCurrent.toLocaleString("ko-KR") }} /
-              {{ uploadBatchTotal.toLocaleString("ko-KR") }}
-            </span>
-          </p>
+              취소
+            </button>
+          </div>
         </div>
 
         <p
