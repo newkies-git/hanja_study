@@ -56,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -132,8 +132,6 @@ class AppDatabase extends _$AppDatabase {
           }
 
           // v9 → v10: daily_hanja_activity 중복 정리 (hanjaId 당 최신 1건만 유지)
-          // - 이월(carryover) 시 이전 날짜의 진행/예정 데이터는 남지 않아야 한다.
-          // - review_needed는 학습 활동량으로 카운트하지 않으며, 여기서는 "중복 제거"만 수행한다.
           if (from < 10) {
             await customStatement(
               "DELETE FROM daily_hanja_activity AS d1 "
@@ -146,21 +144,54 @@ class AppDatabase extends _$AppDatabase {
               ");",
             );
           }
+
+          // v10 → v11: 성능 인덱스 추가
+          if (from < 11) {
+            // user_progress — 복습 스케줄 및 상태 필터에 사용
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_user_progress_next_review_at ON user_progress(next_review_at);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_user_progress_status ON user_progress(status);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_user_progress_last_studied_at ON user_progress(last_studied_at);',
+            );
+            // daily_hanja_activity — 날짜·상태 필터에 사용
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_daily_hanja_activity_date ON daily_hanja_activity(date);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_daily_hanja_activity_status ON daily_hanja_activity(status);',
+            );
+            // daily_activity_stats — (userId, date) 복합 조회에 사용
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_daily_activity_stats_user_date ON daily_activity_stats(user_id, date);',
+            );
+            // 콘텐츠 테이블 — hanjaId FK 조회에 사용
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_hanja_stroke_hanja_id ON hanja_stroke(hanja_id);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_hanja_word_hanja_id ON hanja_word(hanja_id);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_hanja_idiom_hanja_id ON hanja_idiom(hanja_id);',
+            );
+            // hanja_basis — 독음 정렬/검색에 사용
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_hanja_basis_reading ON hanja_basis(reading);',
+            );
+          }
         },
 
-        /// DB 열기 직전 실행.
-        ///
-        /// 1. WAL 모드: 읽기/쓰기 동시 처리 성능 향상.
-        /// 2. 외래키 제약: 참조 무결성 보장.
-        /// 3. (Phase 3) 서버 동기화 프로토콜 버전 검사 위치.
         beforeOpen: (details) async {
           await customStatement('PRAGMA journal_mode = WAL');
           await customStatement('PRAGMA foreign_keys = ON');
-
-          // migration이 적용되어 정상적으로 DB가 열렸음을 확인.
-          // Phase 3에서 서버 동기화 버전 검사를 이 위치에 추가한다:
-          // if (details.wasCreated) { /* 최초 생성 로직 */ }
-          // if (details.hadUpgrade) { /* 업그레이드 후 처리 */ }
+          await customStatement('PRAGMA synchronous = NORMAL');
+          await customStatement('PRAGMA cache_size = -64000'); // 64 MB 페이지 캐시
+          await customStatement('PRAGMA temp_store = MEMORY');
+          await customStatement('PRAGMA auto_vacuum = INCREMENTAL');
         },
       );
 }

@@ -184,21 +184,25 @@ final upcomingReviewHanjaProvider =
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
   final upcoming = await progressRepository.fetchUpcomingForReview(limit: 20);
-  final results = <(String, String, String, DateTime, double)>[];
-  for (final row in upcoming) {
-    final hanjaRow = await hanjaRepository.fetchById(row.hanjaId);
-    if (hanjaRow == null) continue;
-    final nextReviewAt = row.nextReviewAt;
-    if (nextReviewAt == null) continue;
-    results.add((
-      hanjaRow.id,
-      hanjaRow.character,
-      '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
-      nextReviewAt,
-      row.accuracyRate,
-    ));
-  }
-  return results;
+  if (upcoming.isEmpty) return [];
+  final hanjaMap = {
+    for (final h in await hanjaRepository.fetchByIds(
+        upcoming.map((r) => r.hanjaId).toList()))
+      h.id: h
+  };
+  return upcoming
+      .where((r) => hanjaMap.containsKey(r.hanjaId) && r.nextReviewAt != null)
+      .map((r) {
+        final h = hanjaMap[r.hanjaId]!;
+        return (
+          r.hanjaId,
+          h.character,
+          '${h.meaning} ${h.reading}'.trim(),
+          r.nextReviewAt!,
+          r.accuracyRate,
+        );
+      })
+      .toList();
 });
 
 final dailyGoalProvider = FutureProvider<int>((ref) async {
@@ -239,21 +243,25 @@ final recommendedReviewHanjaProvider =
   final progressRepository = ref.watch(progressRepositoryProvider);
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
-  // 오답률 기반 상위 10개 추출 (오늘 공부한 한자 제외)
   final errorProneList = await progressRepository.fetchTopErrorProneHanja(limit: 10);
-  final results = <(String, String, String, String)>[];
-
-  for (final entry in errorProneList) {
-    final hanjaRow = await hanjaRepository.fetchById(entry.hanjaId);
-    if (hanjaRow == null) continue;
-    results.add((
-      hanjaRow.id,
-      hanjaRow.character,
-      '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
-      '${hanjaRow.radical}   ${hanjaRow.totalStrokes}', // 요구된 포맷 반영
-    ));
-  }
-  return results;
+  if (errorProneList.isEmpty) return [];
+  final hanjaMap = {
+    for (final h in await hanjaRepository.fetchByIds(
+        errorProneList.map((e) => e.hanjaId).toList()))
+      h.id: h
+  };
+  return errorProneList
+      .where((e) => hanjaMap.containsKey(e.hanjaId))
+      .map((e) {
+        final h = hanjaMap[e.hanjaId]!;
+        return (
+          h.id,
+          h.character,
+          '${h.meaning} ${h.reading}'.trim(),
+          '${h.radical}   ${h.totalStrokes}',
+        );
+      })
+      .toList();
 });
 
 final dueForReviewHanjaProvider =
@@ -262,19 +270,19 @@ final dueForReviewHanjaProvider =
   final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
   final dueList = await progressRepository.fetchDueForReview();
-  final results = <(String, String, String, double)>[];
-
-  for (final due in dueList) {
-    final hanjaRow = await hanjaRepository.fetchById(due.hanjaId);
-    if (hanjaRow == null) continue;
-    results.add((
-      hanjaRow.id,
-      hanjaRow.character,
-      '${hanjaRow.meaning} ${hanjaRow.reading}'.trim(),
-      due.accuracyRate,
-    ));
-  }
-  return results;
+  if (dueList.isEmpty) return [];
+  final hanjaMap = {
+    for (final h in await hanjaRepository.fetchByIds(
+        dueList.map((r) => r.hanjaId).toList()))
+      h.id: h
+  };
+  return dueList
+      .where((r) => hanjaMap.containsKey(r.hanjaId))
+      .map((r) {
+        final h = hanjaMap[r.hanjaId]!;
+        return (r.hanjaId, h.character, '${h.meaning} ${h.reading}'.trim(), r.accuracyRate);
+      })
+      .toList();
 });
 
 final firebaseFirestoreProvider = Provider<FirebaseFirestore>((ref) {
@@ -291,10 +299,13 @@ final firestoreContentSyncProvider = Provider<FirestoreContentSyncService>((ref)
 
 /// 오늘 공부할 다음 한자 하나를 가져온다. 홈 화면의 '학습 이어하기' 버튼용.
 final nextHanjaToLearnProvider = FutureProvider<HanjaTableData?>((ref) async {
-  final repo = ref.watch(hanjaRepositoryProvider);
-  final orderIndex = await ref.watch(orderIndexProvider.future);
-  final isAscending = await ref.watch(isAscendingProvider.future);
-  return repo.fetchNextToLearn(orderIndex: orderIndex, isAscending: isAscending);
+  final (orderIndex, isAscending) = await (
+    ref.watch(orderIndexProvider.future),
+    ref.watch(isAscendingProvider.future),
+  ).wait;
+  return ref
+      .watch(hanjaRepositoryProvider)
+      .fetchNextToLearn(orderIndex: orderIndex, isAscending: isAscending);
 });
 
 /// 특정 한자의 학습 진도(북마크 포함)를 가져온다.
@@ -314,44 +325,41 @@ final wrongAnswerHanjaProvider = FutureProvider<
     final progressRepository = ref.watch(progressRepositoryProvider);
     final hanjaRepository = ref.watch(hanjaRepositoryProvider);
 
-    // limit을 크게 잡아 전체 오답 한자를 가져온다.
     final errorList =
         await progressRepository.fetchTopErrorProneHanja(limit: 9999);
-    final results = <({
-      String hanjaId,
-      String hanja,
-      String reading,
-      String meaning,
-      double accuracy,
-      int totalAttempts,
-      int correctAttempts,
-    })>[];
-
-    for (final entry in errorList) {
-      final hanjaRow = await hanjaRepository.fetchById(entry.hanjaId);
-      if (hanjaRow == null) continue;
-      results.add((
-        hanjaId: hanjaRow.id,
-        hanja: hanjaRow.character,
-        reading: hanjaRow.reading,
-        meaning: hanjaRow.meaning,
-        accuracy: entry.accuracyRate,
-        totalAttempts: entry.totalAttempts,
-        correctAttempts: entry.correctAttempts,
-      ));
-    }
-    return results;
+    if (errorList.isEmpty) return [];
+    final hanjaMap = {
+      for (final h in await hanjaRepository.fetchByIds(
+          errorList.map((e) => e.hanjaId).toList()))
+        h.id: h
+    };
+    return errorList
+        .where((e) => hanjaMap.containsKey(e.hanjaId))
+        .map((e) {
+          final h = hanjaMap[e.hanjaId]!;
+          return (
+            hanjaId: h.id,
+            hanja: h.character,
+            reading: h.reading,
+            meaning: h.meaning,
+            accuracy: e.accuracyRate,
+            totalAttempts: e.totalAttempts,
+            correctAttempts: e.correctAttempts,
+          );
+        })
+        .toList();
   },
 );
 
 /// 오늘 학습할 한자 목록 (목표량 기준).
 final todayLearningHanjaListProvider = FutureProvider<List<(HanjaTableData, String, bool)>>((ref) async {
-  final goal = await ref.watch(dailyGoalProvider.future);
-  final orderIndex = await ref.watch(orderIndexProvider.future);
-  final isAscending = await ref.watch(isAscendingProvider.future);
-  final schoolLevel = await ref.watch(schoolLevelProvider.future);
-  final repo = ref.watch(progressRepositoryProvider);
-  return repo.fetchTodayLearningHanja(
+  final (goal, orderIndex, isAscending, schoolLevel) = await (
+    ref.watch(dailyGoalProvider.future),
+    ref.watch(orderIndexProvider.future),
+    ref.watch(isAscendingProvider.future),
+    ref.watch(schoolLevelProvider.future),
+  ).wait;
+  return ref.watch(progressRepositoryProvider).fetchTodayLearningHanja(
     dailyGoal: goal,
     orderIndex: orderIndex,
     isAscending: isAscending,

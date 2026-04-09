@@ -9,6 +9,9 @@ abstract class HanjaRepository {
   /// ID로 단일 한자를 조회한다.
   Future<HanjaTableData?> fetchById(String id);
 
+  /// 여러 ID를 한 번의 쿼리로 일괄 조회한다.
+  Future<List<HanjaTableData>> fetchByIds(List<String> ids);
+
   /// 학교급 (middle | high) 기준으로 목록을 반환한다.
   Future<List<HanjaTableData>> fetchByLevel(String level);
 

@@ -20,6 +20,12 @@ class LocalHanjaRepository implements HanjaRepository {
           .getSingleOrNull();
 
   @override
+  Future<List<HanjaTableData>> fetchByIds(List<String> ids) {
+    if (ids.isEmpty) return Future.value([]);
+    return (_db.select(_db.hanjaTable)..where((t) => t.id.isIn(ids))).get();
+  }
+
+  @override
   Future<List<HanjaTableData>> fetchByLevel(String level) =>
       (_db.select(_db.hanjaTable)
             ..where((t) => t.schoolLevel.equals(level))
@@ -163,19 +169,14 @@ class LocalProgressRepository implements ProgressRepository {
 
   @override
   Future<int> fetchTodayCompletedCount() async {
-    final DateTime startOfDay = DateTime(
-      DateTime.now().year,
-      DateTime.now().month,
-      DateTime.now().day,
-    );
-    final query = _db.select(_db.dailyHanjaActivityTable)
-      ..where((t) =>
-          t.date.equals(startOfDay) & t.status.isIn(['mastered', 'completed']));
-    final rows = await query.get();
-    
-    // 동일 한자에 대한 중복 row 방지를 위해 고유 hanjaId 개수로 계산
-    final uniqueCount = rows.map((r) => r.hanjaId).toSet().length;
-    return uniqueCount;
+    final now = DateTime.now();
+    final DateTime startOfDay = DateTime(now.year, now.month, now.day);
+    final countExp = _db.dailyHanjaActivityTable.hanjaId.count(distinct: true);
+    final query = _db.selectOnly(_db.dailyHanjaActivityTable)
+      ..addColumns([countExp])
+      ..where(_db.dailyHanjaActivityTable.date.equals(startOfDay) &
+          _db.dailyHanjaActivityTable.status.isIn(['mastered', 'completed']));
+    return (await query.map((row) => row.read(countExp)).getSingle()) ?? 0;
   }
 
   @override
@@ -238,25 +239,24 @@ class LocalProgressRepository implements ProgressRepository {
 
   @override
   Future<int> fetchStreakDays() async {
-    // 날짜별로 학습했는지 확인하여 연속일 계산 (간단 구현)
-    final rows = await (_db.select(_db.userProgressTable)
-          ..where((t) => t.lastStudiedAt.isNotNull()))
-        .get();
+    // 전체 행이 아닌 last_studied_at 컬럼만 읽어 메모리를 절약한다.
+    final dateCol = _db.userProgressTable.lastStudiedAt;
+    final query = _db.selectOnly(_db.userProgressTable)
+      ..addColumns([dateCol])
+      ..where(_db.userProgressTable.lastStudiedAt.isNotNull());
+    final rows = await query.get();
 
     if (rows.isEmpty) return 0;
 
     final Set<String> studiedDates = rows
-        .where((r) => r.lastStudiedAt != null)
-        .map((r) {
-          final d = r.lastStudiedAt!;
-          return '${d.year}-${d.month}-${d.day}';
-        })
+        .map((r) => r.read(dateCol))
+        .nonNulls
+        .map((d) => '${d.year}-${d.month}-${d.day}')
         .toSet();
 
     int streak = 0;
     DateTime day = DateTime.now();
-    while (studiedDates
-        .contains('${day.year}-${day.month}-${day.day}')) {
+    while (studiedDates.contains('${day.year}-${day.month}-${day.day}')) {
       streak++;
       day = day.subtract(const Duration(days: 1));
     }
@@ -367,15 +367,24 @@ class LocalProgressRepository implements ProgressRepository {
         );
 
     // ── 일별 통계 동기화 ───────────────────────────────────────────────────
-    // 진도 업데이트 후 당일의 학습 중/완료 상태를 집계하여 스냅샷 갱신
     final String userId = existing?.userId ?? '';
     final date = DateTime(now.year, now.month, now.day);
     final statsId = '${date.millisecondsSinceEpoch}_$userId';
 
-    // 전체 진도에서 상태별 자동 집계 (성능 이슈 고려 시 추후 변경 가능)
-    final allProgress = await _db.select(_db.userProgressTable).get();
-    final inProgress = allProgress.where((p) => p.status == 'learning' || p.status == 'review_needed').length;
-    final mastered = allProgress.where((p) => p.status == 'mastered').length;
+    // 상태별 COUNT — 전체 행을 Dart로 읽지 않고 DB에서 집계
+    final inProgressCountExp = _db.userProgressTable.id.count();
+    final inProgressQuery = _db.selectOnly(_db.userProgressTable)
+      ..where(_db.userProgressTable.status.isIn(['learning', 'review_needed']))
+      ..addColumns([inProgressCountExp]);
+    final inProgress =
+        (await inProgressQuery.map((r) => r.read(inProgressCountExp)).getSingle()) ?? 0;
+
+    final masteredCountExp = _db.userProgressTable.id.count();
+    final masteredQuery = _db.selectOnly(_db.userProgressTable)
+      ..where(_db.userProgressTable.status.equals('mastered'))
+      ..addColumns([masteredCountExp]);
+    final mastered =
+        (await masteredQuery.map((r) => r.read(masteredCountExp)).getSingle()) ?? 0;
 
     await _db.into(_db.dailyActivityStatsTable).insertOnConflictUpdate(
           DailyActivityStatsTableCompanion(
