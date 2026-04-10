@@ -1,10 +1,20 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { RouterLink } from "vue-router";
 import { useAppOptionStore } from "@/stores/app-option";
 import { useAuthStore } from "@/stores/auth";
+import { useDataVersionStore } from "@/stores/dataVersion";
 
 const appOption = useAppOptionStore();
 const auth = useAuthStore();
+const dvStore = useDataVersionStore();
+
+const hasPending = computed(() => dvStore.pendingCollections.length > 0);
+const versionLabel = computed(() => {
+  if (dvStore.isFetching) return "v…";
+  if (dvStore.version === null) return "v?";
+  return `v${dvStore.version.global}`;
+});
 </script>
 
 <template>
@@ -52,6 +62,28 @@ const auth = useAuthStore();
     <div
       class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-3"
     >
+      <!-- 데이터 버전 인디케이터 -->
+      <button
+        v-if="auth.isAdmin"
+        type="button"
+        class="relative flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition"
+        :class="
+          hasPending
+            ? 'border-amber-300/80 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
+            : 'border-outline-variant/60 bg-surface-low text-onSurface-variant hover:bg-surface-bright hover:text-onSurface'
+        "
+        :title="hasPending ? '미발행 변경이 있습니다. 클릭하여 버전을 발행하세요.' : '데이터 버전'"
+        @click="dvStore.openBumpModal"
+      >
+        <span
+          v-if="hasPending"
+          class="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
+          aria-hidden="true"
+        />
+        <span class="font-mono">데이터 {{ versionLabel }}</span>
+        <span v-if="hasPending" class="hidden sm:inline">· 미발행</span>
+      </button>
+
       <span
         v-if="auth.user"
         class="hidden max-w-[12rem] truncate text-sm text-onSurface-variant sm:inline"

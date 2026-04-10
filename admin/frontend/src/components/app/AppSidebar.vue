@@ -15,6 +15,7 @@ const menu = [
     label: "한자 마스터 등록",
     icon: "↑",
   },
+  { type: "link" as const, to: "/word", label: "단어·성어 관리", icon: "字" },
   { type: "link" as const, to: "/etl", label: "ETL · 확장", icon: "⚙" },
   { type: "header" as const, text: "설정" },
   {

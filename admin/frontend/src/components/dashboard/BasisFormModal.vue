@@ -5,10 +5,12 @@ import { getFirestoreDb } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationsStore } from "@/stores/notifications";
 import { useFocusTrap } from "@/composables/useFocusTrap";
+import {
+  resolveHanjaBasisDocId,
+  HANJA_BASIS_COLUMN_ORDER as COLUMN_ORDER,
+} from "@/utils/hanjaBasis";
 
 type Row = Record<string, unknown>;
-
-const COLUMN_ORDER = ["id", "음", "한자", "훈", "전체", "구분", "훈음"] as const;
 
 const props = defineProps<{
   open: boolean;
@@ -51,28 +53,7 @@ function rowToFormStrings(data: Row): Record<string, string> {
   return o;
 }
 
-function safeDocId(raw: string, fallback: string): string {
-  const s = raw.replace(/\//g, "_").replace(/[\s#?[\]]/g, "_").slice(0, 500);
-  return s || fallback;
-}
-
-function resolveDocId(f: Record<string, string>): string | null {
-  const hanja = String(f["한자"] ?? "").trim();
-  if (hanja.length > 0) {
-    const cp = hanja.codePointAt(0);
-    if (cp !== undefined) return `H${cp.toString(16).toUpperCase()}`;
-  }
-  const idCol = String(f["id"] ?? "").trim();
-  const hex = /^H([0-9A-Fa-f]+)$/i.exec(idCol);
-  if (hex) return `H${hex[1]!.toUpperCase()}`;
-  if (idCol) {
-    const s = safeDocId(idCol, "");
-    return s || null;
-  }
-  return null;
-}
-
-const resolvedId = computed(() => resolveDocId(form.value) ?? "—");
+const resolvedId = computed(() => resolveHanjaBasisDocId(form.value) ?? "—");
 
 watch(
   () => props.open,
@@ -104,7 +85,7 @@ watch(() => props.open, (val) => {
 onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
 
 async function save() {
-  const newId = resolveDocId(form.value);
+  const newId = resolveHanjaBasisDocId(form.value);
   if (!newId) {
     error.value = "문서 ID를 정할 수 없습니다. 한자를 입력하거나 id에 H+16진 형식을 넣으세요.";
     return;

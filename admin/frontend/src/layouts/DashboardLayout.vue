@@ -1,14 +1,20 @@
 <script setup lang="ts">
+import { onMounted } from "vue";
 import { RouterView } from "vue-router";
 import AppFooter from "@/components/app/AppFooter.vue";
 import AppHeader from "@/components/app/AppHeader.vue";
 import AppSidebar from "@/components/app/AppSidebar.vue";
 import ToastNotifications from "@/components/app/ToastNotifications.vue";
+import VersionBumpModal from "@/components/app/VersionBumpModal.vue";
 import { useAppOptionStore } from "@/stores/app-option";
 import { useOnlineStatus } from "@/composables/useOnlineStatus";
+import { useDataVersionStore } from "@/stores/dataVersion";
 
 const appOption = useAppOptionStore();
 const { isOnline } = useOnlineStatus();
+const dvStore = useDataVersionStore();
+
+onMounted(() => { void dvStore.fetchVersion(); });
 </script>
 
 <template>
@@ -57,4 +63,5 @@ const { isOnline } = useOnlineStatus();
     />
   </div>
   <ToastNotifications />
+  <VersionBumpModal :open="dvStore.bumpModalOpen" @close="dvStore.closeBumpModal" />
 </template>

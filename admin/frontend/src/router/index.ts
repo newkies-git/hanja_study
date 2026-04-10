@@ -39,6 +39,12 @@ const router = createRouter({
           component: () => import("@/views/dashboard/BasisCsvUploadView.vue"),
         },
         {
+          path: "word",
+          name: "word",
+          meta: { requiresAdmin: true },
+          component: () => import("@/views/dashboard/WordManageView.vue"),
+        },
+        {
           path: "etl",
           name: "etl",
           meta: { requiresAdmin: true },

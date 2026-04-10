@@ -5,16 +5,23 @@ import ExtendLookupModal from "@/components/dashboard/ExtendLookupModal.vue";
 import StrokeModal from "@/components/dashboard/StrokeModal.vue";
 import BasisFormModal from "@/components/dashboard/BasisFormModal.vue";
 import ConfirmModal from "@/components/app/ConfirmModal.vue";
+import ClipboardPastePanel from "@/components/dashboard/ClipboardPastePanel.vue";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
 import { useNotificationsStore } from "@/stores/notifications";
+import { useDataVersionStore } from "@/stores/dataVersion";
 import {
   textIncludesQueryIgnoreCase,
   usePaginatedCollection,
 } from "@/composables/usePaginatedCollection";
+import {
+  resolveHanjaBasisDocId,
+  HANJA_BASIS_FIELDS,
+} from "@/utils/hanjaBasis";
 
 const auth = useAuthStore();
 const notifications = useNotificationsStore();
+const dvStore = useDataVersionStore();
 
 // 필터 ref
 const filter구분 = ref<string>("");
@@ -155,7 +162,17 @@ function openBasisEditModal() {
 async function onBasisSaved(newId: string) {
   selectedBasisDocId.value = newId;
   await loadAll(true);
+  dvStore.markPending("hanja_basis");
+  dvStore.openBumpModal();
 }
+
+async function onPasteSaved() {
+  await loadAll(true);
+  dvStore.markPending("hanja_basis");
+  dvStore.openBumpModal();
+}
+
+const existingBasisIds = computed(() => allDocs.value.map((d) => d.id));
 
 function deleteSelectedBasis() {
   if (!canMutateBasis.value || !selectedBasisDocId.value) return;
@@ -180,6 +197,8 @@ async function confirmDelete() {
     notifications.success(`hanja_basis 삭제 완료: ${toDelete}`);
     selectedBasisDocId.value = null;
     await loadAll(true);
+    dvStore.markPending("hanja_basis");
+    dvStore.openBumpModal();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "삭제에 실패했습니다.";
     error.value = msg;
@@ -353,6 +372,14 @@ onMounted(() => { void loadAll(); });
             >
               새로고침
             </button>
+            <ClipboardPastePanel
+              collection-name="hanja_basis"
+              :known-fields="HANJA_BASIS_FIELDS"
+              :resolve-doc-id="resolveHanjaBasisDocId"
+              :existing-ids="existingBasisIds"
+              :can-mutate="canMutateBasis"
+              @saved="onPasteSaved"
+            />
           </div>
         </div>
       </div>
@@ -654,7 +681,9 @@ onMounted(() => { void loadAll(); });
     <ExtendLookupModal
       :open="extendModalOpen"
       :query-id="extendId"
+      :can-edit="canMutateBasis"
       @close="extendModalOpen = false"
+      @saved="() => { dvStore.markPending('hanja_extend'); dvStore.openBumpModal(); }"
     />
     <StrokeModal
       :open="strokeModalOpen"
