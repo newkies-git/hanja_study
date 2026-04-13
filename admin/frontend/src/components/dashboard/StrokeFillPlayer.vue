@@ -422,7 +422,7 @@ onUnmounted(() => clearTimer());
     <!-- 속도 -->
     <div class="flex items-center justify-center gap-3">
       <span class="text-xs text-onSurface-variant">빠름</span>
-      <input type="range" min="20" max="1000" step="10" :value="delayMs" class="w-28 accent-primary" @input="onSpeedInput" />
+      <input type="range" min="20" max="2000" step="10" :value="delayMs" class="w-28 accent-primary" @input="onSpeedInput" />
       <span class="text-xs text-onSurface-variant">느림</span>
       <span class="ml-1 font-mono text-xs tabular-nums text-onSurface-variant">{{ delayMs }}ms</span>
     </div>
