@@ -245,10 +245,19 @@ const viewBox = computed(() => buildViewBox(props.svgPaths));
 
 const currentIndex = ref(0);
 const isPlaying = ref(false);
-const delayMs = ref(60);
+/** 획 한 개를 처음~끝까지 재생하는 데 걸리는 목표 시간(ms) */
+const strokeDurationMs = ref(1000);
 
 const totalSteps = computed(() => allSteps.value.length);
 const currentStep = computed(() => allSteps.value[currentIndex.value] ?? null);
+
+/** 현재 스텝이 속한 획의 세그먼트당 interval(ms) */
+function intervalForStep(idx: number): number {
+  const step = allSteps.value[idx];
+  if (!step) return strokeDurationMs.value;
+  const fc = metas.value[step.strokeIndex]?.forwardCount ?? 1;
+  return Math.max(16, Math.round(strokeDurationMs.value / Math.max(fc, 1)));
+}
 
 // ── 렌더 경로 목록 ────────────────────────────────────────────────────────────
 // isRed === true  → 전진 중 (빨강, 부분 경로)
@@ -289,18 +298,30 @@ const infoText = computed(() => {
 });
 
 // ── 재생 ─────────────────────────────────────────────────────────────────────
+// 획마다 forwardCount가 다르므로 setInterval 대신 재귀 setTimeout으로
+// 스텝마다 interval을 동적 계산한다.
 
-let timer: ReturnType<typeof setInterval> | null = null;
-function clearTimer() { if (timer) { clearInterval(timer); timer = null; } }
+let timer: ReturnType<typeof setTimeout> | null = null;
+function clearTimer() { if (timer) { clearTimeout(timer); timer = null; } }
+
+function scheduleNext() {
+  if (!isPlaying.value) return;
+  const delay = intervalForStep(currentIndex.value);
+  timer = setTimeout(() => {
+    if (currentIndex.value >= totalSteps.value - 1) {
+      isPlaying.value = false;
+      return;
+    }
+    currentIndex.value++;
+    scheduleNext();
+  }, delay);
+}
 
 function startPlay() {
   clearTimer();
   if (currentIndex.value >= totalSteps.value - 1) currentIndex.value = 0;
   isPlaying.value = true;
-  timer = setInterval(() => {
-    if (currentIndex.value >= totalSteps.value - 1) { isPlaying.value = false; clearTimer(); return; }
-    currentIndex.value++;
-  }, delayMs.value);
+  scheduleNext();
 }
 
 function pausePlay() { isPlaying.value = false; clearTimer(); }
@@ -322,7 +343,7 @@ function onSliderInput(e: Event) {
 }
 
 function onSpeedInput(e: Event) {
-  delayMs.value = Number((e.target as HTMLInputElement).value);
+  strokeDurationMs.value = Number((e.target as HTMLInputElement).value);
   if (isPlaying.value) startPlay();
 }
 
@@ -419,12 +440,12 @@ onUnmounted(() => clearTimer());
       <button type="button" class="btn-secondary text-sm" :disabled="currentIndex >= totalSteps - 1" @click="goEnd">끝</button>
     </div>
 
-    <!-- 속도 -->
+    <!-- 속도: 획 한 개당 재생 시간 -->
     <div class="flex items-center justify-center gap-3">
       <span class="text-xs text-onSurface-variant">빠름</span>
-      <input type="range" min="20" max="2000" step="10" :value="delayMs" class="w-28 accent-primary" @input="onSpeedInput" />
+      <input type="range" min="200" max="3000" step="100" :value="strokeDurationMs" class="w-28 accent-primary" @input="onSpeedInput" />
       <span class="text-xs text-onSurface-variant">느림</span>
-      <span class="ml-1 font-mono text-xs tabular-nums text-onSurface-variant">{{ delayMs }}ms</span>
+      <span class="ml-1 font-mono text-xs tabular-nums text-onSurface-variant">{{ strokeDurationMs }}ms/획</span>
     </div>
   </div>
 </template>
