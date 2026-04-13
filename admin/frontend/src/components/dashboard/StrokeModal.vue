@@ -9,6 +9,8 @@ import {
 } from "@/utils/firestoreStrokeMerge";
 import StrokeOrderViewer from "@/components/dashboard/StrokeOrderViewer.vue";
 import type { StrokeShape } from "@/components/dashboard/StrokeOrderViewer.vue";
+import StrokeCoordPlayer from "@/components/dashboard/StrokeCoordPlayer.vue";
+import StrokeFillPlayer from "@/components/dashboard/StrokeFillPlayer.vue";
 
 type Row = Record<string, unknown>;
 
@@ -30,6 +32,9 @@ const svgPaths = ref<string[]>([]);
 const title = ref("");
 const subtitle = ref("");
 const footnote = ref<string | undefined>(undefined);
+
+type ActiveTab = "stroke" | "coord" | "fill";
+const activeTab = ref<ActiveTab>("stroke");
 
 function parseStrokePoints(raw: unknown): [number, number][] {
   if (!Array.isArray(raw)) return [];
@@ -160,6 +165,7 @@ function handleKeyDown(e: KeyboardEvent) {
 
 watch(() => props.open, (val) => {
   if (val) {
+    activeTab.value = "stroke";
     loadStrokeModalFromFirestore();
     document.addEventListener("keydown", handleKeyDown);
   } else {
@@ -228,6 +234,48 @@ onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
           </div>
         </div>
 
+        <!-- 탭 -->
+        <div class="shrink-0 border-b border-outline-variant/70 bg-surface-lowest px-5">
+          <div class="flex gap-0" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === 'stroke'"
+              class="relative px-4 py-2.5 text-sm font-medium transition-colors"
+              :class="activeTab === 'stroke'
+                ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-primary'
+                : 'text-onSurface-variant hover:text-onSurface'"
+              @click="activeTab = 'stroke'"
+            >
+              획순 보기
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === 'coord'"
+              class="relative px-4 py-2.5 text-sm font-medium transition-colors"
+              :class="activeTab === 'coord'
+                ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-primary'
+                : 'text-onSurface-variant hover:text-onSurface'"
+              @click="activeTab = 'coord'"
+            >
+              좌표 탐색
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === 'fill'"
+              class="relative px-4 py-2.5 text-sm font-medium transition-colors"
+              :class="activeTab === 'fill'
+                ? 'text-primary after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-primary'
+                : 'text-onSurface-variant hover:text-onSurface'"
+              @click="activeTab = 'fill'"
+            >
+              채움 재생
+            </button>
+          </div>
+        </div>
+
         <!-- 본문 -->
         <div
           class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface px-4 py-4 sm:px-5 sm:py-5"
@@ -254,11 +302,21 @@ onUnmounted(() => { document.removeEventListener("keydown", handleKeyDown); });
           </div>
           <div v-else class="w-full min-w-0">
             <StrokeOrderViewer
+              v-if="activeTab === 'stroke'"
               :strokes="shapes"
               :svg-paths="svgPaths"
               :title="title"
               :subtitle="subtitle"
               :footnote="footnote"
+            />
+            <StrokeCoordPlayer
+              v-else-if="activeTab === 'coord'"
+              :svg-paths="svgPaths"
+            />
+            <StrokeFillPlayer
+              v-else
+              :svg-paths="svgPaths"
+              :strokes="shapes"
             />
           </div>
         </div>
