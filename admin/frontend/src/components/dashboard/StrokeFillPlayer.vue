@@ -251,25 +251,32 @@ const totalSteps = computed(() => allSteps.value.length);
 const currentStep = computed(() => allSteps.value[currentIndex.value] ?? null);
 
 // ── 렌더 경로 목록 ────────────────────────────────────────────────────────────
+// isRed === true  → 전진 중 (빨강, 부분 경로)
+// isRed === false → 완료·ghost (검정/어두운, 전체 경로)
 
-interface RenderPath { d: string; opacity: number; isPrimary: boolean; }
+interface RenderPath { d: string; opacity: number; isRed: boolean; }
 
 const renderPaths = computed<RenderPath[]>(() => {
   const step = currentStep.value;
   if (!step || !canCompare.value) {
-    return props.svgPaths.map(d => ({ d, opacity: 1, isPrimary: false }));
+    return props.svgPaths.map(d => ({ d, opacity: 1, isRed: false }));
   }
   return props.svgPaths.map((d, i) => {
     if (i < step.strokeIndex) {
-      return { d, opacity: 0.85, isPrimary: false };       // 완료 획
+      // 이미 완료된 획 → 전체 경로, 검정
+      return { d, opacity: 0.85, isRed: false };
     } else if (i === step.strokeIndex) {
+      const meta = metas.value[i]!;
+      const done = step.t >= meta.forwardCount;
       return {
-        d: buildPartial(metas.value[i]!, step.t),
+        // 전진 완료되면 전체 닫힌 path(검정), 진행 중이면 부분 경로(빨강)
+        d: done ? d : buildPartial(meta, step.t),
         opacity: 1,
-        isPrimary: true,                                    // 현재 획 (전진 중)
+        isRed: !done,
       };
     } else {
-      return { d, opacity: 0.05, isPrimary: false };        // 미래 획 ghost
+      // 미래 획 ghost
+      return { d, opacity: 0.05, isRed: false };
     }
   });
 });
@@ -353,8 +360,8 @@ onUnmounted(() => clearTimer());
             v-for="(rp, i) in renderPaths"
             :key="i"
             :d="rp.d"
-            fill="currentColor"
-            :class="rp.isPrimary ? 'text-primary' : 'text-onSurface'"
+            class="text-onSurface transition-[fill,opacity] duration-300"
+            :fill="rp.isRed ? '#ef4444' : 'currentColor'"
             :style="{ opacity: rp.opacity }"
           />
         </g>
