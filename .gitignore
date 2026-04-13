@@ -21,6 +21,9 @@ flutter/**/*.iml
 # Firebase CLI 로컬 캐시 (admin/firestore 등에서 deploy 시)
 .firebase/
 
+# Android 업로드 keystore (저장소 루트에 둔 경우)
+/chusa1817-upload-keystore.jks
+
 # OS / editor
 .DS_Store
 

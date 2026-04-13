@@ -39,6 +39,9 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# 업로드 keystore (로컬 전용)
+/chusa1817-upload-keystore.jks
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

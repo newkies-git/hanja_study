@@ -48,7 +48,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '115363684571',
     projectId: 'chusa-1817',
     storageBucket: 'chusa-1817.firebasestorage.app',
-    iosBundleId: 'com.basis.hanja.chusa1817',
+    iosBundleId: 'com.basis.breeze.chusa1817',
   );
 
 }

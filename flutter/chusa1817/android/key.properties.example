@@ -1,0 +1,9 @@
+# 이 파일을 복사해 `key.properties`로 저장하고 값을 채우세요. `key.properties`는 Git에 올리지 마세요.
+# storeFile은 android/app 기준 상대 경로입니다.
+#   - keystore가 flutter/chusa1817/ 에 있으면: ../../chusa1817-upload-keystore.jks
+#   - keystore가 HANJA 저장소 루트에 있으면: ../../../../chusa1817-upload-keystore.jks
+
+storePassword=비밀번호
+keyPassword=비밀번호
+keyAlias=chusa1817
+storeFile=../../chusa1817-upload-keystore.jks
