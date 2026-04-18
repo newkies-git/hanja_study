@@ -1,20 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink } from "vue-router";
-import { useAppOptionStore } from "@/stores/app-option";
+import { useDashboardShellLayoutStore } from "@/stores/dashboardShellLayout";
 import { useAuthStore } from "@/stores/auth";
-import { useDataVersionStore } from "@/stores/dataVersion";
+import { useWorkbenchStore } from "@/stores/workbench";
 
-const appOption = useAppOptionStore();
+const layoutShell = useDashboardShellLayoutStore();
 const auth = useAuthStore();
-const dvStore = useDataVersionStore();
+const workbench = useWorkbenchStore();
 
-const hasPending = computed(() => dvStore.pendingCollections.length > 0);
-const versionLabel = computed(() => {
-  if (dvStore.isFetching) return "v…";
-  if (dvStore.version === null) return "v?";
-  return `v${dvStore.version.global}`;
-});
+const hasServerPending = computed(() => workbench.pendingCollections.length > 0);
+const workbenchNeedsAttention = computed(() => hasServerPending.value);
 </script>
 
 <template>
@@ -26,7 +21,7 @@ const versionLabel = computed(() => {
       type="button"
       class="hidden h-10 w-10 shrink-0 flex-col items-center justify-center gap-1 rounded-md bg-surface-low lg:flex"
       aria-label="사이드바 접기"
-      @click="appOption.toggleSidebarCollapsed"
+      @click="layoutShell.toggleSidebarCollapsed"
     >
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
@@ -37,60 +32,41 @@ const versionLabel = computed(() => {
       type="button"
       class="flex h-10 w-10 shrink-0 flex-col items-center justify-center gap-1 rounded-md bg-surface-low lg:hidden"
       aria-label="메뉴"
-      @click="appOption.toggleSidebarMobile"
+      @click="layoutShell.toggleSidebarMobile"
     >
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
       <span class="block h-0.5 w-5 rounded-full bg-onSurface" />
     </button>
 
-    <RouterLink
-      to="/"
-      class="font-display flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-onSurface no-underline sm:gap-2.5"
-    >
-      <span
-        class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-b from-primary to-primary-container text-sm font-bold text-white"
-        aria-hidden="true"
-        >漢</span
-      >
-      <span
-        class="truncate text-base font-semibold tracking-tight sm:text-lg"
-        >HANJA Admin</span
-      >
-    </RouterLink>
-
     <div
       class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-3"
     >
-      <!-- 데이터 버전 인디케이터 -->
+      <!-- 변경관리: 로컬 채번 + 서버 버전 (비관리자도 채번 확인 가능) -->
       <button
-        v-if="auth.isAdmin"
+        v-if="auth.isAuthenticated"
         type="button"
-        class="relative flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition"
+        class="relative flex max-w-[min(100%,14rem)] items-center gap-1.5 truncate rounded-lg border px-2.5 py-1.5 text-xs font-medium transition sm:max-w-[18rem]"
         :class="
-          hasPending
+          workbenchNeedsAttention
             ? 'border-amber-300/80 bg-amber-50/90 text-amber-900 hover:bg-amber-100'
             : 'border-outline-variant/60 bg-surface-low text-onSurface-variant hover:bg-surface-bright hover:text-onSurface'
         "
-        :title="hasPending ? '미발행 변경이 있습니다. 클릭하여 버전을 발행하세요.' : '데이터 버전'"
-        @click="dvStore.openBumpModal"
+        :title="
+          '변경관리: 로컬 채번(chusa.db)과 서버 버전(Firestore _meta/data_version). ' +
+          (hasServerPending ? '서버에 미발행 변경이 있습니다.' : '클릭하여 채번·발행을 관리합니다.')
+        "
+        aria-label="변경관리"
+        @click="workbench.openWorkbenchModal"
       >
         <span
-          v-if="hasPending"
+          v-if="workbenchNeedsAttention"
           class="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500"
           aria-hidden="true"
         />
-        <span class="font-mono">데이터 {{ versionLabel }}</span>
-        <span v-if="hasPending" class="hidden sm:inline">· 미발행</span>
+        <span class="truncate">변경관리</span>
       </button>
 
-      <span
-        v-if="auth.user"
-        class="hidden max-w-[12rem] truncate text-sm text-onSurface-variant sm:inline"
-        :title="auth.user.email ?? undefined"
-      >
-        {{ auth.user.email }}
-      </span>
       <span
         v-if="auth.isAdmin"
         class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary sm:px-2.5 sm:text-xs"

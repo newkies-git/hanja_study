@@ -32,7 +32,7 @@ description: >-
 
 - 클래스/서비스: `UserService`, `FirestoreStrokeRepository`
 - 변수: `itemCount`, `selectedBasisId`, `uploadQueue`
-- React/Vue 컴포넌트: PascalCase 유지 (`BasisFormModal`)
+- React/Vue 컴포넌트: PascalCase 유지 (`HanjaBasisFormModal`)
 
 ## 4. bool은 질문형
 

@@ -18,7 +18,9 @@ export const useAuthStore = defineStore("auth", () => {
   const isAdmin = computed(() => adminClaim.value === true);
 
   /** JWT·Firestore 규칙과 동일하게 admin 여부 판별(문자열 true 등 흔한 변형 포함) */
-  function claimIsAdmin(claims: Record<string, unknown> | undefined): boolean {
+  function hasAdminRoleInCustomClaims(
+    claims: Record<string, unknown> | undefined,
+  ): boolean {
     const v = claims?.admin;
     return v === true || v === "true" || v === 1;
   }
@@ -39,7 +41,7 @@ export const useAuthStore = defineStore("auth", () => {
       if (u) {
         try {
           const token = await u.getIdTokenResult(true);
-          adminClaim.value = claimIsAdmin(
+          adminClaim.value = hasAdminRoleInCustomClaims(
             token.claims as Record<string, unknown>,
           );
         } catch (e) {
@@ -76,7 +78,7 @@ export const useAuthStore = defineStore("auth", () => {
     tokenError.value = null;
     try {
       const token = await user.value.getIdTokenResult(true);
-      adminClaim.value = claimIsAdmin(
+      adminClaim.value = hasAdminRoleInCustomClaims(
         token.claims as Record<string, unknown>,
       );
     } catch (e) {
@@ -96,7 +98,7 @@ export const useAuthStore = defineStore("auth", () => {
     tokenError.value = null;
     await user.value.getIdToken(true);
     const idTokenResult = await user.value.getIdTokenResult();
-    adminClaim.value = claimIsAdmin(
+    adminClaim.value = hasAdminRoleInCustomClaims(
       idTokenResult.claims as Record<string, unknown>,
     );
   }

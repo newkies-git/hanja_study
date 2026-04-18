@@ -111,8 +111,16 @@ flowchart LR
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
 | `contentVersion` | int (또는 num) | 아니오 | 원격 콘텐츠 버전. 동기화 시작 시 읽어 `ContentSyncResult.remoteContentVersion`에 반영 |
+| `activeChangeSession` | map | 아니오 | 로컬 `chusa.db` 의 `sync_sessions` 중 `ACTIVE` 행과 동일 의미(채번 id·설명 등). 앱·관리 도구가 동일 스키마로 맞추면 된다. |
+| `dataVersionSnapshot` | map | 아니오 | `_meta/data_version` 과 동일 구조를 **읽기 전용 복제**해 두고, **변경분만 내려받기** 할 때 기준 스냅샷으로 쓸 수 있다(실제 단일 소스는 `_meta/data_version` 권장). |
 
 문서 경로: `config/content` (`FirestorePaths.configContentPath`).
+
+**모델 정리 (저장소 간):**
+
+- Firestore `hanja_basis/{docId}`: 마스터 + ETL·확장 필드를 **한 문서로 확장**한다(과거 `hanja_extend` 전용 필드 흡수).
+- Firestore `hanja_extend/{docId}`: **레거시·마이그레이션** 경로. 동일 id 내용은 위 `hanja_basis` 확장 + 로컬 `hanja.extend_data`(JSON) 로 통합 운영한다.
+- 로컬 `hanja` 테이블: PK `id` = 권장 문서 id(`H`+16진). `extend_data` 컬럼에 `hanja_extend` 문서 JSON 통째.
 
 ### 5.2 컬렉션 `hanja`
 
@@ -252,7 +260,7 @@ firebase deploy --only firestore:rules --project chusa-1817
 
 규칙 요지(현재 `firestore.rules` 기준):
 
-- **읽기**: 로그인한 사용자(`request.auth != null`)면 `config`, `hanja`, `hanja/{id}/strokes`, `words`, `hanja_basis`, `hanja_extend`, `hanja_stroke`, `hanja_word` 등에 **읽기 가능**(Flutter 익명 로그인 포함).
+- **읽기**: 로그인한 사용자(`request.auth != null`)면 `config`, `hanja`, `hanja/{id}/strokes`, `words`, `hanja_basis`, `hanja_extend`, `hanja_stroke`, `hanja_word`, `_meta/data_version` 등에 **읽기 가능**(Flutter 익명 로그인 포함).
 - **쓰기**: 위 경로의 클라이언트 쓰기는 **`request.auth.token.admin == true`**(또는 문자열 `'true'`)인 경우에만 허용. 그 외 클라이언트 쓰기는 거절된다.
 - **Admin 웹**(`admin/frontend`): 이메일 로그인 후 동일 조건으로 `hanja_basis` 등에 쓸 수 있다. **일반 사용자 토큰**으로는 `Missing or insufficient permissions`가 난다.
 - **Python Admin SDK**(`upload_to_firestore.py` 등)는 규칙을 우회하므로 서비스 계정으로 적재 가능.

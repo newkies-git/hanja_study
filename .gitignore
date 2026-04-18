@@ -37,3 +37,8 @@ flutter/chusa1817/.claude/
 admin/frontend/node_modules/
 admin/frontend/dist/
 admin/frontend/*.tsbuildinfo
+admin/frontend/.claude/
+
+# Admin 로컬 SQLite·덤프(스키마·샘플 JSON만 추적)
+admin/data/chusa.db
+admin/data/data.zip

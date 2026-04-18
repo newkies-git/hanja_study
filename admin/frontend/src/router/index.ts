@@ -27,28 +27,66 @@ const router = createRouter({
           component: () => import("@/views/dashboard/DashboardHomeView.vue"),
         },
         {
+          path: "firestore/manage",
+          meta: { requiresAdmin: true, splitManage: true },
+          component: () => import("@/views/dashboard/FirestoreManageLayout.vue"),
+          children: [
+            {
+              path: "",
+              name: "firestore-manage",
+              component: () => import("@/views/dashboard/FirestoreManagePlaceholder.vue"),
+            },
+            {
+              path: ":id",
+              name: "firestore-manage-detail",
+              component: () => import("@/views/dashboard/FirestoreHanjaDetailView.vue"),
+            },
+          ],
+        },
+        {
           path: "basis",
-          name: "basis",
-          meta: { requiresAdmin: true },
-          component: () => import("@/views/dashboard/BasisManageView.vue"),
+          redirect: "/firestore/manage",
         },
         {
-          path: "basis/upload",
-          name: "basis-upload",
-          meta: { requiresAdmin: true },
-          component: () => import("@/views/dashboard/BasisCsvUploadView.vue"),
+          path: "basis/:id",
+          redirect: (to) => ({
+            path: `/firestore/manage/${String(to.params.id)}`,
+          }),
         },
         {
-          path: "word",
-          name: "word",
-          meta: { requiresAdmin: true },
-          component: () => import("@/views/dashboard/WordManageView.vue"),
+          path: "sqlite/manage",
+          meta: { requiresAdmin: true, splitManage: true },
+          component: () => import("@/views/dashboard/LocalHanjaManageLayout.vue"),
+          children: [
+            {
+              path: "",
+              name: "sqlite-manage",
+              component: () => import("@/views/dashboard/LocalHanjaManagePlaceholder.vue"),
+            },
+            {
+              path: ":id",
+              name: "sqlite-detail",
+              component: () => import("@/views/dashboard/LocalHanjaDetailView.vue"),
+            },
+          ],
         },
         {
-          path: "etl",
-          name: "etl",
+          path: "sqlite/detail/:id",
+          redirect: (to) => ({
+            path: `/sqlite/manage/${String(to.params.id)}`,
+          }),
+        },
+        {
+          path: "firestore/stroke-register/:id?",
+          name: "firestore-stroke-register",
           meta: { requiresAdmin: true },
-          component: () => import("@/views/dashboard/EtlExtendView.vue"),
+          component: () => import("@/views/dashboard/HanjaStrokeRegisterView.vue"),
+        },
+        {
+          path: "db-sync",
+          name: "db-sync",
+          meta: { requiresAdmin: true },
+          component: () => import("@/views/dashboard/DatabaseSyncView.vue"),
         },
         {
           path: "settings/auth",
@@ -65,7 +103,7 @@ const router = createRouter({
   ],
 });
 
-async function waitAuthReady() {
+async function waitUntilAuthenticationReady() {
   const auth = useAuthStore();
   if (auth.isAuthReady) return;
   await new Promise<void>((resolve) => {
@@ -82,7 +120,7 @@ async function waitAuthReady() {
 }
 
 router.beforeEach(async (to: RouteLocationNormalized) => {
-  await waitAuthReady();
+  await waitUntilAuthenticationReady();
   const auth = useAuthStore();
   const isPublic = to.meta.public === true;
 

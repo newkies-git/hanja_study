@@ -17,7 +17,7 @@ const isLoginSubmitting = ref(false);
 const configured = computed(() => isFirebaseConfigured());
 
 /** 로그인 후 이동: 앱 내부 상대 경로만 허용(오픈 리다이렉트 완화). */
-function safeRedirectAfterLogin(raw: unknown): string {
+function normalizeInternalRedirectPathAfterLogin(raw: unknown): string {
   const first = Array.isArray(raw) ? raw[0] : raw;
   if (typeof first !== "string") return "/";
   const path = first.trim();
@@ -26,12 +26,14 @@ function safeRedirectAfterLogin(raw: unknown): string {
   return path;
 }
 
-async function onSubmit() {
+async function handleLoginFormSubmit() {
   error.value = null;
   isLoginSubmitting.value = true;
   try {
     await auth.login(email.value.trim(), password.value);
-    await router.replace(safeRedirectAfterLogin(route.query.redirect));
+    await router.replace(
+      normalizeInternalRedirectPathAfterLogin(route.query.redirect),
+    );
   } catch (e) {
     error.value =
       e instanceof Error ? e.message : "로그인에 실패했습니다.";
@@ -75,13 +77,10 @@ async function onSubmit() {
           </div>
         </div>
         <h1
-          class="font-display text-4xl font-extrabold tracking-tight text-slate-800 sm:text-5xl"
+          class="mx-auto max-w-full truncate whitespace-nowrap px-1 font-display text-2xl font-extrabold tracking-tight text-slate-800 sm:text-4xl"
         >
-          Welcome Back
+          HANJA Admin · 로그인
         </h1>
-        <p class="mt-5 text-lg font-medium text-slate-500">
-          한자 관리 시스템에 로그인하세요
-        </p>
       </div>
 
       <!-- Login Card -->
@@ -102,7 +101,7 @@ async function onSubmit() {
           </div>
         </div>
 
-        <form v-else class="relative space-y-8" @submit.prevent="onSubmit">
+        <form v-else class="relative space-y-8" @submit.prevent="handleLoginFormSubmit">
           <div class="space-y-2.5">
             <label
               for="login-email"

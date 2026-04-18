@@ -32,48 +32,38 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
           >
             認
           </div>
-          <div class="min-w-0 leading-tight">
-            <p
-              class="text-[9px] font-semibold uppercase tracking-[0.14em] text-primary/90"
-            >
-              Admin · Firebase Auth · Custom claims
-            </p>
-            <h1 class="font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl">
-              인증 · 클레임
+          <div class="min-w-0 flex-1">
+            <h1 class="page-title">
+              <span class="page-title-kicker">Admin · Firebase Auth</span>인증 · 클레임
             </h1>
-            <p class="mt-0.5 text-xs text-onSurface-variant sm:text-sm">
-              Firestore 쓰기는 JWT의
-              <code
-                class="mx-0.5 rounded-md border border-outline-variant/50 bg-white/80 px-1 py-px font-mono text-[10px] text-primary sm:text-[11px]"
-              >admin</code>
-              클레임이 필요합니다. 부여 후 아래에서 토큰을 갱신하세요.
-            </p>
           </div>
         </div>
         <div
           class="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:flex-wrap sm:justify-end"
         >
           <RouterLink
-            :to="{ name: 'dashboard' }"
+            :to="{ name: 'firestore-manage' }"
             class="btn-secondary inline-flex min-h-[2.75rem] items-center justify-center px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
           >
-            대시보드
+            서버DB 관리
           </RouterLink>
           <RouterLink
-            :to="{ name: 'basis' }"
+            :to="{ name: 'sqlite-manage' }"
             class="btn-secondary inline-flex min-h-[2.75rem] items-center justify-center px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
           >
-            기준 데이터
-          </RouterLink>
-          <RouterLink
-            :to="{ name: 'basis-upload' }"
-            class="btn-secondary inline-flex min-h-[2.75rem] items-center justify-center px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
-          >
-            마스터 등록
+            로컬 DB
           </RouterLink>
         </div>
       </div>
     </section>
+
+    <p class="truncate text-xs text-onSurface-variant">
+      Firestore 쓰기는 JWT
+      <code
+        class="mx-0.5 rounded border border-outline-variant/50 bg-surface-low px-1 py-px font-mono text-[10px] text-primary"
+      >admin</code>
+      클레임이 필요합니다. 부여 후 아래에서 토큰을 갱신하세요.
+    </p>
 
     <div
       v-if="!firebaseConfigured"
@@ -103,12 +93,9 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
       <div
         class="border-b border-outline-variant/60 bg-gradient-to-r from-primary/[0.06] via-surface-low/80 to-surface-lowest px-4 py-3 sm:px-5"
       >
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-primary/90">
-          현재 세션
-        </p>
-        <p class="mt-0.5 font-display text-sm font-semibold text-onSurface sm:text-base">
-          로그인 계정 · 클레임 상태
-        </p>
+        <h2 class="truncate whitespace-nowrap font-display text-sm font-semibold tracking-tight text-onSurface sm:text-base">
+          <span class="page-title-kicker">현재 세션</span>로그인 계정 · 클레임 상태
+        </h2>
       </div>
 
       <div class="p-4 sm:p-6">

@@ -19,19 +19,26 @@ service cloud.firestore {
       );
     }
 
-    // 앱·업로드 스크립트는 config/content 만 사용. 다른 문서가 필요하면 match 추가.
+    // 단일 문서: (1) 원격 콘텐츠/데이터 버전·증분 동기에 필요한 메타
+    // (2) 로컬 chusa.sync_sessions 에 대응하는 활성 채번·설명 등(클라이언트가 동일 스키마로 유지)
     match /config/content {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // 기준 한자 마스터(관리 웹 CSV). 권장 문서 ID: 한자 첫 글자 코드포인트를 H+대문자16진(예: H4E00). 업로드 시 자동 정규화.
+    // 앱·관리 웹이 클라이언트로 읽는 데이터 버전(변경분 다운로드 기준). Admin SDK는 규칙 우회.
+    match /_meta/data_version {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // 기준 한자: 마스터 필드 + ETL·확장 필드(grade·etl 등)를 한 문서로 확장해 둔다. 문서 id = 로컬 hanja.id 권장(H+16진).
     match /hanja_basis/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // ETL 산출물 컬렉션 (hanja_basis -> hanja_extend)
+    // 레거시·마이그레이션: 동일 docId 내용은 hanja_basis 확장 필드 + 로컬 hanja.extend_data 로 통합 운영한다.
     match /hanja_extend/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();

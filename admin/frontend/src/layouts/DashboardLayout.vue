@@ -1,20 +1,28 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { RouterView } from "vue-router";
+import { computed, onMounted } from "vue";
+import { RouterView, useRoute } from "vue-router";
 import AppFooter from "@/components/app/AppFooter.vue";
 import AppHeader from "@/components/app/AppHeader.vue";
 import AppSidebar from "@/components/app/AppSidebar.vue";
 import ToastNotifications from "@/components/app/ToastNotifications.vue";
-import VersionBumpModal from "@/components/app/VersionBumpModal.vue";
-import { useAppOptionStore } from "@/stores/app-option";
+import WorkbenchModal from "@/components/app/WorkbenchModal.vue";
+import { useDashboardShellLayoutStore } from "@/stores/dashboardShellLayout";
 import { useOnlineStatus } from "@/composables/useOnlineStatus";
-import { useDataVersionStore } from "@/stores/dataVersion";
+import { useWorkbenchStore } from "@/stores/workbench";
 
-const appOption = useAppOptionStore();
+const layoutShell = useDashboardShellLayoutStore();
 const { isOnline } = useOnlineStatus();
-const dvStore = useDataVersionStore();
+const workbench = useWorkbenchStore();
+const route = useRoute();
 
-onMounted(() => { void dvStore.fetchVersion(); });
+const isSplitManage = computed(() =>
+  route.matched.some((r) => (r.meta as { splitManage?: boolean }).splitManage === true),
+);
+
+onMounted(() => {
+  void workbench.fetchVersion();
+  void workbench.fetchLocalSession();
+});
 </script>
 
 <template>
@@ -23,7 +31,7 @@ onMounted(() => { void dvStore.fetchVersion(); });
     <AppSidebar />
     <div
       class="flex min-h-0 min-w-0 flex-1 flex-col transition-[margin] duration-200"
-      :class="appOption.isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'"
+      :class="layoutShell.isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'"
     >
       <AppHeader />
       <!-- 오프라인 배너 -->
@@ -48,20 +56,27 @@ onMounted(() => { void dvStore.fetchVersion(); });
         </div>
       </Transition>
       <main
-        class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
+        class="min-h-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8"
+        :class="
+          isSplitManage
+            ? 'flex flex-col overflow-hidden overscroll-contain'
+            : 'overflow-y-auto overscroll-contain'
+        "
       >
-        <RouterView />
+        <RouterView
+          :class="isSplitManage ? 'flex min-h-0 min-w-0 flex-1 flex-col' : ''"
+        />
       </main>
       <AppFooter />
     </div>
     <button
-      v-if="appOption.isSidebarMobileOpen"
+      v-if="layoutShell.isSidebarMobileOpen"
       type="button"
       class="fixed inset-0 z-40 bg-onSurface/20 backdrop-blur-sm lg:hidden"
       aria-label="메뉴 닫기"
-      @click="appOption.closeSidebarMobile"
+      @click="layoutShell.closeSidebarMobile"
     />
   </div>
   <ToastNotifications />
-  <VersionBumpModal :open="dvStore.bumpModalOpen" @close="dvStore.closeBumpModal" />
+  <WorkbenchModal :open="workbench.workbenchModalOpen" @close="workbench.closeWorkbenchModal" />
 </template>

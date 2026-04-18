@@ -1,10 +1,12 @@
 {
-  "name": "hanja-admin",
+  "name": "chusa-admin",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev:frontend": "vite",
+    "dev:backend": "node server.js",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint src",
@@ -14,6 +16,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "firebase": "^11.10.0",
     "pinia": "^2.3.1",
     "vue": "^3.5.13",
@@ -22,13 +27,14 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-vue": "^10.8.0",
     "globals": "^17.4.0",
+    "happy-dom": "^20.8.9",
     "postcss": "^8.4.49",
     "prettier": "^3.8.1",
-    "happy-dom": "^20.8.9",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.58.0",

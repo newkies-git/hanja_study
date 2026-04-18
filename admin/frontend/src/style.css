@@ -42,6 +42,15 @@
     @apply bg-clip-text text-transparent;
     background-image: linear-gradient(135deg, #2563eb 0%, #004ac6 100%);
   }
+
+  /** 대시보드 등 페이지 상단 메인 타이틀 — 한 줄·말줄임 통일 */
+  .page-title {
+    @apply min-w-0 truncate whitespace-nowrap font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl;
+  }
+
+  .page-title-kicker {
+    @apply mr-2 inline text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/90;
+  }
 }
 
 @keyframes float {
