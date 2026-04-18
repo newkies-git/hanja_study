@@ -39,6 +39,5 @@ admin/frontend/dist/
 admin/frontend/*.tsbuildinfo
 admin/frontend/.claude/
 
-# Admin 로컬 SQLite·덤프(스키마·샘플 JSON만 추적)
-admin/data/chusa.db
+# Admin 데이터(chusa.db는 레포에 포함). 용량 큰 덤프만 제외
 admin/data/data.zip
