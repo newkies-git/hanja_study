@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import type { StrokePoint, StrokeShape } from "@/types/strokeOrder";
 
 const props = defineProps<{
@@ -10,6 +10,8 @@ const props = defineProps<{
 
 const strokeInfo = ref("");
 const focusedStrokeIndex = ref<number | null>(null);
+const isPlaying = ref(false);
+let playTimer: ReturnType<typeof setInterval> | null = null;
 
 function pathBBoxFromD(d: string): {
   minX: number;
@@ -138,13 +140,42 @@ function onLeaveStroke() {
   strokeInfo.value = "";
 }
 
+function stopPlay() {
+  if (playTimer !== null) {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+  isPlaying.value = false;
+}
+
+function startPlay() {
+  stopPlay();
+  const n = displayStrokeCount.value;
+  if (n === 0) return;
+  focusedStrokeIndex.value = 0;
+  isPlaying.value = true;
+  playTimer = setInterval(() => {
+    const cur = focusedStrokeIndex.value ?? 0;
+    if (cur >= n - 1) {
+      stopPlay();
+      focusedStrokeIndex.value = null; // 완료 후 전체 표시
+    } else {
+      focusedStrokeIndex.value = cur + 1;
+    }
+  }, 1000);
+}
+
 function playAnimation() {
+  stopPlay();
   focusedStrokeIndex.value = null;
 }
 
 function resetStrokes() {
+  stopPlay();
   focusedStrokeIndex.value = null;
 }
+
+onUnmounted(stopPlay);
 
 function prevStroke() {
   const n = displayStrokeCount.value;
@@ -181,6 +212,7 @@ const hasRenderableStrokes = computed(
 watch(
   () => [props.strokeShapes, props.svgPaths] as const,
   () => {
+    stopPlay();
     focusedStrokeIndex.value = null;
     strokeInfo.value = "";
   },
@@ -271,7 +303,23 @@ watch(
           v-if="displayStrokeCount > 0"
           class="mt-4 flex flex-wrap justify-center gap-2"
         >
-          <button type="button" class="btn-primary text-sm" @click="playAnimation">
+          <!-- 재생 / 정지 -->
+          <button
+            type="button"
+            class="btn-primary flex items-center gap-1.5 text-sm"
+            @click="isPlaying ? stopPlay() : startPlay()"
+          >
+            <!-- 재생 아이콘 -->
+            <svg v-if="!isPlaying" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            <!-- 정지 아이콘 -->
+            <svg v-else class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+            </svg>
+            {{ isPlaying ? "정지" : "재생" }}
+          </button>
+          <button type="button" class="btn-secondary text-sm" @click="playAnimation">
             전체 보기
           </button>
           <button type="button" class="btn-secondary text-sm" @click="prevStroke">
