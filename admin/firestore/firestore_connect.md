@@ -119,8 +119,8 @@ flowchart LR
 **모델 정리 (저장소 간):**
 
 - Firestore `hanja_basis/{docId}`: 마스터 + ETL·확장 필드를 **한 문서로 확장**한다(과거 `hanja_extend` 전용 필드 흡수).
-- Firestore `hanja_extend/{docId}`: **레거시·마이그레이션** 경로. 동일 id 내용은 위 `hanja_basis` 확장 + 로컬 `hanja.extend_data`(JSON) 로 통합 운영한다.
-- 로컬 `hanja` 테이블: PK `id` = 권장 문서 id(`H`+16진). `extend_data` 컬럼에 `hanja_extend` 문서 JSON 통째.
+- Firestore `hanja_extend/{docId}`: **레거시·마이그레이션** 경로. 동일 id 내용은 위 `hanja_basis` 확장 + 로컬 `hanja.origin_note`(JSON) 로 통합 운영한다.
+- 로컬 `hanja` 테이블: PK `id` = 권장 문서 id(`H`+16진). `origin_note` 컬럼에 `hanja_extend` 문서 JSON 통째.
 
 ### 5.2 컬렉션 `hanja`
 
@@ -140,7 +140,6 @@ flowchart LR
 | `radical_meaning` | `radicalName` | `radicalName` |
 | `stroke_count` | `totalStrokes` | `totalStrokes` |
 | `school_level` | `schoolLevel` | `schoolLevel` (`middle` / `high` / `both` 등, 소문자 정규화) |
-| `grade_level` | `grade` | `grade` (문자열이면 첫 정수 추출, 예: `"5급"` → `5`) |
 | `origin_note` | `origin` | `origin` |
 | `shape_explanation` | `usageNote` | `usageNote` |
 | `sync_revision` | `syncRevision` | `syncRevision` |

@@ -87,7 +87,7 @@ const emit = defineEmits<{
                 {{ sliceGraphemes(row.displayId, 6) }}
               </td>
               <td
-                class="truncate px-1 py-2 text-center align-middle"
+                class="truncate px-1 py-2 text-center align-middle font-hanja"
                 :title="row.char"
               >
                 {{ oneGraphemeOrDash(row.char) }}

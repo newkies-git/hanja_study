@@ -24,6 +24,7 @@ import {
 import {
   type HanjaDetailFormState,
   createEmptyHanjaBasisFormRecord,
+  hydrateHanjaRelatedFieldsFromExtend,
 } from "@/types/hanjaAdminForms";
 import {
   extractSvgPaths,
@@ -37,6 +38,10 @@ const notifications = useNotificationsStore();
 const workbench = useWorkbenchStore();
 
 const id = computed(() => routeParamAsString(route.params.id));
+
+const wordContainingSource = computed(() =>
+  isFirebaseConfigured() ? ("firestore" as const) : undefined,
+);
 
 const isLoading = ref(true);
 const isSaving = ref(false);
@@ -138,16 +143,29 @@ async function loadHanjaDetailDocument() {
     const snap = await getDoc(doc(db, "hanja_basis", id.value));
     if (snap.exists()) {
       const data = snap.data();
+      const mergedExtend: Record<string, unknown> = {};
+      try {
+        const extSnap = await getDoc(doc(db, "hanja_extend", id.value));
+        if (extSnap.exists()) {
+          const rawExt = extSnap.data();
+          if (rawExt && typeof rawExt === "object" && !Array.isArray(rawExt)) {
+            Object.assign(mergedExtend, rawExt as Record<string, unknown>);
+          }
+        }
+      } catch {
+        /* 권한 없음·문서 없음: basis 만으로 진행 */
+      }
+      const basisExtend = (data as Record<string, unknown>).extend;
+      if (basisExtend !== undefined && basisExtend !== null && typeof basisExtend === "object" && !Array.isArray(basisExtend)) {
+        Object.assign(mergedExtend, basisExtend as Record<string, unknown>);
+      }
+
       const o = createEmptyHanjaBasisFormRecord();
+      o.extend = mergedExtend;
+
       for (const k of Object.keys(data)) {
         if (!(k in o)) continue;
-        if (k === "extend") {
-          const ex = data.extend;
-          if (ex !== undefined && ex !== null && typeof ex === "object" && !Array.isArray(ex)) {
-            o.extend = { ...(ex as Record<string, unknown>) };
-          }
-          continue;
-        }
+        if (k === "extend") continue;
         const v = (data as Record<string, unknown>)[k];
         if (v !== undefined && v !== null) {
           (o as unknown as Record<string, unknown>)[k] = v;
@@ -157,6 +175,7 @@ async function loadHanjaDetailDocument() {
       if (!String(o.grade ?? "").trim() && legacyGubun != null && legacyGubun !== "") {
         o.grade = String(legacyGubun);
       }
+      hydrateHanjaRelatedFieldsFromExtend(o);
       form.value = o;
       await fetchBasisStrokes();
     } else {
@@ -215,6 +234,8 @@ async function executeConfirmedDeletion() {
   confirmOpen.value = false;
   isSaving.value = true;
   try {
+    if (!isFirebaseConfigured() || !auth.isAdmin) return;
+    await auth.syncIdTokenForFirestore();
     const db = getFirestoreDb();
     await deleteDoc(doc(db, "hanja_basis", id.value));
     notifications.success("삭제 완료");
@@ -257,7 +278,7 @@ watch(
           </svg>
         </button>
         <div
-          class="flex h-12 w-12 shrink-0 select-none items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-surface-lowest text-3xl font-medium text-onSurface shadow-sm"
+          class="flex h-12 w-12 shrink-0 select-none items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-surface-lowest font-hanja text-3xl font-medium text-onSurface shadow-sm"
         >
           <span>{{ isLoading ? "…" : charDisplay || "—" }}</span>
         </div>
@@ -331,6 +352,8 @@ watch(
         :svg-paths="svgPaths"
         :stroke-shapes="strokeShapes"
         :is-stroke-loading="isStrokeLoading"
+        :word-containing-glyph="charDisplay"
+        :word-containing-source="wordContainingSource"
       />
     </div>
 

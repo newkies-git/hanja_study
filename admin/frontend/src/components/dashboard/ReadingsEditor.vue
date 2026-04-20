@@ -126,7 +126,7 @@ function moveDown(index: number) {
               :value="reading.음"
               type="text"
               placeholder="음"
-              class="input-minimal w-full py-1.5 text-sm"
+              class="input-minimal w-full py-1.5 font-hanja text-sm"
               @input="
                 updateField(
                   i,
@@ -141,7 +141,7 @@ function moveDown(index: number) {
               :value="reading.훈"
               type="text"
               placeholder="훈"
-              class="input-minimal w-full py-1.5 text-sm"
+              class="input-minimal w-full py-1.5 font-hanja text-sm"
               @input="
                 updateField(
                   i,

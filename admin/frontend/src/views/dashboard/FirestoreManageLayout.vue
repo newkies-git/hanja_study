@@ -160,7 +160,7 @@ onMounted(() => {
       >
         <div class="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-white shadow-md shadow-primary/20"
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary font-hanja text-sm font-bold text-white shadow-md shadow-primary/20"
             aria-hidden="true"
           >
             基

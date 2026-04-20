@@ -59,7 +59,7 @@ function handleKeyDown(e: KeyboardEvent) {
   <div class="space-y-1.5">
     <label
       v-if="label"
-      class="block text-[10px] font-semibold uppercase tracking-wide text-onSurface-variant"
+      class="block text-sm font-semibold tracking-wide text-onSurface-variant"
     >
       {{ label }}
     </label>
@@ -69,7 +69,7 @@ function handleKeyDown(e: KeyboardEvent) {
       <span
         v-for="(tag, i) in (modelValue || [])"
         :key="i"
-        class="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+        class="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2 py-0.5 text-sm font-medium text-primary"
       >
         {{ tag }}
         <button

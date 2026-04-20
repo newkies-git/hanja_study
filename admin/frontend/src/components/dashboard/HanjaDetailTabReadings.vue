@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import type { HanjaDetailFormState } from "@/types/hanjaAdminForms";
-import ReadingsEditor from "@/components/dashboard/ReadingsEditor.vue";
+import TagArrayEditor from "@/components/dashboard/TagArrayEditor.vue";
 
 const form = defineModel<HanjaDetailFormState>("form", { required: true });
 </script>
 
 <template>
-  <div class="space-y-6">
-    <h3 class="mb-3 text-sm font-bold uppercase tracking-wider text-onSurface">상세 음/훈 리스트</h3>
-    <ReadingsEditor v-model="form.readings" />
+  <div class="grid grid-cols-1 gap-4">
+    <TagArrayEditor v-model="form.synonyms" label="동의어 (synonyms)" placeholder="동의어 추가..." />
+    <TagArrayEditor v-model="form.antonyms" label="반의어(antonyms)" placeholder="반의어 추가..." />
+    <TagArrayEditor v-model="form.analogue" label="유의어 (analogue)" placeholder="유의어 추가..." />
   </div>
 </template>

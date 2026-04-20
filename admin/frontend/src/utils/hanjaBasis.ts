@@ -4,7 +4,7 @@
  *
  * 계약: Firestore `hanja_basis/{docId}` 문서는 마스터(한자·음·훈 등)에 더해
  * ETL·확장 필드(grade·etl 등)를 **같은 문서**로 확장한다. 예전 `hanja_extend` 전용 필드도 여기로 흡수한다.
- * 로컬 `hanja.extend_data`에는 동일 docId 기준으로 `hanja_extend` 문서 JSON 통째를 둔다.
+ * 로컬 `hanja.origin_note`(JSON)에는 동일 docId 기준으로 `hanja_extend` 문서 JSON 통째를 둔다.
  */
 
 function safeDocId(raw: string, fallback: string): string {

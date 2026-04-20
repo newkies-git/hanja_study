@@ -3,8 +3,33 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --hanja-font-stack: "BiauKai TC", "BiauKai SC", "BiauKai", "DFKai-SB", "KaiTi", "STKaiti",
+      "Noto Serif TC", "Noto Serif CJK TC", "Noto Serif", ui-serif, serif;
+    --font-text-stack: "Noto Sans KR", "Noto Sans CJK KR", "Noto Sans TC",
+      "Noto Sans CJK TC", "Noto Sans", "Noto Sans JP", "Noto Sans SC", system-ui,
+      -apple-system, "Segoe UI", sans-serif;
+
+    --fs-hanja-display: 7rem;
+    --fs-title: 1.5rem;
+    --fs-subtitle: 1.125rem;
+    --fs-body: 0.95rem;
+    --fs-caption: 0.78rem;
+
+    --color-text-primary: #1f2430;
+    --color-text-secondary: #50586b;
+    --color-text-muted: #7b8396;
+    --color-text-brand: #0b4ed1;
+    --color-text-hanja: #0f172a;
+  }
+
   body {
-    @apply bg-surface font-sans text-onSurface;
+    @apply bg-surface font-sans;
+    color: var(--color-text-primary);
+  }
+
+  #chusa-font-scope {
+    font-family: var(--font-text-stack);
   }
 }
 
@@ -45,11 +70,42 @@
 
   /** 대시보드 등 페이지 상단 메인 타이틀 — 한 줄·말줄임 통일 */
   .page-title {
-    @apply min-w-0 truncate whitespace-nowrap font-display text-lg font-semibold tracking-tight text-onSurface sm:text-xl;
+    @apply min-w-0 truncate whitespace-nowrap font-display font-semibold tracking-tight;
+    font-size: var(--fs-title);
+    color: var(--color-text-primary);
   }
 
   .page-title-kicker {
-    @apply mr-2 inline text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/90;
+    @apply mr-2 inline font-semibold uppercase tracking-[0.12em];
+    font-size: var(--fs-caption);
+    color: var(--color-text-brand);
+  }
+
+  .text-title {
+    font-size: var(--fs-title);
+    color: var(--color-text-primary);
+  }
+
+  .text-subtitle {
+    font-size: var(--fs-subtitle);
+    color: var(--color-text-secondary);
+  }
+
+  .text-body {
+    font-size: var(--fs-body);
+    color: var(--color-text-primary);
+  }
+
+  .text-caption {
+    font-size: var(--fs-caption);
+    color: var(--color-text-muted);
+  }
+
+  .text-hanja-display {
+    font-family: var(--hanja-font-stack), ui-serif, serif;
+    font-size: clamp(4rem, 12vw, calc(var(--fs-hanja-display) * 1.4));
+    color: var(--color-text-hanja);
+    line-height: 1;
   }
 }
 

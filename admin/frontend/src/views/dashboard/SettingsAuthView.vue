@@ -53,6 +53,12 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
           >
             로컬 DB
           </RouterLink>
+          <RouterLink
+            :to="{ name: 'settings-display' }"
+            class="btn-secondary inline-flex min-h-[2.75rem] items-center justify-center px-3 py-2 text-xs sm:min-h-0 sm:py-1.5 sm:text-sm"
+          >
+            표시 · 한자 폰트
+          </RouterLink>
         </div>
       </div>
     </section>

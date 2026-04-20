@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
+import { isLocalApiEnabled, localApiUrl } from "@/config/localApi";
 
 export type CollectionName = "hanja_basis" | "hanja_extend" | "hanja_word";
 
@@ -173,11 +174,23 @@ export const useWorkbenchStore = defineStore("workbench", () => {
   }
 
   async function fetchLocalSession(): Promise<void> {
+    if (!isLocalApiEnabled) {
+      localSession.value = null;
+      return;
+    }
     localSessionLoading.value = true;
     try {
-      const res = await fetch("/api/session");
+      const res = await fetch(localApiUrl("/api/session"));
       const j = (await res.json()) as { data?: LocalWorkSession | null };
-      localSession.value = j.data ?? null;
+      if (j.data) {
+        const id = Number(j.data.id);
+        localSession.value = {
+          ...j.data,
+          id: Number.isFinite(id) ? id : j.data.id,
+        };
+      } else {
+        localSession.value = null;
+      }
     } catch {
       localSession.value = null;
     } finally {
@@ -186,19 +199,42 @@ export const useWorkbenchStore = defineStore("workbench", () => {
   }
 
   async function startLocalSession(description: string | null): Promise<void> {
-    const res = await fetch("/api/session", {
+    if (!isLocalApiEnabled) {
+      throw new Error("로컬 API가 비활성화되어 있습니다. VITE_USE_LOCAL_API=true 로 설정하세요.");
+    }
+    const res = await fetch(localApiUrl("/api/session"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: description ?? null }),
     });
-    if (!res.ok) throw new Error("채번을 발급하지 못했습니다.");
+    const json = (await res.json().catch(() => ({}))) as {
+      data?: LocalWorkSession | null;
+      error?: string;
+    };
+    if (!res.ok) {
+      throw new Error(json.error || "채번을 발급하지 못했습니다.");
+    }
+    if (json.data) {
+      const id = Number(json.data.id);
+      localSession.value = {
+        ...json.data,
+        id: Number.isFinite(id) ? id : (json.data.id as number),
+      };
+      return;
+    }
     await fetchLocalSession();
+    if (!localSession.value) {
+      throw new Error("발급 응답에 채번이 없고, 조회로도 가져오지 못했습니다.");
+    }
   }
 
   async function setLocalSessionDescription(description: string): Promise<void> {
+    if (!isLocalApiEnabled) {
+      throw new Error("로컬 API가 비활성화되어 있습니다. VITE_USE_LOCAL_API=true 로 설정하세요.");
+    }
     const s = localSession.value;
     if (!s) throw new Error("활성 채번이 없습니다.");
-    const res = await fetch(`/api/session/${s.id}`, {
+    const res = await fetch(localApiUrl(`/api/session/${s.id}`), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description }),

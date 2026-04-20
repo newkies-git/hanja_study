@@ -8,5 +8,7 @@ declare module "vue-router" {
     requiresAuth?: boolean;
     /** admin 커스텀 클레임 필요 */
     requiresAdmin?: boolean;
+    /** 로컬 Express `/api`(SQLite) 필요 — `VITE_USE_LOCAL_API` 꺼진 배포에서는 진입 불가 */
+    needsLocalApi?: boolean;
   }
 }

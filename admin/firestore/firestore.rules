@@ -32,13 +32,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // 관리 웹 workbench: 데이터 버전 발행 시 변경 이력(문서 id 자동)
+    match /_changelog/{entryId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if false;
+    }
+
     // 기준 한자: 마스터 필드 + ETL·확장 필드(grade·etl 등)를 한 문서로 확장해 둔다. 문서 id = 로컬 hanja.id 권장(H+16진).
     match /hanja_basis/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // 레거시·마이그레이션: 동일 docId 내용은 hanja_basis 확장 필드 + 로컬 hanja.extend_data 로 통합 운영한다.
+    // 레거시·마이그레이션: 동일 docId 내용은 hanja_basis 확장 필드 + 로컬 hanja.origin_note(JSON) 로 통합 운영한다.
     match /hanja_extend/{docId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();

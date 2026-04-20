@@ -19,6 +19,7 @@ import {
 import {
   type HanjaDetailFormState,
   createEmptyHanjaBasisFormRecord,
+  hydrateHanjaRelatedFieldsFromExtend,
 } from "@/types/hanjaAdminForms";
 import HanjaDetailTabBasic from "@/components/dashboard/HanjaDetailTabBasic.vue";
 import HanjaDetailTabReadings from "@/components/dashboard/HanjaDetailTabReadings.vue";
@@ -68,10 +69,15 @@ function mapBasisRowToModalForm(data: Record<string, unknown>): HanjaDetailFormS
       (o as unknown as Record<string, unknown>)[c] = v;
     }
   }
+  const rawExt = data.extend;
+  if (rawExt !== undefined && rawExt !== null && typeof rawExt === "object" && !Array.isArray(rawExt)) {
+    o.extend = { ...(rawExt as Record<string, unknown>) };
+  }
   const legacyGubun = data["구분"];
   if (!String(o.grade ?? "").trim() && legacyGubun != null && legacyGubun !== "") {
     o.grade = String(legacyGubun);
   }
+  hydrateHanjaRelatedFieldsFromExtend(o);
   return o;
 }
 

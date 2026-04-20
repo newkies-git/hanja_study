@@ -16,7 +16,6 @@ class HanjaEntity(BaseModel):
     radical_meaning: str = ""
     stroke_count: int
     school_level: str = ""
-    grade_level: str = ""
     category: str = "from_csv_naver"
     shape_explanation: str = ""
     origin_note: str = ""

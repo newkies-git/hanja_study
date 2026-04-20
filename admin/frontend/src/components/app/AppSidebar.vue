@@ -1,23 +1,48 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { useDashboardShellLayoutStore } from "@/stores/dashboardShellLayout";
+import { isLocalApiEnabled } from "@/config/localApi";
 
 const layoutShell = useDashboardShellLayoutStore();
 const route = useRoute();
 
-const menu = [
-  { type: "header" as const, text: "메뉴" },
-  { type: "link" as const, to: "/firestore/manage", label: "Firestore 관리", icon: "▦" },
-  { type: "link" as const, to: "/sqlite/manage", label: "로컬 DB 관리", icon: "⌗" },
-  { type: "link" as const, to: "/db-sync", label: "DB 동기화", icon: "⚙" },
-  { type: "header" as const, text: "설정" },
+type MenuHeader = { type: "header"; text: string };
+type MenuLink = {
+  type: "link";
+  to: string;
+  label: string;
+  icon: string;
+  /** true면 `VITE_USE_LOCAL_API` 켜진 빌드에서만 표시 */
+  needsLocalApi?: boolean;
+};
+type MenuItem = MenuHeader | MenuLink;
+
+const menuSource: MenuItem[] = [
+  { type: "header", text: "메뉴" },
+  { type: "link", to: "/firestore/manage", label: "Firestore 관리", icon: "▦" },
+  { type: "link", to: "/sqlite/manage", label: "로컬 DB 관리", icon: "⌗", needsLocalApi: true },
+  { type: "link", to: "/db-sync", label: "DB 동기화", icon: "⚙", needsLocalApi: true },
+  { type: "header", text: "설정" },
   {
-    type: "link" as const,
+    type: "link",
+    to: "/settings/display",
+    label: "Admin 표시 · 한자 폰트",
+    icon: "A",
+  },
+  {
+    type: "link",
     to: "/settings/auth",
     label: "인증 · 클레임",
     icon: "◇",
   },
 ];
+
+const menu = computed(() =>
+  menuSource.filter(
+    (item) => item.type === "header" || !item.needsLocalApi || isLocalApiEnabled,
+  ),
+);
 
 function isMenuPathActive(path: string) {
   if (path === "/") return route.path === "/";
@@ -79,7 +104,7 @@ function handleNavigateCloseMobileOverlay() {
     <nav
       class="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2.5 py-4 [scrollbar-width:thin]"
     >
-      <template v-for="(item, i) in menu" :key="i">
+      <template v-for="(item, i) in menu" :key="`${item.type}-${i}`">
         <p
           v-if="item.type === 'header'"
           class="mb-1 mt-4 flex items-center gap-2 px-3 pb-1 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-onSurface-variant/90 first:mt-0"

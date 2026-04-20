@@ -6,6 +6,7 @@ import {
 } from "vue-router";
 import { watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { isLocalApiEnabled } from "@/config/localApi";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,7 +56,7 @@ const router = createRouter({
         },
         {
           path: "sqlite/manage",
-          meta: { requiresAdmin: true, splitManage: true },
+          meta: { requiresAdmin: true, splitManage: true, needsLocalApi: true },
           component: () => import("@/views/dashboard/LocalHanjaManageLayout.vue"),
           children: [
             {
@@ -85,13 +86,18 @@ const router = createRouter({
         {
           path: "db-sync",
           name: "db-sync",
-          meta: { requiresAdmin: true },
+          meta: { requiresAdmin: true, needsLocalApi: true },
           component: () => import("@/views/dashboard/DatabaseSyncView.vue"),
         },
         {
           path: "settings/auth",
           name: "settings-auth",
           component: () => import("@/views/dashboard/SettingsAuthView.vue"),
+        },
+        {
+          path: "settings/display",
+          name: "settings-display",
+          component: () => import("@/views/dashboard/SettingsDisplayView.vue"),
         },
       ],
     },
@@ -136,6 +142,13 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
   );
   if (needsAdmin && !auth.isAdmin) {
     return { name: "dashboard", query: { needAdmin: "1" } };
+  }
+
+  const needsLocalApi = to.matched.some(
+    (r: RouteRecordNormalized) => r.meta.needsLocalApi === true,
+  );
+  if (needsLocalApi && !isLocalApiEnabled) {
+    return { name: "dashboard", query: { localApi: "0" } };
   }
 
   return true;

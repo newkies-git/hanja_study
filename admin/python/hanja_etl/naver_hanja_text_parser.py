@@ -52,7 +52,6 @@ class NaverHanjaTextParser:
         radical = ""
         radical_meaning = ""
         stroke_count = 0
-        grade_level = ""
 
         radical_match = _RADICAL_MAIN_LINE.search(page_text)
         if not radical_match:
@@ -66,10 +65,6 @@ class NaverHanjaTextParser:
             stroke_count_match = re.search(r"총\s*획수\s*(\d+)획", page_text)
             if stroke_count_match:
                 stroke_count = int(stroke_count_match.group(1))
-
-        grade_match = re.search(r"(준?특?[\d]+급|준[\d]+급)", page_text)
-        if grade_match:
-            grade_level = grade_match.group(1)
 
         school_level = infer_school_level_from_text(page_text)
 
@@ -96,7 +91,6 @@ class NaverHanjaTextParser:
             radical_meaning=radical_meaning,
             stroke_count=stroke_count,
             school_level=school_level,
-            grade_level=grade_level,
             category="from_csv_naver",
             shape_explanation=shape_explanation,
             origin_note=origin_note,

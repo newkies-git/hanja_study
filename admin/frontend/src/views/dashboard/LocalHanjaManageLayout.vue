@@ -8,6 +8,7 @@ import HanjaRegisterFormModal from "@/components/dashboard/HanjaRegisterFormModa
 import HanjaSearchCard from "@/components/dashboard/HanjaSearchCard.vue";
 import HanjaListCard from "@/components/dashboard/HanjaListCard.vue";
 import type { HanjaListRow } from "@/utils/hanjaBasis";
+import { localApiFetch } from "@/config/localApi";
 
 type SqliteRow = {
   id: string;
@@ -75,7 +76,7 @@ async function loadHanjaTablePage() {
     if (needle) q.set("q", needle);
     if (filterGrade.value) q.set("gubun", filterGrade.value);
 
-    const res = await fetch(`/api/hanja?${q.toString()}`);
+    const res = await localApiFetch(`/api/hanja?${q.toString()}`);
     const result = (await res.json()) as { data?: SqliteRow[]; total?: number };
     rows.value = result.data ?? [];
     totalCount.value = result.total ?? 0;

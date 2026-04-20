@@ -323,7 +323,7 @@ async function saveStrokeDocument() {
         >
           <div class="flex min-w-0 items-center gap-3">
             <div
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-surface-low text-2xl font-medium text-onSurface"
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-surface-low font-hanja text-2xl font-medium text-onSurface"
             >
               {{ basisGlyph || "—" }}
             </div>

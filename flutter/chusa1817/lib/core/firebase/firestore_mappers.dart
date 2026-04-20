@@ -33,7 +33,7 @@ abstract final class FirestoreHanjaMapper {
             ? _string(data, 'school_level')
             : _string(data, 'schoolLevel'),
       ),
-      grade: Value(_parseGrade(data['grade_level'] ?? data['grade'])),
+      grade: Value(_parseGrade(data['grade'])),
       origin: Value(_nullableString(data['origin_note'] ?? data['origin'])),
       usageNote: Value(_nullableString(data['shape_explanation'] ?? data['usageNote'])),
       syncStatus: const Value('synced'),

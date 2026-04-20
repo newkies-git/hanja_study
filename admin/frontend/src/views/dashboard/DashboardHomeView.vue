@@ -3,10 +3,15 @@ import { computed } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
+import { isLocalApiEnabled } from "@/config/localApi";
 
 const auth = useAuthStore();
 const route = useRoute();
 const showAdminGateNotice = computed(() => route.query.needAdmin === "1");
+/** 라우터가 로컬 전용 경로에서 튕겨 낼 때만(쿼리만 남은 오탐 방지) */
+const showLocalApiDisabledNotice = computed(
+  () => route.query.localApi === "0" && !isLocalApiEnabled,
+);
 const firebaseConfigured = computed(() => isFirebaseConfigured());
 </script>
 
@@ -42,12 +47,14 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
             Firestore 관리
           </RouterLink>
           <RouterLink
+            v-if="isLocalApiEnabled"
             :to="{ name: 'sqlite-manage' }"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
           >
             로컬 DB
           </RouterLink>
           <RouterLink
+            v-if="isLocalApiEnabled"
             :to="{ name: 'db-sync' }"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
           >
@@ -62,6 +69,15 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
         </div>
       </div>
     </section>
+
+    <div
+      v-if="showLocalApiDisabledNotice"
+      class="rounded-xl border border-outline-variant/80 bg-surface-low px-4 py-3 text-sm text-onSurface-variant shadow-sm"
+    >
+      이 배포에서는 로컬 SQLite API를 사용하지 않습니다. 로컬 DB·DB 동기화·채번은
+      <code class="rounded bg-surface-lowest px-1.5 py-0.5 font-mono text-xs">VITE_USE_LOCAL_API=true</code>
+      로 빌드하고 <code class="rounded bg-surface-lowest px-1.5 py-0.5 font-mono text-xs">server.js</code>를 실행한 뒤 접속하세요.
+    </div>
 
     <div
       v-if="auth.isAuthReady && !auth.isAdmin"

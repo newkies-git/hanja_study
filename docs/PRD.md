@@ -646,7 +646,7 @@ Backend
   "radical_meaning": "사람인변",
   "stroke_count": 8,
   "school_level": "middle",
-  "grade_level": "준3급",
+  "grade": "준3급",
   "category": "education_1800",
   "shape_explanation": "사람과 규범적 형태가 결합된 자형",
   "origin_note": "한자의 유래 설명",

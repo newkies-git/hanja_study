@@ -8,8 +8,10 @@ import ConfirmModal from "@/components/app/ConfirmModal.vue";
 import {
   type HanjaDetailFormState,
   createEmptyLocalHanjaFormRecord,
+  hydrateHanjaRelatedFieldsFromExtend,
 } from "@/types/hanjaAdminForms";
 import { routeParamAsString, glyphFromHanjaBasisDocId } from "@/utils/hanjaBasis";
+import { isLocalApiEnabled, localApiFetch } from "@/config/localApi";
 
 const route = useRoute();
 const router = useRouter();
@@ -30,6 +32,8 @@ const charDisplay = computed(() => {
   return glyphFromHanjaBasisDocId(id.value);
 });
 
+const wordContainingSource = computed(() => (isLocalApiEnabled ? ("local" as const) : undefined));
+
 const svgPaths = ref<string[]>([]);
 
 async function loadSqliteHanjaDetail() {
@@ -43,7 +47,7 @@ async function loadSqliteHanjaDetail() {
       return;
     }
 
-    const res = await fetch(`/api/hanja/${id.value}`);
+    const res = await localApiFetch(`/api/hanja/${id.value}`);
     if (!res.ok) throw new Error("문서를 찾을 수 없습니다.");
 
     const data = (await res.json()) as Record<string, unknown>;
@@ -66,6 +70,7 @@ async function loadSqliteHanjaDetail() {
     const ex = o.extend as Record<string, unknown>;
     const fromExtend = String(ex["grade"] ?? ex["구분"] ?? "").trim();
     if (fromExtend) o.grade = fromExtend;
+    hydrateHanjaRelatedFieldsFromExtend(o);
     form.value = o;
 
     svgPaths.value = Array.isArray(data.font_outline) ? data.font_outline : [];
@@ -106,7 +111,7 @@ async function persistSqliteHanjaDetail() {
     };
     delete extendPayload["구분"];
 
-    const res = await fetch(url, {
+    const res = await localApiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -144,7 +149,7 @@ async function executeConfirmedDeletion() {
   if (!workbench.localSession) return;
   isSaving.value = true;
   try {
-    const res = await fetch(`/api/hanja/${id.value}`, {
+    const res = await localApiFetch(`/api/hanja/${id.value}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ change_number: workbench.localSession.id }),
@@ -198,7 +203,7 @@ watch(
           </svg>
         </button>
         <div
-          class="flex h-12 w-12 shrink-0 select-none items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-surface-lowest text-3xl font-medium text-onSurface shadow-sm"
+          class="flex h-12 w-12 shrink-0 select-none items-center justify-center overflow-hidden rounded-xl border border-primary/20 bg-surface-lowest font-hanja text-3xl font-medium text-onSurface shadow-sm"
         >
           <span>{{ isLoading ? "…" : charDisplay || "—" }}</span>
         </div>
@@ -282,6 +287,8 @@ watch(
         v-model:form="form"
         :is-new="isNew"
         :svg-paths="svgPaths"
+        :word-containing-glyph="charDisplay"
+        :word-containing-source="wordContainingSource"
       />
     </div>
 

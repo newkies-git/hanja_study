@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
 
 const app = express();
@@ -9,9 +11,126 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-const DATA_DIR = path.resolve(process.cwd(), '../data');
+// `process.cwd()`에 의존하면 실행 위치에 따라 DB를 못 찾음 → server.js 기준 admin/data
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DATA_DIR = process.env.CHUSA_DATA_DIR
+    ? path.resolve(process.env.CHUSA_DATA_DIR)
+    : path.resolve(__dirname, '../data');
 const DB_PATH = path.join(DATA_DIR, 'chusa.db');
-const db = new Database(DB_PATH);
+
+if (!fs.existsSync(DB_PATH)) {
+    console.error(
+        `[chusa-admin] SQLite 파일이 없습니다: ${DB_PATH}\n` +
+            '  - 레포의 admin/data/chusa.db 가 있는지 확인하거나 CHUSA_DATA_DIR 로 디렉터리를 지정하세요.',
+    );
+    process.exit(1);
+}
+
+let db;
+try {
+    db = new Database(DB_PATH);
+} catch (err) {
+    console.error('[chusa-admin] SQLite 열기 실패:', err);
+    process.exit(1);
+}
+
+/** 레거시 chusa.db — API가 기대하는 컬럼이 없으면 한 번씩 추가 */
+function ensureHanjaColumnsForAdminApi() {
+    const tableExists = db
+        .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='hanja'")
+        .get();
+    if (!tableExists) return;
+
+    const names = new Set(
+        db.prepare('PRAGMA table_info(hanja)').all().map((c) => String(c.name).toLowerCase()),
+    );
+    const add = (col, ddlType) => {
+        const key = String(col).toLowerCase();
+        if (names.has(key)) return;
+        db.prepare(`ALTER TABLE hanja ADD COLUMN ${col} ${ddlType}`).run();
+        names.add(key);
+        console.log(`[chusa-admin] 마이그레이션: hanja.${col} 컬럼 추가`);
+    };
+    add('origin_note', 'TEXT');
+    add('etymology', 'TEXT');
+    add('analogue', 'TEXT');
+    add('sync_status', 'TEXT');
+    add('change_number', 'INTEGER');
+    add('readings', 'TEXT');
+    add('synonyms', 'TEXT');
+    add('antonyms', 'TEXT');
+    add('variants', 'TEXT');
+}
+
+ensureHanjaColumnsForAdminApi();
+
+/** 레거시 chusa.db — hanja_word.server_doc_id 및 UNIQUE(동기 upsert용) */
+function ensureHanjaWordColumnsForAdminApi() {
+    const tableExists = db
+        .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='hanja_word'")
+        .get();
+    if (!tableExists) return;
+
+    const names = new Set(
+        db.prepare('PRAGMA table_info(hanja_word)').all().map((c) => String(c.name).toLowerCase()),
+    );
+    if (!names.has('server_doc_id')) {
+        db.prepare('ALTER TABLE hanja_word ADD COLUMN server_doc_id TEXT').run();
+        console.log('[chusa-admin] 마이그레이션: hanja_word.server_doc_id 컬럼 추가');
+    }
+    if (!names.has('related_hanja')) {
+        db.prepare('ALTER TABLE hanja_word ADD COLUMN related_hanja TEXT').run();
+        console.log('[chusa-admin] 마이그레이션: hanja_word.related_hanja 컬럼 추가');
+    }
+    if (!names.has('change_number')) {
+        db.prepare('ALTER TABLE hanja_word ADD COLUMN change_number INTEGER').run();
+        console.log('[chusa-admin] 마이그레이션: hanja_word.change_number 컬럼 추가');
+    }
+    const idx = db
+        .prepare(
+            "SELECT 1 FROM sqlite_master WHERE type='index' AND name='hanja_word_server_doc_id_uq'",
+        )
+        .get();
+    if (!idx) {
+        db.exec(
+            'CREATE UNIQUE INDEX IF NOT EXISTS hanja_word_server_doc_id_uq ON hanja_word(server_doc_id)',
+        );
+        console.log('[chusa-admin] 마이그레이션: hanja_word.server_doc_id UNIQUE 인덱스');
+    }
+}
+
+ensureHanjaWordColumnsForAdminApi();
+
+function ensureHanjaStrokeColumnsForAdminApi() {
+    const tableExists = db
+        .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='hanja_stroke'")
+        .get();
+    if (!tableExists) return;
+
+    const names = new Set(
+        db.prepare('PRAGMA table_info(hanja_stroke)').all().map((c) => String(c.name).toLowerCase()),
+    );
+    if (!names.has('change_number')) {
+        db.prepare('ALTER TABLE hanja_stroke ADD COLUMN change_number INTEGER').run();
+        console.log('[chusa-admin] 마이그레이션: hanja_stroke.change_number 컬럼 추가');
+    }
+}
+
+ensureHanjaStrokeColumnsForAdminApi();
+
+function ensureSyncSessionsTable() {
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS sync_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            status TEXT DEFAULT 'ACTIVE',
+            description TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            synced_at DATETIME
+        )
+    `);
+}
+
+ensureSyncSessionsTable();
 
 // Helper to safely parse JSON strings from SQLite
 const parseJSON = (str) => {
@@ -68,7 +187,7 @@ app.get('/api/hanja', (req, res) => {
     const gubun = String(req.query.gubun || '').trim();
     if (gubun === '중' || gubun === '고') {
         conditions.push(
-            "trim(ifnull(ifnull(json_extract(extend_data, '$.grade'), json_extract(extend_data, '$.구분')), '')) = ?",
+            "trim(ifnull(ifnull(json_extract(origin_note, '$.grade'), json_extract(origin_note, '$.구분')), '')) = ?",
         );
         params.push(gubun);
     }
@@ -78,7 +197,8 @@ app.get('/api/hanja', (req, res) => {
     const countRaw = db.prepare(`SELECT COUNT(*) as count FROM hanja ${whereClause}`).get(...params);
 
     const rows = db.prepare(`
-        SELECT id, char_str as hanja, reading, meaning, stroke_count, difficulty, sync_status, change_number, extend_data
+        SELECT id, char_str as hanja, reading, meaning, stroke_count, difficulty, sync_status, change_number,
+               origin_note, readings, synonyms, antonyms, analogue, variants
         FROM hanja
         ${whereClause}
         ORDER BY id ASC
@@ -86,10 +206,18 @@ app.get('/api/hanja', (req, res) => {
     `).all(...params, limit, offset);
 
     res.json({
-        data: rows.map(r => ({ ...r, char: r.hanja })),
+        data: rows.map((r) => ({
+            ...r,
+            char: r.hanja,
+            readings: parseJSON(r.readings) || [],
+            synonyms: parseJSON(r.synonyms) || [],
+            antonyms: parseJSON(r.antonyms) || [],
+            analogue: parseJSON(r.analogue ?? r.Analogue) || [],
+            variants: parseJSON(r.variants) || [],
+        })),
         total: countRaw.count,
         page,
-        limit
+        limit,
     });
 });
 
@@ -104,15 +232,16 @@ app.get('/api/hanja/:id', (req, res) => {
 
     const stroke = db.prepare('SELECT * FROM hanja_stroke WHERE id = ?').get(id);
 
-    const extendRaw = row.extend_data;
+    const extendRaw = row.origin_note;
     const rowOut = { ...row };
-    delete rowOut.extend_data;
+    delete rowOut.origin_note;
 
     res.json({
         ...rowOut,
         readings: parseJSON(row.readings) || [],
         synonyms: parseJSON(row.synonyms) || [],
         antonyms: parseJSON(row.antonyms) || [],
+        analogue: parseJSON(row.analogue ?? row.Analogue) || [],
         variants: parseJSON(row.variants) || [],
         extend: parseJSON(extendRaw) || {},
         font_outline: stroke ? parseJSON(stroke.font_outline) : [],
@@ -128,12 +257,25 @@ app.get('/api/session', (req, res) => {
 
 // POST /api/session : Start a new active session
 app.post('/api/session', (req, res) => {
-    const { description } = req.body || {};
-    // Optional: mark all as synced before starting new one
-    db.prepare("UPDATE sync_sessions SET status = 'SYNCED', synced_at = CURRENT_TIMESTAMP WHERE status = 'ACTIVE'").run();
-    const result = db.prepare("INSERT INTO sync_sessions (status, description) VALUES ('ACTIVE', ?)").run(description || null);
-    const session = db.prepare("SELECT * FROM sync_sessions WHERE id = ?").get(result.lastInsertRowid);
-    res.json({ data: session });
+    try {
+        const { description } = req.body || {};
+        db.prepare(
+            "UPDATE sync_sessions SET status = 'SYNCED', synced_at = CURRENT_TIMESTAMP WHERE status = 'ACTIVE'",
+        ).run();
+        const result = db
+            .prepare("INSERT INTO sync_sessions (status, description) VALUES ('ACTIVE', ?)")
+            .run(description ?? null);
+        const rowId = Number(result.lastInsertRowid);
+        const session = db.prepare("SELECT * FROM sync_sessions WHERE id = ?").get(rowId);
+        if (!session) {
+            console.error("[chusa-admin] POST /api/session: INSERT 후 행 조회 실패 rowId=", rowId);
+            return res.status(500).json({ error: "채번 행을 조회하지 못했습니다." });
+        }
+        res.json({ data: session });
+    } catch (err) {
+        console.error("[chusa-admin] POST /api/session:", err);
+        res.status(500).json({ error: err.message || "채번 발급에 실패했습니다." });
+    }
 });
 
 // PUT /api/session/:id : Update session description
@@ -165,6 +307,7 @@ app.put('/api/hanja/:id', (req, res) => {
     const readingsStr = JSON.stringify(body.readings || []);
     const synonymsStr = JSON.stringify(body.synonyms || []);
     const antonymsStr = JSON.stringify(body.antonyms || []);
+    const analogueStr = JSON.stringify(body.analogue || body.Analogue || []);
     const variantsStr = JSON.stringify(body.variants || []);
     const extendStr = JSON.stringify(body.extend ?? {});
 
@@ -184,15 +327,15 @@ app.put('/api/hanja/:id', (req, res) => {
             radical_meaning = coalesce(?, radical_meaning),
             stroke_count = coalesce(?, stroke_count),
             school_level = coalesce(?, school_level),
-            grade_level = coalesce(?, grade_level),
             shape_explanation = coalesce(?, shape_explanation),
-            origin_note = coalesce(?, origin_note),
+            etymology = coalesce(?, etymology),
             difficulty = coalesce(?, difficulty),
             readings = ?,
             synonyms = ?,
             antonyms = ?,
+            analogue = ?,
             variants = ?,
-            extend_data = ?,
+            origin_note = ?,
             sync_status = ?,
             change_number = ?
         WHERE id = ?
@@ -207,13 +350,13 @@ app.put('/api/hanja/:id', (req, res) => {
             body.radical_meaning,
             body.stroke_count,
             body.school_level,
-            body.grade_level,
             body.shape_explanation,
-            body.origin_note,
+            body.etymology ?? body.Etymology,
             body.difficulty,
             readingsStr,
             synonymsStr,
             antonymsStr,
+            analogueStr,
             variantsStr,
             extendStr,
             syncStatus,
@@ -238,15 +381,16 @@ app.post('/api/hanja', (req, res) => {
     const readingsStr = JSON.stringify(body.readings || []);
     const synonymsStr = JSON.stringify(body.synonyms || []);
     const antonymsStr = JSON.stringify(body.antonyms || []);
+    const analogueStr = JSON.stringify(body.analogue || body.Analogue || []);
     const variantsStr = JSON.stringify(body.variants || []);
     const extendStr = JSON.stringify(body.extend ?? {});
 
     const stmt = db.prepare(`
         INSERT INTO hanja (
             id, char_str, reading, meaning, radical, radical_meaning,
-            stroke_count, school_level, grade_level,
-            shape_explanation, origin_note, difficulty, readings,
-            synonyms, antonyms, variants, extend_data, sync_status, change_number
+            stroke_count, school_level,
+            shape_explanation, etymology, difficulty, readings,
+            synonyms, antonyms, analogue, variants, origin_note, sync_status, change_number
         ) VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ADDED', ?
         )
@@ -255,9 +399,9 @@ app.post('/api/hanja', (req, res) => {
     try {
         stmt.run(
             body.id, body.char_str || body.id, body.reading, body.meaning, body.radical, body.radical_meaning,
-            body.stroke_count, body.school_level, body.grade_level,
-            body.shape_explanation, body.origin_note, body.difficulty, readingsStr,
-            synonymsStr, antonymsStr, variantsStr, extendStr, body.change_number
+            body.stroke_count, body.school_level,
+            body.shape_explanation, body.etymology ?? body.Etymology, body.difficulty, readingsStr,
+            synonymsStr, antonymsStr, analogueStr, variantsStr, extendStr, body.change_number
         );
         res.json({ success: true });
     } catch (err) {
@@ -277,6 +421,7 @@ app.put('/api/hanja/upsert', (req, res) => {
     const readingsStr = JSON.stringify(body.readings || []);
     const synonymsStr = JSON.stringify(body.synonyms || []);
     const antonymsStr = JSON.stringify(body.antonyms || []);
+    const analogueStr = JSON.stringify(body.analogue || body.Analogue || []);
     const variantsStr = JSON.stringify(body.variants || []);
     const extendStr = JSON.stringify(body.extend ?? {});
 
@@ -284,9 +429,9 @@ app.put('/api/hanja/upsert', (req, res) => {
         db.prepare(`
             INSERT INTO hanja (
                 id, char_str, reading, meaning, radical, radical_meaning,
-                stroke_count, school_level, grade_level,
-                shape_explanation, origin_note, difficulty, readings,
-                synonyms, antonyms, variants, extend_data, sync_status, change_number
+                stroke_count, school_level,
+                shape_explanation, etymology, difficulty, readings,
+                synonyms, antonyms, analogue, variants, origin_note, sync_status, change_number
             ) VALUES (
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ADDED', ?
             )
@@ -298,22 +443,22 @@ app.put('/api/hanja/upsert', (req, res) => {
                 radical_meaning = coalesce(excluded.radical_meaning, radical_meaning),
                 stroke_count = coalesce(excluded.stroke_count, stroke_count),
                 school_level = coalesce(excluded.school_level, school_level),
-                grade_level = coalesce(excluded.grade_level, grade_level),
                 shape_explanation = coalesce(excluded.shape_explanation, shape_explanation),
-                origin_note = coalesce(excluded.origin_note, origin_note),
+                etymology = coalesce(excluded.etymology, etymology),
                 difficulty = coalesce(excluded.difficulty, difficulty),
                 readings = excluded.readings,
                 synonyms = excluded.synonyms,
                 antonyms = excluded.antonyms,
+                analogue = excluded.analogue,
                 variants = excluded.variants,
-                extend_data = excluded.extend_data,
+                origin_note = excluded.origin_note,
                 sync_status = CASE WHEN sync_status = 'ADDED' THEN 'ADDED' ELSE 'MODIFIED' END,
                 change_number = excluded.change_number
         `).run(
             body.id, body.char_str || body.id, body.reading, body.meaning, body.radical, body.radical_meaning,
-            body.stroke_count, body.school_level, body.grade_level,
-            body.shape_explanation, body.origin_note, body.difficulty, readingsStr,
-            synonymsStr, antonymsStr, variantsStr, extendStr, body.change_number
+            body.stroke_count, body.school_level,
+            body.shape_explanation, body.etymology ?? body.Etymology, body.difficulty, readingsStr,
+            synonymsStr, antonymsStr, analogueStr, variantsStr, extendStr, body.change_number
         );
         res.json({ success: true });
     } catch (err) {
@@ -361,7 +506,7 @@ app.get('/api/hanja_stroke/list', (req, res) => {
     const offset = (page - 1) * limit;
     const totalRow = db.prepare('SELECT COUNT(*) as c FROM hanja_stroke').get();
     const rows = db.prepare(
-        'SELECT id, char_str, radical, font_outline, stroke_outlines FROM hanja_stroke ORDER BY id LIMIT ? OFFSET ?',
+        'SELECT id, char_str, radical, font_outline, stroke_outlines, change_number FROM hanja_stroke ORDER BY id LIMIT ? OFFSET ?',
     ).all(limit, offset);
     res.json({ data: rows, total: totalRow.c, page, limit });
 });
@@ -369,20 +514,25 @@ app.get('/api/hanja_stroke/list', (req, res) => {
 app.put('/api/hanja_stroke/:id', (req, res) => {
     const { id } = req.params;
     const body = req.body || {};
+    if (!body.change_number) {
+        return res.status(400).json({ error: 'change_number is required' });
+    }
     const fo = JSON.stringify(body.font_outline ?? []);
     const so = JSON.stringify(body.stroke_outlines ?? []);
     const char_str = body.char_str || id;
     const radical = body.radical === undefined || body.radical === null ? null : Number(body.radical);
+    const change_number = Number(body.change_number);
     try {
         db.prepare(`
-            INSERT INTO hanja_stroke (id, char_str, radical, font_outline, stroke_outlines)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO hanja_stroke (id, char_str, radical, font_outline, stroke_outlines, change_number)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 char_str = excluded.char_str,
                 radical = excluded.radical,
                 font_outline = excluded.font_outline,
-                stroke_outlines = excluded.stroke_outlines
-        `).run(id, char_str, radical, fo, so);
+                stroke_outlines = excluded.stroke_outlines,
+                change_number = excluded.change_number
+        `).run(id, char_str, radical, fo, so, change_number);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -396,30 +546,60 @@ app.get('/api/hanja_word/list', (req, res) => {
     const offset = (page - 1) * limit;
     const totalRow = db.prepare('SELECT COUNT(*) as c FROM hanja_word').get();
     const rows = db.prepare(
-        'SELECT id, server_doc_id, word, reading, meaning, details FROM hanja_word ORDER BY id LIMIT ? OFFSET ?',
+        'SELECT id, server_doc_id, word, reading, meaning, related_hanja, change_number FROM hanja_word ORDER BY id LIMIT ? OFFSET ?',
     ).all(limit, offset);
     res.json({ data: rows, total: totalRow.c, page, limit });
+});
+
+/** 단어 문자열에 지정 한 자(첫 그래프)가 포함된 hanja_word 행 — 상세 화면 연동용 */
+app.get('/api/hanja_word/containing', (req, res) => {
+    const raw = String(req.query.glyph || req.query.char || '').trim();
+    if (!raw) {
+        return res.status(400).json({ error: 'glyph 또는 char 쿼리가 필요합니다.' });
+    }
+    const needle = [...raw][0] || raw;
+    const limit = Math.min(parseInt(req.query.limit) || 200, 500);
+    try {
+        const rows = db
+            .prepare(
+                `SELECT id, server_doc_id, word, reading, meaning, related_hanja, change_number
+                 FROM hanja_word
+                 WHERE instr(word, ?) > 0
+                 ORDER BY length(word) ASC, word ASC
+                 LIMIT ?`,
+            )
+            .all(needle, limit);
+        res.json({ data: rows, glyph: needle });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || '단어 조회 실패' });
+    }
 });
 
 app.put('/api/hanja_word/upsert', (req, res) => {
     const body = req.body || {};
     const server_doc_id = body.server_doc_id;
-    if (!server_doc_id || !body.word) {
-        return res.status(400).json({ error: 'server_doc_id and word are required' });
+    if (!server_doc_id || !body.word || !body.change_number) {
+        return res.status(400).json({ error: 'server_doc_id, word, change_number are required' });
     }
     const reading = body.reading ?? '';
     const meaning = body.meaning ?? '';
-    const details = typeof body.details === 'string' ? body.details : JSON.stringify(body.details ?? null);
+    const change_number = Number(body.change_number);
+    let related_hanja = [];
+    if (Array.isArray(body.related_hanja)) {
+        related_hanja = body.related_hanja;
+    }
     try {
         db.prepare(`
-            INSERT INTO hanja_word (word, reading, meaning, details, server_doc_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO hanja_word (word, reading, meaning, related_hanja, server_doc_id, change_number)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT(server_doc_id) DO UPDATE SET
                 word = excluded.word,
                 reading = excluded.reading,
                 meaning = excluded.meaning,
-                details = excluded.details
-        `).run(body.word, reading, meaning, details, server_doc_id);
+                related_hanja = excluded.related_hanja,
+                change_number = excluded.change_number
+        `).run(body.word, reading, meaning, JSON.stringify(related_hanja), server_doc_id, change_number);
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -442,5 +622,6 @@ app.get('/api/word', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Local SQLite API running at http://localhost:${port}`);
+    console.log(`[chusa-admin] Local SQLite API http://localhost:${port}`);
+    console.log(`[chusa-admin] DB ${DB_PATH}`);
 });

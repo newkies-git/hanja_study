@@ -14,6 +14,9 @@ defineProps<{
   svgPaths: string[];
   strokeShapes?: StrokeShape[];
   isStrokeLoading?: boolean;
+  /** 관련 탭: hanja_word 에서 이 글자가 포함된 단어 표 */
+  wordContainingGlyph?: string;
+  wordContainingSource?: "local" | "firestore";
 }>();
 
 const form = defineModel<HanjaDetailFormState>("form", { required: true });
@@ -22,8 +25,8 @@ const activeTab = ref<"basic" | "readings" | "meaning" | "related" | "strokes">(
 
 const tabs = [
   { id: "basic" as const, label: "기본 정보" },
-  { id: "readings" as const, label: "음/훈" },
-  { id: "meaning" as const, label: "의미/어원" },
+  { id: "readings" as const, label: "유의 관계" },
+  { id: "meaning" as const, label: "어원" },
   { id: "related" as const, label: "관련 한자" },
   { id: "strokes" as const, label: "획순" },
 ] as const;
@@ -60,7 +63,12 @@ const tabs = [
         <HanjaDetailTabBasic v-show="activeTab === 'basic'" v-model:form="form" :is-new="isNew" />
         <HanjaDetailTabReadings v-show="activeTab === 'readings'" v-model:form="form" />
         <HanjaDetailTabMeaning v-show="activeTab === 'meaning'" v-model:form="form" />
-        <HanjaDetailTabRelated v-show="activeTab === 'related'" v-model:form="form" />
+        <HanjaDetailTabRelated
+          v-show="activeTab === 'related'"
+          v-model:form="form"
+          :word-containing-glyph="wordContainingGlyph"
+          :word-containing-source="wordContainingSource"
+        />
         <HanjaDetailTabStrokes
           v-show="activeTab === 'strokes'"
           :svg-paths="svgPaths"

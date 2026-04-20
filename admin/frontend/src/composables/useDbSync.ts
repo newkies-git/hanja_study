@@ -17,6 +17,7 @@ import {
 } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useWorkbenchStore } from "@/stores/workbench";
+import { isLocalApiEnabled, localApiFetch } from "@/config/localApi";
 
 export type SyncTableKey = "hanja_basis" | "hanja_stroke" | "hanja_word";
 export type SyncPhase = "idle" | "running" | "done" | "error";
@@ -108,12 +109,27 @@ async function paginateFirestore(
 export function localRowToFirestoreBasis(row: Record<string, unknown>): Record<string, unknown> {
   const id = String(row.id ?? "");
   const han = String(row.hanja ?? row.char ?? row.char_str ?? "");
-  const extParsed = parseJsonField(row.extend_data);
+  const extParsed = parseJsonField(row.origin_note);
   const ext =
     typeof extParsed === "object" && extParsed !== null && !Array.isArray(extParsed)
       ? (extParsed as Record<string, unknown>)
       : {};
   const gradeVal = String(ext["grade"] ?? ext["구분"] ?? "").trim();
+  const readings = Array.isArray(row.readings)
+    ? row.readings
+    : (parseJsonField(row.readings) as unknown[] | null);
+  const synonyms = Array.isArray(row.synonyms)
+    ? row.synonyms
+    : (parseJsonField(row.synonyms) as unknown[] | null);
+  const antonyms = Array.isArray(row.antonyms)
+    ? row.antonyms
+    : (parseJsonField(row.antonyms) as unknown[] | null);
+  const analogue = Array.isArray(row.analogue)
+    ? row.analogue
+    : (parseJsonField(row.analogue ?? row.Analogue) as unknown[] | null);
+  const variants = Array.isArray(row.variants)
+    ? row.variants
+    : (parseJsonField(row.variants) as unknown[] | null);
   return {
     ...ext,
     ...(gradeVal ? { grade: gradeVal } : {}),
@@ -121,6 +137,11 @@ export function localRowToFirestoreBasis(row: Record<string, unknown>): Record<s
     한자: han,
     음: String(row.reading ?? ""),
     훈: String(row.meaning ?? ""),
+    readings: Array.isArray(readings) ? readings : [],
+    synonyms: Array.isArray(synonyms) ? synonyms : [],
+    antonyms: Array.isArray(antonyms) ? antonyms : [],
+    analogue: Array.isArray(analogue) ? analogue : [],
+    variants: Array.isArray(variants) ? variants : [],
   };
 }
 
@@ -148,13 +169,13 @@ function firestoreBasisToLocalBody(
     radical_meaning: data.radical_meaning ?? "",
     stroke_count: data.stroke_count ?? "",
     school_level: data.school_level ?? "",
-    grade_level: data.grade_level ?? "",
     shape_explanation: data.shape_explanation ?? "",
-    origin_note: data.origin_note ?? "",
+    etymology: data.etymology ?? data.Etymology ?? "",
     difficulty: data.difficulty ?? "",
     readings: Array.isArray(data.readings) ? data.readings : [],
     synonyms: Array.isArray(data.synonyms) ? data.synonyms : [],
     antonyms: Array.isArray(data.antonyms) ? data.antonyms : [],
+    analogue: Array.isArray(data.analogue) ? data.analogue : [],
     variants: Array.isArray(data.variants) ? data.variants : [],
     extend,
   };
@@ -165,7 +186,7 @@ async function fetchLocalStats(): Promise<{
   hanja_stroke: number;
   hanja_word: number;
 }> {
-  const res = await fetch("/api/sync/stats");
+  const res = await localApiFetch("/api/sync/stats");
   if (!res.ok) throw new Error("로컬 건수를 가져오지 못했습니다.");
   return res.json();
 }
@@ -193,6 +214,9 @@ export function useDbSync() {
   }
 
   async function runLocalToServer(): Promise<void> {
+    if (!isLocalApiEnabled) {
+      throw new Error("로컬 API가 비활성화되어 있습니다. VITE_USE_LOCAL_API=true 로 설정하세요.");
+    }
     if (!isFirebaseConfigured()) throw new Error("Firebase가 설정되지 않았습니다.");
     resetTables();
     isBusy.value = true;
@@ -207,7 +231,7 @@ export function useDbSync() {
       let page = 1;
       let more = true;
       while (more) {
-        const res = await fetch(`/api/hanja?page=${page}&limit=${pageSize}`);
+        const res = await localApiFetch(`/api/hanja?page=${page}&limit=${pageSize}`);
         if (!res.ok) throw new Error("로컬 hanja 목록을 불러오지 못했습니다.");
         const j = (await res.json()) as { data?: Record<string, unknown>[] };
         const list = j.data ?? [];
@@ -239,7 +263,7 @@ export function useDbSync() {
       page = 1;
       more = true;
       while (more) {
-        const res = await fetch(`/api/hanja_stroke/list?page=${page}&limit=${pageSize}`);
+        const res = await localApiFetch(`/api/hanja_stroke/list?page=${page}&limit=${pageSize}`);
         if (!res.ok) throw new Error("로컬 hanja_stroke 목록을 불러오지 못했습니다.");
         const j = (await res.json()) as { data?: Record<string, unknown>[] };
         const list = j.data ?? [];
@@ -274,7 +298,7 @@ export function useDbSync() {
       page = 1;
       more = true;
       while (more) {
-        const res = await fetch(`/api/hanja_word/list?page=${page}&limit=${pageSize}`);
+        const res = await localApiFetch(`/api/hanja_word/list?page=${page}&limit=${pageSize}`);
         if (!res.ok) throw new Error("로컬 hanja_word 목록을 불러오지 못했습니다.");
         const j = (await res.json()) as { data?: Record<string, unknown>[] };
         const list = j.data ?? [];
@@ -284,6 +308,9 @@ export function useDbSync() {
           const docId: string =
             (row.server_doc_id != null && String(row.server_doc_id)) ||
             `LW${String(row.id ?? "")}`;
+          const relatedHanja = Array.isArray(row.related_hanja)
+            ? row.related_hanja
+            : ((parseJsonField(row.related_hanja) as unknown[] | null) ?? []);
           batch.set(
             doc(db, "hanja_word", docId),
             {
@@ -291,7 +318,7 @@ export function useDbSync() {
               word: row.word,
               reading: row.reading ?? "",
               meaning: row.meaning ?? "",
-              details: row.details ? parseJsonField(row.details) : null,
+              related_hanja: relatedHanja,
             },
             { merge: true },
           );
@@ -317,6 +344,9 @@ export function useDbSync() {
   }
 
   async function runServerToLocal(): Promise<void> {
+    if (!isLocalApiEnabled) {
+      throw new Error("로컬 API가 비활성화되어 있습니다. VITE_USE_LOCAL_API=true 로 설정하세요.");
+    }
     if (!isFirebaseConfigured()) throw new Error("Firebase가 설정되지 않았습니다.");
     resetTables();
     isBusy.value = true;
@@ -335,7 +365,7 @@ export function useDbSync() {
             d.data() as Record<string, unknown>,
             changeNumber,
           );
-          const res = await fetch("/api/hanja/upsert", {
+          const res = await localApiFetch("/api/hanja/upsert", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
@@ -357,10 +387,11 @@ export function useDbSync() {
           const data = d.data() as Record<string, unknown>;
           const fo = (data.font_outline ?? data.svg_paths ?? []) as unknown;
           const so = (data.stroke_outlines ?? []) as unknown;
-          const res = await fetch(`/api/hanja_stroke/${encodeURIComponent(d.id)}`, {
+          const res = await localApiFetch(`/api/hanja_stroke/${encodeURIComponent(d.id)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              change_number: changeNumber,
               char_str: String(data.char_str ?? d.id),
               radical: data.radical,
               font_outline: fo,
@@ -384,15 +415,16 @@ export function useDbSync() {
             tables.hanja_word.processed++;
             continue;
           }
-          const res = await fetch("/api/hanja_word/upsert", {
+          const res = await localApiFetch("/api/hanja_word/upsert", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+              change_number: changeNumber,
               server_doc_id: d.id,
               word,
               reading: data.reading ?? "",
               meaning: data.meaning ?? "",
-              details: data.details ?? null,
+              related_hanja: Array.isArray(data.related_hanja) ? data.related_hanja : [],
             }),
           });
           if (!res.ok) throw new Error("hanja_word 저장 실패");
