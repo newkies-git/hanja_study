@@ -5,13 +5,10 @@ import HanjaDetailViewForm from "@/components/dashboard/HanjaDetailViewForm.vue"
 import { useNotificationsStore } from "@/stores/notifications";
 import { useWorkbenchStore } from "@/stores/workbench";
 import ConfirmModal from "@/components/app/ConfirmModal.vue";
-import {
-  type HanjaDetailFormState,
-  createEmptyLocalHanjaFormRecord,
-  hydrateHanjaRelatedFieldsFromExtend,
-} from "@/types/hanjaAdminForms";
-import { routeParamAsString, glyphFromHanjaBasisDocId } from "@/utils/hanjaBasis";
+import { createEmptyLocalHanjaFormRecord } from "@/types/hanjaAdminForms";
+import { routeParamAsString } from "@/utils/hanjaBasis";
 import { isLocalApiEnabled, localApiFetch } from "@/config/localApi";
+import { useHanjaDetailState } from "@/composables/useHanjaDetailState";
 
 const route = useRoute();
 const router = useRouter();
@@ -20,21 +17,11 @@ const workbench = useWorkbenchStore();
 
 const id = computed(() => routeParamAsString(route.params.id));
 const isNew = computed(() => id.value === "new");
-const isLoading = ref(true);
-const isSaving = ref(false);
-const error = ref<string | null>(null);
 
-const form = ref<HanjaDetailFormState>(createEmptyLocalHanjaFormRecord());
-
-const charDisplay = computed(() => {
-  const s = String(form.value.한자 ?? form.value.char_str ?? "").trim();
-  if (s.length > 0) return [...s][0] ?? s;
-  return glyphFromHanjaBasisDocId(id.value);
-});
+const { isLoading, isSaving, error, form, svgPaths, charDisplay, mergeApiResponse } =
+  useHanjaDetailState(createEmptyLocalHanjaFormRecord, () => id.value);
 
 const wordContainingSource = computed(() => (isLocalApiEnabled ? ("local" as const) : undefined));
-
-const svgPaths = ref<string[]>([]);
 
 async function loadSqliteHanjaDetail() {
   isLoading.value = true;
@@ -52,27 +39,7 @@ async function loadSqliteHanjaDetail() {
 
     const data = (await res.json()) as Record<string, unknown>;
 
-    const o = createEmptyLocalHanjaFormRecord();
-    for (const k in o) {
-      if (k === "extend") {
-        if (data.extend !== undefined && data.extend !== null) {
-          o.extend =
-            typeof data.extend === "object" && !Array.isArray(data.extend)
-              ? { ...(data.extend as Record<string, unknown>) }
-              : {};
-        }
-        continue;
-      }
-      if (data[k] !== undefined && data[k] !== null) {
-        (o as unknown as Record<string, unknown>)[k] = data[k];
-      }
-    }
-    const ex = o.extend as Record<string, unknown>;
-    const fromExtend = String(ex["grade"] ?? ex["구분"] ?? "").trim();
-    if (fromExtend) o.grade = fromExtend;
-    hydrateHanjaRelatedFieldsFromExtend(o);
-    form.value = o;
-
+    form.value = mergeApiResponse(data);
     svgPaths.value = Array.isArray(data.font_outline) ? data.font_outline : [];
   } catch (e) {
     error.value = e instanceof Error ? e.message : "데이터 로드 실패";

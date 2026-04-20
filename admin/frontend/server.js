@@ -135,13 +135,15 @@ ensureSyncSessionsTable();
 // Helper to safely parse JSON strings from SQLite
 const parseJSON = (str) => {
     try { return str ? JSON.parse(str) : null; }
-    catch(e) { return null; }
+    catch(e) { console.warn('[parseJSON] 파싱 실패:', e.message, '| 입력:', String(str).slice(0, 80)); return null; }
 };
+const parseJsonArray = (str) => { const v = parseJSON(str); return Array.isArray(v) ? v : []; };
+const parseJsonObject = (str) => { const v = parseJSON(str); return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; };
 
 // GET /api/hanja : List all hanjas (with pagination + optional filters)
 app.get('/api/hanja', (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit) || 50), 500);
     const offset = (page - 1) * limit;
 
     const conditions = [];
@@ -209,11 +211,11 @@ app.get('/api/hanja', (req, res) => {
         data: rows.map((r) => ({
             ...r,
             char: r.hanja,
-            readings: parseJSON(r.readings) || [],
-            synonyms: parseJSON(r.synonyms) || [],
-            antonyms: parseJSON(r.antonyms) || [],
-            analogue: parseJSON(r.analogue ?? r.Analogue) || [],
-            variants: parseJSON(r.variants) || [],
+            readings: parseJsonArray(r.readings),
+            synonyms: parseJsonArray(r.synonyms),
+            antonyms: parseJsonArray(r.antonyms),
+            analogue: parseJsonArray(r.analogue ?? r.Analogue),
+            variants: parseJsonArray(r.variants),
         })),
         total: countRaw.count,
         page,
@@ -238,14 +240,14 @@ app.get('/api/hanja/:id', (req, res) => {
 
     res.json({
         ...rowOut,
-        readings: parseJSON(row.readings) || [],
-        synonyms: parseJSON(row.synonyms) || [],
-        antonyms: parseJSON(row.antonyms) || [],
-        analogue: parseJSON(row.analogue ?? row.Analogue) || [],
-        variants: parseJSON(row.variants) || [],
-        extend: parseJSON(extendRaw) || {},
-        font_outline: stroke ? parseJSON(stroke.font_outline) : [],
-        stroke_outlines: stroke ? parseJSON(stroke.stroke_outlines) : []
+        readings: parseJsonArray(row.readings),
+        synonyms: parseJsonArray(row.synonyms),
+        antonyms: parseJsonArray(row.antonyms),
+        analogue: parseJsonArray(row.analogue ?? row.Analogue),
+        variants: parseJsonArray(row.variants),
+        extend: parseJsonObject(extendRaw),
+        font_outline: stroke ? parseJsonArray(stroke.font_outline) : [],
+        stroke_outlines: stroke ? parseJsonArray(stroke.stroke_outlines) : []
     });
 });
 

@@ -1,6 +1,16 @@
 import type { HanjaReading } from "@/utils/hanjaBasis";
 
 /**
+ * Firestore `hanja_basis` 한국어 키 → 로컬 SQLite 영문 컬럼명 매핑 테이블.
+ * 양방향 변환 함수(useDbSync)가 이 테이블을 참조한다.
+ */
+export const HANJA_FIELD_MAP = {
+  한자: "char_str",
+  음: "reading",
+  훈: "meaning",
+} as const satisfies Record<string, string>;
+
+/**
  * basis·SQLite 상세·모달에서 공유하는 편집 폼 필드(명시 키로 v-model 타입을 좁힌다).
  */
 export interface HanjaDetailFormState {

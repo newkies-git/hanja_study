@@ -18,6 +18,7 @@ import {
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useWorkbenchStore } from "@/stores/workbench";
 import { isLocalApiEnabled, localApiFetch } from "@/config/localApi";
+import { HANJA_FIELD_MAP } from "@/types/hanjaAdminForms";
 
 export type SyncTableKey = "hanja_basis" | "hanja_stroke" | "hanja_word";
 export type SyncPhase = "idle" | "running" | "done" | "error";
@@ -135,8 +136,8 @@ export function localRowToFirestoreBasis(row: Record<string, unknown>): Record<s
     ...(gradeVal ? { grade: gradeVal } : {}),
     id,
     한자: han,
-    음: String(row.reading ?? ""),
-    훈: String(row.meaning ?? ""),
+    음: String(row[HANJA_FIELD_MAP.음] ?? ""),
+    훈: String(row[HANJA_FIELD_MAP.훈] ?? ""),
     readings: Array.isArray(readings) ? readings : [],
     synonyms: Array.isArray(synonyms) ? synonyms : [],
     antonyms: Array.isArray(antonyms) ? antonyms : [],
@@ -162,9 +163,9 @@ function firestoreBasisToLocalBody(
   return {
     id: docId,
     change_number: changeNumber,
-    char_str: String(data["한자"] ?? ""),
-    reading: String(data["음"] ?? ""),
-    meaning: String(data["훈"] ?? ""),
+    [HANJA_FIELD_MAP.한자]: String(data["한자"] ?? ""),
+    [HANJA_FIELD_MAP.음]: String(data["음"] ?? ""),
+    [HANJA_FIELD_MAP.훈]: String(data["훈"] ?? ""),
     radical: data.radical ?? "",
     radical_meaning: data.radical_meaning ?? "",
     stroke_count: data.stroke_count ?? "",

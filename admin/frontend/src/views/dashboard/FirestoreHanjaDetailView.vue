@@ -16,16 +16,9 @@ import { useWorkbenchStore } from "@/stores/workbench";
 import type { StrokeShape } from "@/types/strokeOrder";
 import ConfirmModal from "@/components/app/ConfirmModal.vue";
 import HanjaDetailViewForm from "@/components/dashboard/HanjaDetailViewForm.vue";
-import {
-  resolveHanjaBasisDocId,
-  routeParamAsString,
-  glyphFromHanjaBasisDocId,
-} from "@/utils/hanjaBasis";
-import {
-  type HanjaDetailFormState,
-  createEmptyHanjaBasisFormRecord,
-  hydrateHanjaRelatedFieldsFromExtend,
-} from "@/types/hanjaAdminForms";
+import { resolveHanjaBasisDocId, routeParamAsString } from "@/utils/hanjaBasis";
+import { createEmptyHanjaBasisFormRecord } from "@/types/hanjaAdminForms";
+import { useHanjaDetailState } from "@/composables/useHanjaDetailState";
 import {
   extractSvgPaths,
   preferLongerSvgPaths,
@@ -43,21 +36,11 @@ const wordContainingSource = computed(() =>
   isFirebaseConfigured() ? ("firestore" as const) : undefined,
 );
 
-const isLoading = ref(true);
-const isSaving = ref(false);
-const error = ref<string | null>(null);
-
-const form = ref<HanjaDetailFormState>(createEmptyHanjaBasisFormRecord());
+const { isLoading, isSaving, error, form, svgPaths, charDisplay, mergeApiResponse } =
+  useHanjaDetailState(createEmptyHanjaBasisFormRecord, () => id.value);
 
 const strokeShapes = ref<StrokeShape[]>([]);
-const svgPaths = ref<string[]>([]);
 const isStrokeLoading = ref(false);
-
-const charDisplay = computed(() => {
-  const s = String(form.value.한자 ?? form.value.char_str ?? "").trim();
-  if (s.length > 0) return [...s][0] ?? s;
-  return glyphFromHanjaBasisDocId(id.value);
-});
 
 function parseStrokePoints(raw: unknown): [number, number][] {
   if (!Array.isArray(raw)) return [];
@@ -99,23 +82,27 @@ async function fetchBasisStrokes() {
     let strokesRaw: unknown;
     let svgPathsBest: string[] = [];
 
-    const stSnap = await getDoc(doc(db, "hanja_stroke", id.value));
-    if (stSnap.exists()) {
+    // hanja_stroke 와 hanja_extend 병렬 조회
+    const [stSnap, extSnap] = await Promise.all([
+      getDoc(doc(db, "hanja_stroke", id.value)).catch(() => null),
+      getDoc(doc(db, "hanja_extend", id.value)).catch(() => null),
+    ]);
+
+    if (stSnap?.exists()) {
       const sd = stSnap.data();
       strokesRaw = sd.strokes;
       svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(sd));
     }
-
-    const extSnap = await getDoc(doc(db, "hanja_extend", id.value));
-    if (extSnap.exists()) {
+    if (extSnap?.exists()) {
       const ed = extSnap.data();
       if (!strokesRaw) strokesRaw = ed.strokes;
       svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(ed));
     }
 
+    // 위 두 컬렉션에 데이터가 없을 때만 basis 폴백
     if (!strokesRaw || svgPathsBest.length === 0) {
-      const snap = await getDoc(doc(db, "hanja_basis", id.value));
-      if (snap.exists()) {
+      const snap = await getDoc(doc(db, "hanja_basis", id.value)).catch(() => null);
+      if (snap?.exists()) {
         const bd = snap.data();
         if (!strokesRaw) strokesRaw = bd.strokes;
         svgPathsBest = preferLongerSvgPaths(svgPathsBest, extractSvgPaths(bd));
@@ -140,43 +127,25 @@ async function loadHanjaDetailDocument() {
   try {
     if (!isFirebaseConfigured()) return;
     const db = getFirestoreDb();
-    const snap = await getDoc(doc(db, "hanja_basis", id.value));
+    // hanja_basis 와 hanja_extend 병렬 조회
+    const [snap, extSnapResult] = await Promise.all([
+      getDoc(doc(db, "hanja_basis", id.value)),
+      getDoc(doc(db, "hanja_extend", id.value)).catch(() => null),
+    ]);
     if (snap.exists()) {
-      const data = snap.data();
+      const data = snap.data() as Record<string, unknown>;
+      const extendFromCollection: Record<string, unknown> = extSnapResult?.exists()
+        ? (extSnapResult.data() as Record<string, unknown>)
+        : {};
+      // hanja_extend collection takes precedence over basis.extend field
       const mergedExtend: Record<string, unknown> = {};
-      try {
-        const extSnap = await getDoc(doc(db, "hanja_extend", id.value));
-        if (extSnap.exists()) {
-          const rawExt = extSnap.data();
-          if (rawExt && typeof rawExt === "object" && !Array.isArray(rawExt)) {
-            Object.assign(mergedExtend, rawExt as Record<string, unknown>);
-          }
-        }
-      } catch {
-        /* 권한 없음·문서 없음: basis 만으로 진행 */
-      }
-      const basisExtend = (data as Record<string, unknown>).extend;
-      if (basisExtend !== undefined && basisExtend !== null && typeof basisExtend === "object" && !Array.isArray(basisExtend)) {
+      const basisExtend = data.extend;
+      if (basisExtend && typeof basisExtend === "object" && !Array.isArray(basisExtend)) {
         Object.assign(mergedExtend, basisExtend as Record<string, unknown>);
       }
+      Object.assign(mergedExtend, extendFromCollection);
 
-      const o = createEmptyHanjaBasisFormRecord();
-      o.extend = mergedExtend;
-
-      for (const k of Object.keys(data)) {
-        if (!(k in o)) continue;
-        if (k === "extend") continue;
-        const v = (data as Record<string, unknown>)[k];
-        if (v !== undefined && v !== null) {
-          (o as unknown as Record<string, unknown>)[k] = v;
-        }
-      }
-      const legacyGubun = (data as Record<string, unknown>)["구분"];
-      if (!String(o.grade ?? "").trim() && legacyGubun != null && legacyGubun !== "") {
-        o.grade = String(legacyGubun);
-      }
-      hydrateHanjaRelatedFieldsFromExtend(o);
-      form.value = o;
+      form.value = mergeApiResponse(data, mergedExtend);
       await fetchBasisStrokes();
     } else {
       error.value = `문서를 찾을 수 없습니다: ${id.value}`;
