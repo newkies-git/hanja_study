@@ -177,11 +177,6 @@ function playAnimation() {
   focusedStrokeIndex.value = null;
 }
 
-function resetStrokes() {
-  stopPlay();
-  focusedStrokeIndex.value = null;
-}
-
 onUnmounted(stopPlay);
 
 function prevStroke() {
@@ -334,9 +329,6 @@ watch(
           </button>
           <button type="button" class="btn-secondary text-sm" @click="nextStroke">
             다음
-          </button>
-          <button type="button" class="btn-secondary text-sm" @click="resetStrokes">
-            초기화
           </button>
         </div>
       </div>
