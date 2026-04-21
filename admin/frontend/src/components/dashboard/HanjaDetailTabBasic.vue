@@ -83,7 +83,7 @@ function patchHanja(value: string) {
               v-model="form.reading"
               type="text"
               placeholder="음"
-              class="input-minimal w-full py-2 font-hanja text-sm"
+              class="input-minimal w-full py-2 text-sm"
             />
           </div>
           <div class="space-y-2">
@@ -92,7 +92,7 @@ function patchHanja(value: string) {
               v-model="form.meaning"
               type="text"
               placeholder="훈"
-              class="input-minimal w-full py-2 font-hanja text-sm"
+              class="input-minimal w-full py-2 text-sm"
             />
           </div>
 

@@ -609,6 +609,60 @@ app.put('/api/hanja_word/upsert', (req, res) => {
     }
 });
 
+app.post('/api/hanja_word', (req, res) => {
+    const body = req.body || {};
+    if (!body.word || !body.change_number) {
+        return res.status(400).json({ error: 'word, change_number are required' });
+    }
+    const reading = body.reading ?? '';
+    const meaning = body.meaning ?? '';
+    const change_number = Number(body.change_number);
+    const related_hanja = Array.isArray(body.related_hanja) ? body.related_hanja : [];
+    try {
+        const result = db.prepare(`
+            INSERT INTO hanja_word (word, reading, meaning, related_hanja, change_number)
+            VALUES (?, ?, ?, ?, ?)
+        `).run(body.word, reading, meaning, JSON.stringify(related_hanja), change_number);
+        res.json({ success: true, id: result.lastInsertRowid });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Failed to create word' });
+    }
+});
+
+app.put('/api/hanja_word/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    const body = req.body || {};
+    if (!body.word || !body.change_number) {
+        return res.status(400).json({ error: 'word, change_number are required' });
+    }
+    const reading = body.reading ?? '';
+    const meaning = body.meaning ?? '';
+    const change_number = Number(body.change_number);
+    const related_hanja = Array.isArray(body.related_hanja) ? body.related_hanja : [];
+    try {
+        db.prepare(`
+            UPDATE hanja_word SET word=?, reading=?, meaning=?, related_hanja=?, change_number=?
+            WHERE id=?
+        `).run(body.word, reading, meaning, JSON.stringify(related_hanja), change_number, id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Failed to update word' });
+    }
+});
+
+app.delete('/api/hanja_word/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    try {
+        db.prepare('DELETE FROM hanja_word WHERE id=?').run(id);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message || 'Failed to delete word' });
+    }
+});
+
 // GET /api/word/:reading : Find related words
 app.get('/api/word', (req, res) => {
     const { query } = req.query; // Search token
