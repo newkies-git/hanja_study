@@ -23,6 +23,12 @@ class HanjaTable extends Table {
   TextColumn get origin => text().nullable()();         // 유래 설명
   TextColumn get usageNote => text().nullable()();      // 쓰임 주석
 
+  // ── 관계어 (JSON 배열 문자열) ──────────────────────────────────────────────
+  TextColumn get synonyms => text().nullable()();       // 유의자 JSON
+  TextColumn get antonyms => text().nullable()();       // 반의자 JSON
+  TextColumn get analogue => text().nullable()();       // 유사자 JSON
+  TextColumn get variants => text().nullable()();       // 이체자 JSON
+
   // ── 동기화 메타 ──────────────────────────────────────────────────────────
   TextColumn get syncStatus => text().withDefault(const Constant('local_only'))();
   // 'local_only' | 'pending' | 'synced' | 'deleted'

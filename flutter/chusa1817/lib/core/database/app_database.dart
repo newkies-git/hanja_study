@@ -56,7 +56,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -142,6 +142,22 @@ class AppDatabase extends _$AppDatabase {
               "  ORDER BY d2.updated_at DESC, d2.date DESC, d2.id DESC "
               "  LIMIT 1"
               ");",
+            );
+          }
+
+          // v11 → v12: 관계어 컬럼 추가 (synonyms, antonyms, analogue, variants)
+          if (from < 12) {
+            await customStatement(
+              'ALTER TABLE hanja_basis ADD COLUMN synonyms TEXT;',
+            );
+            await customStatement(
+              'ALTER TABLE hanja_basis ADD COLUMN antonyms TEXT;',
+            );
+            await customStatement(
+              'ALTER TABLE hanja_basis ADD COLUMN analogue TEXT;',
+            );
+            await customStatement(
+              'ALTER TABLE hanja_basis ADD COLUMN variants TEXT;',
             );
           }
 

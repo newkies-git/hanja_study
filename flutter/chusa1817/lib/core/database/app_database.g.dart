@@ -135,6 +135,50 @@ class $HanjaTableTable extends HanjaTable
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _synonymsMeta = const VerificationMeta(
+    'synonyms',
+  );
+  @override
+  late final GeneratedColumn<String> synonyms = GeneratedColumn<String>(
+    'synonyms',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _antonymsMeta = const VerificationMeta(
+    'antonyms',
+  );
+  @override
+  late final GeneratedColumn<String> antonyms = GeneratedColumn<String>(
+    'antonyms',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analogueMeta = const VerificationMeta(
+    'analogue',
+  );
+  @override
+  late final GeneratedColumn<String> analogue = GeneratedColumn<String>(
+    'analogue',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _variantsMeta = const VerificationMeta(
+    'variants',
+  );
+  @override
+  late final GeneratedColumn<String> variants = GeneratedColumn<String>(
+    'variants',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -197,6 +241,10 @@ class $HanjaTableTable extends HanjaTable
     grade,
     origin,
     usageNote,
+    synonyms,
+    antonyms,
+    analogue,
+    variants,
     syncStatus,
     createdAt,
     updatedAt,
@@ -308,6 +356,30 @@ class $HanjaTableTable extends HanjaTable
         usageNote.isAcceptableOrUnknown(data['usage_note']!, _usageNoteMeta),
       );
     }
+    if (data.containsKey('synonyms')) {
+      context.handle(
+        _synonymsMeta,
+        synonyms.isAcceptableOrUnknown(data['synonyms']!, _synonymsMeta),
+      );
+    }
+    if (data.containsKey('antonyms')) {
+      context.handle(
+        _antonymsMeta,
+        antonyms.isAcceptableOrUnknown(data['antonyms']!, _antonymsMeta),
+      );
+    }
+    if (data.containsKey('analogue')) {
+      context.handle(
+        _analogueMeta,
+        analogue.isAcceptableOrUnknown(data['analogue']!, _analogueMeta),
+      );
+    }
+    if (data.containsKey('variants')) {
+      context.handle(
+        _variantsMeta,
+        variants.isAcceptableOrUnknown(data['variants']!, _variantsMeta),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -392,6 +464,22 @@ class $HanjaTableTable extends HanjaTable
         DriftSqlType.string,
         data['${effectivePrefix}usage_note'],
       ),
+      synonyms: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}synonyms'],
+      ),
+      antonyms: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}antonyms'],
+      ),
+      analogue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analogue'],
+      ),
+      variants: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}variants'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
@@ -430,6 +518,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
   final int? grade;
   final String? origin;
   final String? usageNote;
+  final String? synonyms;
+  final String? antonyms;
+  final String? analogue;
+  final String? variants;
   final String syncStatus;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -447,6 +539,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
     this.grade,
     this.origin,
     this.usageNote,
+    this.synonyms,
+    this.antonyms,
+    this.analogue,
+    this.variants,
     required this.syncStatus,
     required this.createdAt,
     required this.updatedAt,
@@ -474,6 +570,18 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
     }
     if (!nullToAbsent || usageNote != null) {
       map['usage_note'] = Variable<String>(usageNote);
+    }
+    if (!nullToAbsent || synonyms != null) {
+      map['synonyms'] = Variable<String>(synonyms);
+    }
+    if (!nullToAbsent || antonyms != null) {
+      map['antonyms'] = Variable<String>(antonyms);
+    }
+    if (!nullToAbsent || analogue != null) {
+      map['analogue'] = Variable<String>(analogue);
+    }
+    if (!nullToAbsent || variants != null) {
+      map['variants'] = Variable<String>(variants);
     }
     map['sync_status'] = Variable<String>(syncStatus);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -504,6 +612,18 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
       usageNote: usageNote == null && nullToAbsent
           ? const Value.absent()
           : Value(usageNote),
+      synonyms: synonyms == null && nullToAbsent
+          ? const Value.absent()
+          : Value(synonyms),
+      antonyms: antonyms == null && nullToAbsent
+          ? const Value.absent()
+          : Value(antonyms),
+      analogue: analogue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analogue),
+      variants: variants == null && nullToAbsent
+          ? const Value.absent()
+          : Value(variants),
       syncStatus: Value(syncStatus),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -529,6 +649,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
       grade: serializer.fromJson<int?>(json['grade']),
       origin: serializer.fromJson<String?>(json['origin']),
       usageNote: serializer.fromJson<String?>(json['usageNote']),
+      synonyms: serializer.fromJson<String?>(json['synonyms']),
+      antonyms: serializer.fromJson<String?>(json['antonyms']),
+      analogue: serializer.fromJson<String?>(json['analogue']),
+      variants: serializer.fromJson<String?>(json['variants']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -551,6 +675,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
       'grade': serializer.toJson<int?>(grade),
       'origin': serializer.toJson<String?>(origin),
       'usageNote': serializer.toJson<String?>(usageNote),
+      'synonyms': serializer.toJson<String?>(synonyms),
+      'antonyms': serializer.toJson<String?>(antonyms),
+      'analogue': serializer.toJson<String?>(analogue),
+      'variants': serializer.toJson<String?>(variants),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -571,6 +699,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
     Value<int?> grade = const Value.absent(),
     Value<String?> origin = const Value.absent(),
     Value<String?> usageNote = const Value.absent(),
+    Value<String?> synonyms = const Value.absent(),
+    Value<String?> antonyms = const Value.absent(),
+    Value<String?> analogue = const Value.absent(),
+    Value<String?> variants = const Value.absent(),
     String? syncStatus,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -588,6 +720,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
     grade: grade.present ? grade.value : this.grade,
     origin: origin.present ? origin.value : this.origin,
     usageNote: usageNote.present ? usageNote.value : this.usageNote,
+    synonyms: synonyms.present ? synonyms.value : this.synonyms,
+    antonyms: antonyms.present ? antonyms.value : this.antonyms,
+    analogue: analogue.present ? analogue.value : this.analogue,
+    variants: variants.present ? variants.value : this.variants,
     syncStatus: syncStatus ?? this.syncStatus,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -613,6 +749,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
       grade: data.grade.present ? data.grade.value : this.grade,
       origin: data.origin.present ? data.origin.value : this.origin,
       usageNote: data.usageNote.present ? data.usageNote.value : this.usageNote,
+      synonyms: data.synonyms.present ? data.synonyms.value : this.synonyms,
+      antonyms: data.antonyms.present ? data.antonyms.value : this.antonyms,
+      analogue: data.analogue.present ? data.analogue.value : this.analogue,
+      variants: data.variants.present ? data.variants.value : this.variants,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -639,6 +779,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
           ..write('grade: $grade, ')
           ..write('origin: $origin, ')
           ..write('usageNote: $usageNote, ')
+          ..write('synonyms: $synonyms, ')
+          ..write('antonyms: $antonyms, ')
+          ..write('analogue: $analogue, ')
+          ..write('variants: $variants, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -661,6 +805,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
     grade,
     origin,
     usageNote,
+    synonyms,
+    antonyms,
+    analogue,
+    variants,
     syncStatus,
     createdAt,
     updatedAt,
@@ -682,6 +830,10 @@ class HanjaTableData extends DataClass implements Insertable<HanjaTableData> {
           other.grade == this.grade &&
           other.origin == this.origin &&
           other.usageNote == this.usageNote &&
+          other.synonyms == this.synonyms &&
+          other.antonyms == this.antonyms &&
+          other.analogue == this.analogue &&
+          other.variants == this.variants &&
           other.syncStatus == this.syncStatus &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -701,6 +853,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
   final Value<int?> grade;
   final Value<String?> origin;
   final Value<String?> usageNote;
+  final Value<String?> synonyms;
+  final Value<String?> antonyms;
+  final Value<String?> analogue;
+  final Value<String?> variants;
   final Value<String> syncStatus;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -719,6 +875,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
     this.grade = const Value.absent(),
     this.origin = const Value.absent(),
     this.usageNote = const Value.absent(),
+    this.synonyms = const Value.absent(),
+    this.antonyms = const Value.absent(),
+    this.analogue = const Value.absent(),
+    this.variants = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -738,6 +898,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
     this.grade = const Value.absent(),
     this.origin = const Value.absent(),
     this.usageNote = const Value.absent(),
+    this.synonyms = const Value.absent(),
+    this.antonyms = const Value.absent(),
+    this.analogue = const Value.absent(),
+    this.variants = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -764,6 +928,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
     Expression<int>? grade,
     Expression<String>? origin,
     Expression<String>? usageNote,
+    Expression<String>? synonyms,
+    Expression<String>? antonyms,
+    Expression<String>? analogue,
+    Expression<String>? variants,
     Expression<String>? syncStatus,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -783,6 +951,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
       if (grade != null) 'grade': grade,
       if (origin != null) 'origin': origin,
       if (usageNote != null) 'usage_note': usageNote,
+      if (synonyms != null) 'synonyms': synonyms,
+      if (antonyms != null) 'antonyms': antonyms,
+      if (analogue != null) 'analogue': analogue,
+      if (variants != null) 'variants': variants,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -804,6 +976,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
     Value<int?>? grade,
     Value<String?>? origin,
     Value<String?>? usageNote,
+    Value<String?>? synonyms,
+    Value<String?>? antonyms,
+    Value<String?>? analogue,
+    Value<String?>? variants,
     Value<String>? syncStatus,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -823,6 +999,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
       grade: grade ?? this.grade,
       origin: origin ?? this.origin,
       usageNote: usageNote ?? this.usageNote,
+      synonyms: synonyms ?? this.synonyms,
+      antonyms: antonyms ?? this.antonyms,
+      analogue: analogue ?? this.analogue,
+      variants: variants ?? this.variants,
       syncStatus: syncStatus ?? this.syncStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -870,6 +1050,18 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
     if (usageNote.present) {
       map['usage_note'] = Variable<String>(usageNote.value);
     }
+    if (synonyms.present) {
+      map['synonyms'] = Variable<String>(synonyms.value);
+    }
+    if (antonyms.present) {
+      map['antonyms'] = Variable<String>(antonyms.value);
+    }
+    if (analogue.present) {
+      map['analogue'] = Variable<String>(analogue.value);
+    }
+    if (variants.present) {
+      map['variants'] = Variable<String>(variants.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
@@ -903,6 +1095,10 @@ class HanjaTableCompanion extends UpdateCompanion<HanjaTableData> {
           ..write('grade: $grade, ')
           ..write('origin: $origin, ')
           ..write('usageNote: $usageNote, ')
+          ..write('synonyms: $synonyms, ')
+          ..write('antonyms: $antonyms, ')
+          ..write('analogue: $analogue, ')
+          ..write('variants: $variants, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -7962,6 +8158,10 @@ typedef $$HanjaTableTableCreateCompanionBuilder =
       Value<int?> grade,
       Value<String?> origin,
       Value<String?> usageNote,
+      Value<String?> synonyms,
+      Value<String?> antonyms,
+      Value<String?> analogue,
+      Value<String?> variants,
       Value<String> syncStatus,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -7982,6 +8182,10 @@ typedef $$HanjaTableTableUpdateCompanionBuilder =
       Value<int?> grade,
       Value<String?> origin,
       Value<String?> usageNote,
+      Value<String?> synonyms,
+      Value<String?> antonyms,
+      Value<String?> analogue,
+      Value<String?> variants,
       Value<String> syncStatus,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -8055,6 +8259,26 @@ class $$HanjaTableTableFilterComposer
 
   ColumnFilters<String> get usageNote => $composableBuilder(
     column: $table.usageNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get synonyms => $composableBuilder(
+    column: $table.synonyms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get antonyms => $composableBuilder(
+    column: $table.antonyms,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analogue => $composableBuilder(
+    column: $table.analogue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get variants => $composableBuilder(
+    column: $table.variants,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8148,6 +8372,26 @@ class $$HanjaTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get synonyms => $composableBuilder(
+    column: $table.synonyms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get antonyms => $composableBuilder(
+    column: $table.antonyms,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analogue => $composableBuilder(
+    column: $table.analogue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get variants => $composableBuilder(
+    column: $table.variants,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -8220,6 +8464,18 @@ class $$HanjaTableTableAnnotationComposer
   GeneratedColumn<String> get usageNote =>
       $composableBuilder(column: $table.usageNote, builder: (column) => column);
 
+  GeneratedColumn<String> get synonyms =>
+      $composableBuilder(column: $table.synonyms, builder: (column) => column);
+
+  GeneratedColumn<String> get antonyms =>
+      $composableBuilder(column: $table.antonyms, builder: (column) => column);
+
+  GeneratedColumn<String> get analogue =>
+      $composableBuilder(column: $table.analogue, builder: (column) => column);
+
+  GeneratedColumn<String> get variants =>
+      $composableBuilder(column: $table.variants, builder: (column) => column);
+
   GeneratedColumn<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => column,
@@ -8280,6 +8536,10 @@ class $$HanjaTableTableTableManager
                 Value<int?> grade = const Value.absent(),
                 Value<String?> origin = const Value.absent(),
                 Value<String?> usageNote = const Value.absent(),
+                Value<String?> synonyms = const Value.absent(),
+                Value<String?> antonyms = const Value.absent(),
+                Value<String?> analogue = const Value.absent(),
+                Value<String?> variants = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8298,6 +8558,10 @@ class $$HanjaTableTableTableManager
                 grade: grade,
                 origin: origin,
                 usageNote: usageNote,
+                synonyms: synonyms,
+                antonyms: antonyms,
+                analogue: analogue,
+                variants: variants,
                 syncStatus: syncStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -8318,6 +8582,10 @@ class $$HanjaTableTableTableManager
                 Value<int?> grade = const Value.absent(),
                 Value<String?> origin = const Value.absent(),
                 Value<String?> usageNote = const Value.absent(),
+                Value<String?> synonyms = const Value.absent(),
+                Value<String?> antonyms = const Value.absent(),
+                Value<String?> analogue = const Value.absent(),
+                Value<String?> variants = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -8336,6 +8604,10 @@ class $$HanjaTableTableTableManager
                 grade: grade,
                 origin: origin,
                 usageNote: usageNote,
+                synonyms: synonyms,
+                antonyms: antonyms,
+                analogue: analogue,
+                variants: variants,
                 syncStatus: syncStatus,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

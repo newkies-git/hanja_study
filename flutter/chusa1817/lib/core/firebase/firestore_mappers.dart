@@ -36,6 +36,10 @@ abstract final class FirestoreHanjaMapper {
       grade: Value(_parseGrade(data['grade'])),
       origin: Value(_nullableString(data['origin_note'] ?? data['origin'])),
       usageNote: Value(_nullableString(data['shape_explanation'] ?? data['usageNote'])),
+      synonyms: Value(_nullableJsonArray(data['synonyms'])),
+      antonyms: Value(_nullableJsonArray(data['antonyms'])),
+      analogue: Value(_nullableJsonArray(data['analogue'])),
+      variants: Value(_nullableJsonArray(data['variants'])),
       syncStatus: const Value('synced'),
       syncRevision: Value(_int(data, 'sync_revision', fallbackKey: 'syncRevision') ?? 0),
     );
@@ -63,6 +67,22 @@ abstract final class FirestoreHanjaMapper {
     if (v == null) return null;
     final String s = v.toString();
     return s.isEmpty ? null : s;
+  }
+
+  /// List/String → JSON 배열 문자열 (null 이면 null).
+  static String? _nullableJsonArray(Object? v) {
+    if (v == null) return null;
+    if (v is List) {
+      if (v.isEmpty) return null;
+      final List<String> items = v.map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+      if (items.isEmpty) return null;
+      return '[${items.map((e) => '"${e.replaceAll('"', '\\"')}"').join(',')}]';
+    }
+    if (v is String) {
+      final String s = v.trim();
+      return s.isEmpty ? null : s;
+    }
+    return null;
   }
 
   static int? _parseGrade(Object? v) {
@@ -127,6 +147,10 @@ abstract final class FirestoreBasisMapper {
       grade: const Value.absent(),
       origin: const Value.absent(),
       usageNote: const Value.absent(),
+      synonyms: Value(FirestoreHanjaMapper._nullableJsonArray(raw['synonyms'])),
+      antonyms: Value(FirestoreHanjaMapper._nullableJsonArray(raw['antonyms'])),
+      analogue: Value(FirestoreHanjaMapper._nullableJsonArray(raw['analogue'])),
+      variants: Value(FirestoreHanjaMapper._nullableJsonArray(raw['variants'])),
       syncStatus: const Value('synced'),
       syncRevision: const Value(0),
     );

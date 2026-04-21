@@ -117,6 +117,10 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                           hanjaId: hanjaRow.id,
                           hanja: hanja,
                           originText: originText,
+                          synonymsJson: hanjaRow.synonyms,
+                          antonymsJson: hanjaRow.antonyms,
+                          analogueJson: hanjaRow.analogue,
+                          variantsJson: hanjaRow.variants,
                         ),
                       ],
                     ),
@@ -179,11 +183,19 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
     required String hanjaId,
     required String hanja,
     required String originText,
+    String? synonymsJson,
+    String? antonymsJson,
+    String? analogueJson,
+    String? variantsJson,
   }) {
     switch (_activeTab) {
       case HanjaDetailTab.info:
         return HanjaInfoTab(
           originText: originText,
+          synonymsJson: synonymsJson,
+          antonymsJson: antonymsJson,
+          analogueJson: analogueJson,
+          variantsJson: variantsJson,
         );
       case HanjaDetailTab.strokes:
         return HanjaStrokesTab(hanjaId: hanjaId, hanja: hanja);
