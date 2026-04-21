@@ -11,6 +11,7 @@ const props = defineProps<{
 const strokeInfo = ref("");
 const focusedStrokeIndex = ref<number | null>(null);
 const isPlaying = ref(false);
+const revealedCount = ref(0); // 재생 중 누적 표시된 획 수
 let playTimer: ReturnType<typeof setInterval> | null = null;
 
 function pathBBoxFromD(d: string): {
@@ -123,11 +124,13 @@ function pointsAttr(pts: StrokePoint[]): string {
 }
 
 function strokeOpacity(i: number): number {
+  if (isPlaying.value) return i < revealedCount.value ? 1 : 0.1;
   if (focusedStrokeIndex.value === null) return 1;
   return focusedStrokeIndex.value === i ? 1 : 0.22;
 }
 
 function polylineStrokeWidth(i: number): number {
+  if (isPlaying.value) return i < revealedCount.value ? 0.009 : 0.003;
   if (focusedStrokeIndex.value === null) return 0.009;
   return focusedStrokeIndex.value === i ? 0.014 : 0.005;
 }
@@ -146,21 +149,25 @@ function stopPlay() {
     playTimer = null;
   }
   isPlaying.value = false;
+  revealedCount.value = 0;
 }
 
 function startPlay() {
   stopPlay();
   const n = displayStrokeCount.value;
   if (n === 0) return;
-  focusedStrokeIndex.value = 0;
+  focusedStrokeIndex.value = null;
+  revealedCount.value = 1;
   isPlaying.value = true;
   playTimer = setInterval(() => {
-    const cur = focusedStrokeIndex.value ?? 0;
-    if (cur >= n - 1) {
-      stopPlay();
-      focusedStrokeIndex.value = null; // 완료 후 전체 표시
+    if (revealedCount.value >= n) {
+      // 모두 표시 완료 → 재생 종료, 전체 유지
+      if (playTimer !== null) clearInterval(playTimer);
+      playTimer = null;
+      isPlaying.value = false;
+      revealedCount.value = 0;
     } else {
-      focusedStrokeIndex.value = cur + 1;
+      revealedCount.value += 1;
     }
   }, 1000);
 }
