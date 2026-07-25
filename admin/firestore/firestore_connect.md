@@ -33,9 +33,27 @@ flowchart LR
 |------------------|-------------------------------|
 | `firebase_core`  | Firebase 앱 초기화            |
 | `firebase_auth`  | 익명 로그인 (`request.auth` 대응) |
+| `firebase_app_check` | App Check 토큰 첨부. **Enforce는 Console만** (규칙에 `request.app` 없음) |
 | `cloud_firestore`| Firestore 읽기·쿼리           |
 
 버전은 도구 실행 시점에 따라 달라질 수 있으므로 `pubspec.lock`을 기준으로 한다.
+
+### 2.1 App Check (TODO — 운영 적용 보류)
+
+> **상태: 해야 할 일.** 개념·Enforce 타이밍·관리 웹 연동을 정리한 뒤 진행한다.  
+> 지금은 Console에서 **Enforce를 켜지 않는다.**
+
+- **Enforce는 Console만**: App Check → APIs → Cloud Firestore → Enforce.  
+  API 게이트웨이에서 유효 토큰 없는 요청을 차단한다. **규칙 파일은 수정하지 않는다.**
+- **`firestore.rules`에 `request.app` 없음**: 규칙에 넣으면 Permission Denied로 정상 사용자까지 막힐 수 있다.
+- **규칙 역할**: `allow read: if isSignedIn();` 등 기존 Auth 검증을 그대로 둔다.
+- **적용 전 체크리스트 (TODO)**:
+  1. Console 메트릭(Verified / 구버전·미토큰) 이해
+  2. 디버그 토큰 등록 절차 숙지
+  3. 관리 웹 reCAPTCHA App Check 연동 여부 결정
+  4. 그다음 Firestore Enforce
+
+Flutter SDK는 `firebase_bootstrap.dart`에서 App Check를 활성화해 두었으나, Enforce 전까지는 모니터링용에 가깝다.
 
 ---
 
@@ -47,7 +65,7 @@ flowchart LR
 |------|------|
 | `flutter/chusa1817/lib/main.dart` | `WidgetsFlutterBinding.ensureInitialized()` → `bootstrapFirebase()` → `ProviderScope`로 앱 실행 |
 | `flutter/chusa1817/lib/firebase_options.dart` | `Firebase.initializeApp`용 `DefaultFirebaseOptions` (플레이스홀더; 실제 값은 `flutterfire configure` 권장) |
-| `flutter/chusa1817/lib/core/firebase/firebase_bootstrap.dart` | `bootstrapFirebase()` — Core 초기화 후 **익명 로그인**; 실패 시에도 앱은 계속 실행 |
+| `flutter/chusa1817/lib/core/firebase/firebase_bootstrap.dart` | `bootstrapFirebase()` — Core → **App Check** → 익명 로그인; 실패 시에도 앱은 계속 실행 |
 | `flutter/chusa1817/lib/core/firebase/firestore_paths.dart` | 컬렉션·문서 ID 상수 (`config/content`, `hanja`, `words`, `strokes` 서브컬렉션명) |
 | `flutter/chusa1817/lib/core/firebase/firestore_mappers.dart` | Firestore `Map` → Drift `*Companion` 매핑 |
 | `flutter/chusa1817/lib/core/firebase/firestore_content_sync.dart` | `FirestoreContentSyncService` — 페이지 단위 조회 및 DB 반영 |
@@ -285,7 +303,8 @@ firebase deploy --only firestore:rules --project chusa-1817
    ```bash
    cd admin/python
    pip install -r requirements-firebase.txt
-   export GOOGLE_APPLICATION_CREDENTIALS=/절대경로/서비스계정.json
+   export GOOGLE_APPLICATION_CREDENTIALS=/Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
+   # (레포 안 firestore/ 에 adminsdk JSON 을 두지 말 것 — firestore/README.md 참고)
    python set_firebase_custom_claims.py --project-id chusa-1817 --email YOUR_EMAIL --admin true
    ```
 
@@ -385,7 +404,8 @@ Firebase CLI 미설치 시 안내 메시지에 따라 `brew install firebase-cli
 ```bash
 cd admin/python
 pip install -r requirements-firebase.txt
-export GOOGLE_APPLICATION_CREDENTIALS=/절대경로/서비스계정.json
+export GOOGLE_APPLICATION_CREDENTIALS=/Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
+# (레포 안 firestore/ 에 adminsdk JSON 을 두지 말 것 — firestore/README.md 참고)
 python upload_to_firestore.py --project-id chusa-1817
 ```
 

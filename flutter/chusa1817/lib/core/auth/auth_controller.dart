@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math';
+
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -141,9 +143,13 @@ class AuthController extends AsyncNotifier<void> {
 
   /// Generates a cryptographically secure random nonce.
   String _generateNonce([int length = 32]) {
-    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_';
-    final random = DateTime.now().millisecondsSinceEpoch;
-    return List.generate(length, (index) => charset[(random + index) % charset.length]).join();
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
   }
 
   /// Hashes a string using SHA256.

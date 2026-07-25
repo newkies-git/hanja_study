@@ -4,6 +4,9 @@ rules_version = '2';
 //
 // - 앱(Flutter): 익명 로그인 포함, 인증 사용자 읽기 허용
 // - admin(웹): Firebase Auth 로그인 사용자 중 "admin 커스텀 클레임"이 true인 경우에만 쓰기 허용
+// - App Check: Firestore 규칙에 request.app 은 없음. 강제 적용은 Console
+//   (App Check → APIs → Cloud Firestore → Enforce)만으로 API 게이트웨이에서 처리한다.
+//   규칙은 isSignedIn() / isAdmin() 을 유지한다.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() {

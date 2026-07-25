@@ -11,9 +11,12 @@ import 'repository_interfaces.dart';
 
 /// [HanjaRepository]의 로컬 DB 구현체.
 class LocalHanjaRepository implements HanjaRepository {
-  const LocalHanjaRepository(this._db);
+  const LocalHanjaRepository(this._db, this._auth);
 
   final AppDatabase _db;
+  final FirebaseAuth _auth;
+
+  String get _currentUserId => _auth.currentUser?.uid ?? '';
 
   @override
   Future<HanjaTableData?> fetchById(String id) =>
@@ -99,10 +102,12 @@ class LocalHanjaRepository implements HanjaRepository {
     bool isAscending = true,
   }) async {
     // '오늘의 학습'은 아직 한 번도 학습하지 않은('unseen') 한자만 추천한다.
+    final String userId = _currentUserId;
     final query = _db.select(_db.hanjaTable).join([
       leftOuterJoin(
         _db.userProgressTable,
-        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id) &
+            _db.userProgressTable.userId.equals(userId),
       ),
     ])
       ..where(_db.userProgressTable.status.isNull() |
@@ -138,10 +143,18 @@ class LocalProgressRepository implements ProgressRepository {
 
   String get _currentUserId => _auth.currentUser?.uid ?? '';
 
+  Expression<bool> _ownedByCurrentUser($UserProgressTableTable t) =>
+      t.userId.equals(_currentUserId);
+
+  Expression<bool> _dailyOwnedByCurrentUser($DailyHanjaActivityTableTable t) =>
+      t.userId.equals(_currentUserId);
+
   @override
   Future<UserProgressTableData?> fetchProgress(String hanjaId) =>
       (_db.select(_db.userProgressTable)
-            ..where((t) => t.hanjaId.equals(hanjaId)))
+            ..where(
+              (t) => t.hanjaId.equals(hanjaId) & _ownedByCurrentUser(t),
+            ))
           .getSingleOrNull();
 
   @override
@@ -150,6 +163,7 @@ class LocalProgressRepository implements ProgressRepository {
     return (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
+                _ownedByCurrentUser(t) &
                 t.status.isIn(['learning', 'mastered', 'review_needed']) &
                 t.nextReviewAt.isSmallerOrEqualValue(now),
           )
@@ -164,6 +178,7 @@ class LocalProgressRepository implements ProgressRepository {
     return (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
+                _ownedByCurrentUser(t) &
                 t.status.isIn(['learning', 'mastered', 'review_needed']) &
                 t.nextReviewAt.isBiggerThanValue(now),
           )
@@ -178,6 +193,7 @@ class LocalProgressRepository implements ProgressRepository {
     final rows = await (_db.select(_db.userProgressTable)
           ..where(
             (t) =>
+                _ownedByCurrentUser(t) &
                 t.status.isIn(['learning', 'mastered', 'review_needed']) &
                 t.nextReviewAt.isBiggerThanValue(now),
           ))
@@ -193,6 +209,7 @@ class LocalProgressRepository implements ProgressRepository {
     final query = _db.selectOnly(_db.dailyHanjaActivityTable)
       ..addColumns([countExp])
       ..where(_db.dailyHanjaActivityTable.date.equals(startOfDay) &
+          _dailyOwnedByCurrentUser(_db.dailyHanjaActivityTable) &
           _db.dailyHanjaActivityTable.status.isIn(['mastered']));
     return (await query.map((row) => row.read(countExp)).getSingle()) ?? 0;
   }
@@ -204,7 +221,11 @@ class LocalProgressRepository implements ProgressRepository {
         .subtract(Duration(days: days - 1));
 
     final rows = await (_db.select(_db.userProgressTable)
-          ..where((t) => t.lastStudiedAt.isBiggerOrEqualValue(start)))
+          ..where(
+            (t) =>
+                _ownedByCurrentUser(t) &
+                t.lastStudiedAt.isBiggerOrEqualValue(start),
+          ))
         .get();
 
     final Map<DateTime, int> counts = {};
@@ -227,6 +248,7 @@ class LocalProgressRepository implements ProgressRepository {
 
     final rows = await (_db.select(_db.dailyHanjaActivityTable)
           ..where((t) =>
+              _dailyOwnedByCurrentUser(t) &
               t.date.isBiggerOrEqualValue(start) &
               // NOTE: review_needed는 "복습 대상"이며 주간 활동량(학습 진행/완료)에는 포함하지 않는다.
               t.status.isIn(['learning', 'mastered'])))
@@ -261,7 +283,10 @@ class LocalProgressRepository implements ProgressRepository {
     final dateCol = _db.userProgressTable.lastStudiedAt;
     final query = _db.selectOnly(_db.userProgressTable)
       ..addColumns([dateCol])
-      ..where(_db.userProgressTable.lastStudiedAt.isNotNull());
+      ..where(
+        _ownedByCurrentUser(_db.userProgressTable) &
+            _db.userProgressTable.lastStudiedAt.isNotNull(),
+      );
     final rows = await query.get();
 
     if (rows.isEmpty) return 0;
@@ -284,7 +309,9 @@ class LocalProgressRepository implements ProgressRepository {
   @override
   Future<List<UserProgressTableData>> fetchBookmarked() =>
       (_db.select(_db.userProgressTable)
-            ..where((t) => t.isBookmarked.equals(true)))
+            ..where(
+              (t) => _ownedByCurrentUser(t) & t.isBookmarked.equals(true),
+            ))
           .get();
 
   @override
@@ -301,6 +328,7 @@ class LocalProgressRepository implements ProgressRepository {
     await _db.into(_db.userProgressTable).insertOnConflictUpdate(
           UserProgressTableCompanion(
             id: Value(existing?.id ?? _uuid.v4()),
+            userId: Value(_currentUserId),
             hanjaId: Value(hanjaId),
             isBookmarked: Value(newBookmarkStatus),
             updatedAt: Value(now),
@@ -393,14 +421,20 @@ class LocalProgressRepository implements ProgressRepository {
     // 상태별 COUNT — 전체 행을 Dart로 읽지 않고 DB에서 집계
     final inProgressCountExp = _db.userProgressTable.id.count();
     final inProgressQuery = _db.selectOnly(_db.userProgressTable)
-      ..where(_db.userProgressTable.status.equals('learning'))
+      ..where(
+        _ownedByCurrentUser(_db.userProgressTable) &
+            _db.userProgressTable.status.equals('learning'),
+      )
       ..addColumns([inProgressCountExp]);
     final inProgress =
         (await inProgressQuery.map((r) => r.read(inProgressCountExp)).getSingle()) ?? 0;
 
     final masteredCountExp = _db.userProgressTable.id.count();
     final masteredQuery = _db.selectOnly(_db.userProgressTable)
-      ..where(_db.userProgressTable.status.equals('mastered'))
+      ..where(
+        _ownedByCurrentUser(_db.userProgressTable) &
+            _db.userProgressTable.status.equals('mastered'),
+      )
       ..addColumns([masteredCountExp]);
     final mastered =
         (await masteredQuery.map((r) => r.read(masteredCountExp)).getSingle()) ?? 0;
@@ -439,7 +473,10 @@ class LocalProgressRepository implements ProgressRepository {
   Future<int> fetchMasteredCount() async {
     final countExp = _db.userProgressTable.id.count();
     final query = _db.selectOnly(_db.userProgressTable)
-      ..where(_db.userProgressTable.status.equals('mastered'))
+      ..where(
+        _ownedByCurrentUser(_db.userProgressTable) &
+            _db.userProgressTable.status.equals('mastered'),
+      )
       ..addColumns([countExp]);
     final result = await query.map((row) => row.read(countExp)).getSingle();
     return result ?? 0;
@@ -449,7 +486,10 @@ class LocalProgressRepository implements ProgressRepository {
   Future<int> fetchLearningCount() async {
     final countExp = _db.userProgressTable.id.count();
     final query = _db.selectOnly(_db.userProgressTable)
-      ..where(_db.userProgressTable.status.equals('learning'))
+      ..where(
+        _ownedByCurrentUser(_db.userProgressTable) &
+            _db.userProgressTable.status.equals('learning'),
+      )
       ..addColumns([countExp]);
     final result = await query.map((row) => row.read(countExp)).getSingle();
     return result ?? 0;
@@ -475,7 +515,9 @@ class LocalProgressRepository implements ProgressRepository {
     if (lastRefreshed != todayDateStr) {
       // 구버전(UUID) 행 정리
       final existingToday = await (_db.select(_db.dailyHanjaActivityTable)
-            ..where((t) => t.date.equals(todayDate)))
+            ..where(
+              (t) => t.date.equals(todayDate) & _dailyOwnedByCurrentUser(t),
+            ))
           .get();
       final expectedPrefix = '${todayDate.millisecondsSinceEpoch}_';
       for (final row in existingToday) {
@@ -489,13 +531,17 @@ class LocalProgressRepository implements ProgressRepository {
       // 미완료 행 이월
       final incomplete = await (_db.select(_db.dailyHanjaActivityTable)
             ..where((t) =>
+                _dailyOwnedByCurrentUser(t) &
                 t.status.equals('mastered').not() &
                 t.date.isSmallerThanValue(todayDate))
             ..limit(dailyGoal))
           .get();
 
       final currentTodayHanjaIds = (await (_db.select(_db.dailyHanjaActivityTable)
-                ..where((t) => t.date.equals(todayDate)))
+                ..where(
+                  (t) =>
+                      t.date.equals(todayDate) & _dailyOwnedByCurrentUser(t),
+                ))
               .get())
           .map((r) => r.hanjaId)
           .toSet();
@@ -529,7 +575,9 @@ class LocalProgressRepository implements ProgressRepository {
 
     // ── 신규 채우기: 항상 실행 — 목표량 변경 시에도 즉시 반영 (멱등) ────────────
     final todayHanjaIds = (await (_db.select(_db.dailyHanjaActivityTable)
-              ..where((t) => t.date.equals(todayDate)))
+              ..where(
+                (t) => t.date.equals(todayDate) & _dailyOwnedByCurrentUser(t),
+              ))
             .get())
         .map((r) => r.hanjaId)
         .toSet();
@@ -539,7 +587,8 @@ class LocalProgressRepository implements ProgressRepository {
       final nextHanjasQuery = _db.select(_db.hanjaTable).join([
         leftOuterJoin(
           _db.userProgressTable,
-          _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+          _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id) &
+              _db.userProgressTable.userId.equals(userId),
         ),
       ])
         ..where(_db.userProgressTable.status.isNull() |
@@ -600,10 +649,14 @@ class LocalProgressRepository implements ProgressRepository {
       ),
       leftOuterJoin(
         _db.userProgressTable,
-        _db.userProgressTable.hanjaId.equalsExp(_db.dailyHanjaActivityTable.hanjaId),
+        _db.userProgressTable.hanjaId.equalsExp(_db.dailyHanjaActivityTable.hanjaId) &
+            _db.userProgressTable.userId.equals(_currentUserId),
       ),
     ])
-      ..where(_db.dailyHanjaActivityTable.date.equals(todayDate))
+      ..where(
+        _db.dailyHanjaActivityTable.date.equals(todayDate) &
+            _dailyOwnedByCurrentUser(_db.dailyHanjaActivityTable),
+      )
       ..orderBy([OrderingTerm.asc(_db.dailyHanjaActivityTable.createdAt)]);
 
     final rows = await query.get();
@@ -656,6 +709,7 @@ class LocalProgressRepository implements ProgressRepository {
     // 단, 오늘 이미 공부한 한자는 제외하여 '오늘의 추천 복습' 리스트에서 제거되는 효과를 줌.
     return (_db.select(_db.userProgressTable)
           ..where((t) =>
+              _ownedByCurrentUser(t) &
               t.totalAttempts.isBiggerThanValue(0) &
               (t.lastStudiedAt.isNull() | t.lastStudiedAt.isSmallerThanValue(todayStart)))
           ..orderBy([
@@ -670,12 +724,14 @@ class LocalProgressRepository implements ProgressRepository {
   Future<void> seedSampleReviewHanja() async {
     final DateTime now = DateTime.now();
     final DateTime yesterday = now.subtract(const Duration(days: 1));
+    final String userId = _currentUserId;
 
     // 1. 아직 진도 데이터가 없는(또는 'unseen'인) 한자 5개 가져오기
     final query = _db.select(_db.hanjaTable).join([
       leftOuterJoin(
         _db.userProgressTable,
-        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id),
+        _db.userProgressTable.hanjaId.equalsExp(_db.hanjaTable.id) &
+            _db.userProgressTable.userId.equals(userId),
       ),
     ])
       ..where(_db.userProgressTable.id.isNull())
@@ -697,6 +753,7 @@ class LocalProgressRepository implements ProgressRepository {
       await _db.into(_db.userProgressTable).insertOnConflictUpdate(
             UserProgressTableCompanion(
               id: Value(id),
+              userId: Value(userId),
               hanjaId: Value(hanja.id),
               status: const Value('review_needed'),
               totalAttempts: const Value(totalAttempts),

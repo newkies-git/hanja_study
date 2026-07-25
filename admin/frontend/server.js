@@ -4,12 +4,79 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT || 3000);
+/** LAN 노출 방지 — 기본 loopback만. 필요 시 CHUSA_API_HOST=0.0.0.0 (비권장) */
+const host = process.env.CHUSA_API_HOST || '127.0.0.1';
+const firebaseProjectId =
+    process.env.FIREBASE_PROJECT_ID ||
+    process.env.VITE_FIREBASE_PROJECT_ID ||
+    'chusa-1817';
 
-app.use(cors());
+const defaultCorsOrigins = [
+    'http://localhost:5174',
+    'http://127.0.0.1:5174',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+];
+const allowedCorsOrigins = new Set(
+    (process.env.CHUSA_CORS_ORIGINS || defaultCorsOrigins.join(','))
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+);
+
+app.use(
+    cors({
+        origin(origin, callback) {
+            // 동일 오리진 프록시·curl 등 Origin 없는 요청은 허용
+            if (!origin || allowedCorsOrigins.has(origin)) {
+                callback(null, true);
+                return;
+            }
+            callback(null, false);
+        },
+    }),
+);
 app.use(express.json({ limit: '10mb' }));
+
+const firebaseIdTokenJwks = createRemoteJWKSet(
+    new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'),
+);
+
+function hasAdminRoleInCustomClaims(claims) {
+    const v = claims?.admin;
+    return v === true || v === 'true' || v === 1;
+}
+
+/** 로컬 SQLite API — Firebase ID 토큰 + admin 클레임 필수 */
+async function requireAdminIdToken(req, res, next) {
+    const header = String(req.headers.authorization || '');
+    const match = /^Bearer\s+(.+)$/i.exec(header);
+    if (!match) {
+        res.status(401).json({ error: 'Authorization Bearer token required' });
+        return;
+    }
+    try {
+        const { payload } = await jwtVerify(match[1], firebaseIdTokenJwks, {
+            issuer: `https://securetoken.google.com/${firebaseProjectId}`,
+            audience: firebaseProjectId,
+        });
+        if (!hasAdminRoleInCustomClaims(payload)) {
+            res.status(403).json({ error: 'admin claim required' });
+            return;
+        }
+        req.auth = payload;
+        next();
+    } catch (err) {
+        console.warn('[chusa-admin] auth failed:', err?.message || err);
+        res.status(401).json({ error: 'Invalid or expired token' });
+    }
+}
+
+app.use('/api', requireAdminIdToken);
 
 // `process.cwd()`에 의존하면 실행 위치에 따라 DB를 못 찾음 → server.js 기준 admin/data
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -677,7 +744,8 @@ app.get('/api/word', (req, res) => {
     res.json({ data: rows });
 });
 
-app.listen(port, () => {
-    console.log(`[chusa-admin] Local SQLite API http://localhost:${port}`);
+app.listen(port, host, () => {
+    console.log(`[chusa-admin] Local SQLite API http://${host}:${port}`);
     console.log(`[chusa-admin] DB ${DB_PATH}`);
+    console.log(`[chusa-admin] Auth: Firebase ID token + admin claim (project ${firebaseProjectId})`);
 });

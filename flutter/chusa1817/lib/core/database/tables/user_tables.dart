@@ -42,7 +42,7 @@ class UserProgressTable extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {hanjaId},  // hanjaId당 진도 1개
+        {userId, hanjaId}, // 계정별 한자 진도 1개
       ];
 }
 

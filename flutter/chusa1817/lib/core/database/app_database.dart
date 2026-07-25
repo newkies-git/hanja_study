@@ -20,9 +20,10 @@ part 'app_database.g.dart';
 /// - v1: `hanja`, `hanja_stroke`, `hanja_word`, `hanja_idiom` + 사용자 테이블 (콘텐츠 FK)
 /// - v2: `hanja` → `hanja_basis` 이름 변경, `hanja_extend`·`content_config` 추가, 콘텐츠 FK 제거
 /// - v3: 사용자 스코프 필드 (`user_progress.user_id`)
-/// - v4: `hanja_stroke_svg_paths` (Firestore `svg_paths` 캐시, 획순 뷰어 좌표계)
-///
-/// **중요**: migration은 "삭제-재생성" 방식을 절대 사용하지 않는다.
+  /// - v12: `hanja_basis` 관계어 컬럼 (synonyms, antonyms, analogue, variants)
+  /// - v13: `user_progress` 유니크 (user_id, hanja_id) — 계정별 진도 격리
+  ///
+  /// **중요**: migration은 "삭제-재생성" 방식을 절대 사용하지 않는다.
 /// 사용자의 학습 진도, 오답, 북마크는 핵심 자산이므로 파괴적 변경 금지.
 ///
 /// 코드 생성: `flutter pub run build_runner build --delete-conflicting-outputs`
@@ -56,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -197,6 +198,23 @@ class AppDatabase extends _$AppDatabase {
             // hanja_basis — 독음 정렬/검색에 사용
             await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_hanja_basis_reading ON hanja_basis(reading);',
+            );
+          }
+
+          // v12 → v13: user_progress 를 (user_id, hanja_id) 유니크로 전환
+          if (from < 13) {
+            // Drift가 만든 hanja_id 단일 UNIQUE 인덱스 제거 후 복합 UNIQUE 생성.
+            // SQLite는 ALTER로 UNIQUE 변경이 불가해 인덱스 교체로 처리한다.
+            await customStatement(
+              'DROP INDEX IF EXISTS user_progress_hanja_id;',
+            );
+            await customStatement(
+              'CREATE UNIQUE INDEX IF NOT EXISTS user_progress_user_id_hanja_id '
+              'ON user_progress(user_id, hanja_id);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_user_progress_user_id '
+              'ON user_progress(user_id);',
             );
           }
         },

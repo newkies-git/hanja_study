@@ -1,9 +1,16 @@
+import 'package:chusa1817/core/auth/auth_providers.dart';
 import 'package:chusa1817/core/database/app_database.dart';
 import 'package:chusa1817/core/providers/app_providers.dart';
-import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  @override
+  User? get currentUser => null;
+}
 
 void main() {
   test('recommendedReviewHanjaProvider returns UUID-based navigation tuple', () async {
@@ -28,6 +35,7 @@ void main() {
     await db.into(db.userProgressTable).insert(
           UserProgressTableCompanion.insert(
             id: 'progress-1',
+            userId: const Value(''),
             hanjaId: hanjaId,
             status: const Value('learning'),
             totalAttempts: const Value(5),
@@ -40,6 +48,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
+        firebaseAuthProvider.overrideWithValue(_FakeFirebaseAuth()),
       ],
     );
     addTearDown(container.dispose);
@@ -50,4 +59,3 @@ void main() {
     expect(result.first.$2, '佳');
   });
 }
-

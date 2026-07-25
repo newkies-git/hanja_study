@@ -10,7 +10,7 @@ import {
 } from "firebase/firestore";
 import { getFirestoreDb, isFirebaseConfigured } from "@/firebase";
 import { useAuthStore } from "@/stores/auth";
-import { isLocalApiEnabled, localApiUrl } from "@/config/localApi";
+import { isLocalApiEnabled, localApiFetch } from "@/config/localApi";
 
 export type CollectionName = "hanja_basis" | "hanja_extend" | "hanja_word";
 
@@ -174,13 +174,14 @@ export const useWorkbenchStore = defineStore("workbench", () => {
   }
 
   async function fetchLocalSession(): Promise<void> {
-    if (!isLocalApiEnabled) {
+    const auth = useAuthStore();
+    if (!isLocalApiEnabled || !auth.isAdmin) {
       localSession.value = null;
       return;
     }
     localSessionLoading.value = true;
     try {
-      const res = await fetch(localApiUrl("/api/session"));
+      const res = await localApiFetch("/api/session");
       const j = (await res.json()) as { data?: LocalWorkSession | null };
       if (j.data) {
         const id = Number(j.data.id);
@@ -199,10 +200,14 @@ export const useWorkbenchStore = defineStore("workbench", () => {
   }
 
   async function startLocalSession(description: string | null): Promise<void> {
+    const auth = useAuthStore();
     if (!isLocalApiEnabled) {
       throw new Error("로컬 API가 비활성화되어 있습니다. VITE_USE_LOCAL_API=true 로 설정하세요.");
     }
-    const res = await fetch(localApiUrl("/api/session"), {
+    if (!auth.isAdmin) {
+      throw new Error("로컬 채번은 admin 권한이 필요합니다.");
+    }
+    const res = await localApiFetch("/api/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description: description ?? null }),
@@ -229,12 +234,16 @@ export const useWorkbenchStore = defineStore("workbench", () => {
   }
 
   async function setLocalSessionDescription(description: string): Promise<void> {
+    const auth = useAuthStore();
     if (!isLocalApiEnabled) {
       throw new Error("로컬 API가 비활성화되어 있습니다. VITE_USE_LOCAL_API=true 로 설정하세요.");
     }
+    if (!auth.isAdmin) {
+      throw new Error("로컬 채번은 admin 권한이 필요합니다.");
+    }
     const s = localSession.value;
     if (!s) throw new Error("활성 채번이 없습니다.");
-    const res = await fetch(localApiUrl(`/api/session/${s.id}`), {
+    const res = await localApiFetch(`/api/session/${s.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ description }),

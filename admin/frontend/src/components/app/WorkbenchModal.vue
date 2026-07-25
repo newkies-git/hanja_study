@@ -49,9 +49,11 @@ watch(
       localError.value = null;
       document.addEventListener("keydown", handleKeyDown);
       void wb.fetchVersion();
-      void wb.fetchLocalSession().then(() => {
-        localSessionLogDraft.value = wb.localSession?.description ?? "";
-      });
+      if (auth.isAdmin) {
+        void wb.fetchLocalSession().then(() => {
+          localSessionLogDraft.value = wb.localSession?.description ?? "";
+        });
+      }
     } else {
       document.removeEventListener("keydown", handleKeyDown);
     }
@@ -131,8 +133,11 @@ async function saveLocalSessionLog() {
         </header>
 
         <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
-          <!-- 로컬 채번 -->
-          <section v-if="isLocalApiEnabled" class="rounded-xl border border-outline-variant/60 p-3">
+          <!-- 로컬 채번 (admin + 로컬 API) -->
+          <section
+            v-if="isLocalApiEnabled && auth.isAdmin"
+            class="rounded-xl border border-outline-variant/60 p-3"
+          >
             <h3 class="text-sm font-semibold text-onSurface">로컬 채번</h3>
             <p v-if="wb.localSessionLoading" class="mt-2 text-xs text-onSurface-variant">불러오는 중…</p>
             <template v-else>
@@ -189,7 +194,16 @@ async function saveLocalSessionLog() {
             </template>
           </section>
 
-          <p v-else class="rounded-lg border border-outline-variant/60 bg-surface-low/50 px-3 py-2 text-xs text-onSurface-variant">
+          <p
+            v-else-if="isLocalApiEnabled && !auth.isAdmin"
+            class="rounded-lg border border-outline-variant/60 bg-surface-low/50 px-3 py-2 text-xs text-onSurface-variant"
+          >
+            로컬 채번은 admin 권한이 필요합니다.
+          </p>
+          <p
+            v-else
+            class="rounded-lg border border-outline-variant/60 bg-surface-low/50 px-3 py-2 text-xs text-onSurface-variant"
+          >
             로컬 API가 꺼져 있습니다. 개발 시 <code class="font-mono text-[10px]">server.js</code>와
             <code class="font-mono text-[10px]">VITE_USE_LOCAL_API</code>를 확인하세요.
           </p>

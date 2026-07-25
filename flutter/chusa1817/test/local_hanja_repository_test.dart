@@ -1,14 +1,20 @@
 import 'package:chusa1817/core/database/app_database.dart';
 import 'package:chusa1817/core/database/repositories/local_repositories.dart';
 import 'package:drift/native.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeFirebaseAuth extends Fake implements FirebaseAuth {
+  @override
+  User? get currentUser => null;
+}
 
 void main() {
   test('LocalHanjaRepository.fetchTotalCount returns inserted count', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
 
-    final repository = LocalHanjaRepository(db);
+    final repository = LocalHanjaRepository(db, _FakeFirebaseAuth());
 
     await db.into(db.hanjaTable).insert(
           HanjaTableCompanion.insert(
@@ -40,4 +46,3 @@ void main() {
     expect(count, 2);
   });
 }
-

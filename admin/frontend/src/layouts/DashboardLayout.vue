@@ -9,10 +9,12 @@ import WorkbenchModal from "@/components/app/WorkbenchModal.vue";
 import { useDashboardShellLayoutStore } from "@/stores/dashboardShellLayout";
 import { useOnlineStatus } from "@/composables/useOnlineStatus";
 import { useWorkbenchStore } from "@/stores/workbench";
+import { useAuthStore } from "@/stores/auth";
 
 const layoutShell = useDashboardShellLayoutStore();
 const { isOnline } = useOnlineStatus();
 const workbench = useWorkbenchStore();
+const auth = useAuthStore();
 const route = useRoute();
 
 const isSplitManage = computed(() =>
@@ -20,6 +22,7 @@ const isSplitManage = computed(() =>
 );
 
 onMounted(() => {
+  if (!auth.isAdmin) return;
   void workbench.fetchVersion();
   void workbench.fetchLocalSession();
 });

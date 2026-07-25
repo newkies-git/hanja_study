@@ -42,9 +42,9 @@ const workbenchNeedsAttention = computed(() => hasServerPending.value);
     <div
       class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2.5 lg:gap-3"
     >
-      <!-- 변경관리: 로컬 채번 + 서버 버전 (비관리자도 채번 확인 가능) -->
+      <!-- 변경관리: admin 전용 (로컬 채번 + 서버 버전 발행) -->
       <button
-        v-if="auth.isAuthenticated"
+        v-if="auth.isAdmin"
         type="button"
         class="relative flex max-w-[min(100%,14rem)] items-center gap-1.5 truncate rounded-lg border px-2.5 py-1.5 text-xs font-medium transition sm:max-w-[18rem]"
         :class="

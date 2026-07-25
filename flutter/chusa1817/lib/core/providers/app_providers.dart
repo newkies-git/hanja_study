@@ -22,7 +22,10 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 
 /// 한자 Repository Provider.
 final hanjaRepositoryProvider = Provider<HanjaRepository>((ref) {
-  return LocalHanjaRepository(ref.watch(appDatabaseProvider));
+  return LocalHanjaRepository(
+    ref.watch(appDatabaseProvider),
+    ref.watch(firebaseAuthProvider),
+  );
 });
 
 final progressRepositoryProvider = Provider<ProgressRepository>((ref) {

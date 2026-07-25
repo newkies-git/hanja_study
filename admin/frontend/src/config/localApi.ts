@@ -4,9 +4,14 @@
  * - `true` / `false` 등으로 **명시**하면 그 값이 우선한다.
  * `localApiFetch`는 꺼져 있으면 즉시 reject 한다.
  *
- * 선택: `VITE_LOCAL_API_BASE_URL` (예: `http://localhost:3000`) — 비우면
+ * 서버는 Firebase ID 토큰 + `admin` 클레임을 요구한다.
+ * `localApiFetch`가 로그인 사용자의 Bearer 토큰을 붙인다.
+ *
+ * 선택: `VITE_LOCAL_API_BASE_URL` (예: `http://127.0.0.1:3000`) — 비우면
  * 동일 오리진의 `/api`(Vite dev 프록시 등).
  */
+
+import { getFirebaseAuth, isFirebaseConfigured } from "@/firebase";
 
 function parseEnvFlag(raw: unknown): boolean {
   if (raw === true) return true;
@@ -30,11 +35,27 @@ export function localApiUrl(path: string): string {
   return p;
 }
 
-export function localApiFetch(path: string, init?: RequestInit): Promise<Response> {
+async function resolveLocalApiBearerToken(): Promise<string> {
+  if (!isFirebaseConfigured()) {
+    throw new Error("로컬 API에는 Firebase 로그인이 필요합니다.");
+  }
+  const user = getFirebaseAuth().currentUser;
+  if (!user) {
+    throw new Error("로컬 API 호출 전 로그인이 필요합니다.");
+  }
+  return user.getIdToken();
+}
+
+export async function localApiFetch(path: string, init?: RequestInit): Promise<Response> {
   if (!isLocalApiEnabled) {
     return Promise.reject(
       new Error("로컬 API가 비활성화되어 있습니다. 개발 시 .env에 VITE_USE_LOCAL_API=true 를 설정하세요."),
     );
   }
-  return fetch(localApiUrl(path), init);
+  const headers = new Headers(init?.headers);
+  if (!headers.has("Authorization")) {
+    const token = await resolveLocalApiBearerToken();
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return fetch(localApiUrl(path), { ...init, headers });
 }
