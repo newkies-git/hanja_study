@@ -100,6 +100,7 @@ class ContentSyncScreen extends ConsumerWidget {
                       ContentSyncProgressSection(
                         progress: syncProgress,
                         isSyncLoading: isLoading,
+                        hasError: syncState.hasError,
                       ),
                       const SizedBox(height: 8),
                       Opacity(
@@ -107,14 +108,16 @@ class ContentSyncScreen extends ConsumerWidget {
                         child: IgnorePointer(
                           ignoring: isLoading,
                           child: GradientPrimaryButton(
-                            label: isLoading ? '동기화 중…' : '지금 동기화',
+                            label: isLoading
+                                ? '동기화 중…'
+                                : (syncState.hasError ? '다시 시도' : '지금 동기화'),
                             onPressed: () async {
                               if (ref.read(contentSyncControllerProvider).isLoading) {
                                 return;
                               }
                               final outcome = await ref
                                   .read(contentSyncControllerProvider.notifier)
-                                  .syncFromFirestoreNow();
+                                  .syncFromFirestoreNow(force: syncState.hasError);
                               if (!context.mounted) return;
                               final async = ref.read(contentSyncControllerProvider);
                               final String message;

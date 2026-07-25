@@ -11,10 +11,12 @@ class ContentSyncProgressSection extends StatelessWidget {
     super.key,
     required this.progress,
     required this.isSyncLoading,
+    this.hasError = false,
   });
 
   final ContentSyncProgressState? progress;
   final bool isSyncLoading;
+  final bool hasError;
 
   static const List<(ContentSyncStage, String)> _rows = [
     (ContentSyncStage.resetLocal, '로컬 테이블 초기화'),
@@ -27,7 +29,7 @@ class ContentSyncProgressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isSyncLoading && progress == null) {
+    if (!isSyncLoading && progress == null && !hasError) {
       return const SizedBox.shrink();
     }
 
@@ -59,7 +61,7 @@ class ContentSyncProgressSection extends StatelessWidget {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: _leadingIcon(effective, rowStage),
+                    child: _leadingIcon(effective, rowStage, hasError: hasError),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -76,7 +78,7 @@ class ContentSyncProgressSection extends StatelessWidget {
                           Text(
                             detail,
                             style: textTheme.bodySmall?.copyWith(
-                              color: HanjaColors.onSurfaceVariant,
+                              color: hasError ? HanjaColors.error : HanjaColors.onSurfaceVariant,
                             ),
                           ),
                       ],
@@ -91,8 +93,15 @@ class ContentSyncProgressSection extends StatelessWidget {
     );
   }
 
-  static Widget _leadingIcon(ContentSyncStage current, ContentSyncStage row) {
+  static Widget _leadingIcon(ContentSyncStage current, ContentSyncStage row, {bool hasError = false}) {
     const double size = 18;
+    if (hasError && current == row) {
+      return Icon(
+        Icons.error_outline,
+        size: size,
+        color: HanjaColors.error,
+      );
+    }
     if (current == ContentSyncStage.idle) {
       return Icon(
         Icons.radio_button_unchecked,
