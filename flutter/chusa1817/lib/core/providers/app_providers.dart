@@ -151,18 +151,6 @@ final streakDaysProvider = FutureProvider<int>((ref) {
   return ref.watch(progressRepositoryProvider).fetchStreakDays();
 });
 
-final weeklyStudyCountsProvider = FutureProvider<List<int>>((ref) async {
-  final counts = await ref.watch(progressRepositoryProvider).fetchDailyStudyCounts(days: 7);
-  final DateTime now = DateTime.now();
-  final DateTime start =
-      DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
-  return List.generate(7, (i) {
-    final date = start.add(Duration(days: i));
-    final day = DateTime(date.year, date.month, date.day);
-    return counts[day] ?? 0;
-  });
-});
-
 final weeklyActivityBreakdownProvider =
     FutureProvider<({List<int> completed, List<int> learning, List<int> total})>((ref) async {
   final map = await ref.watch(progressRepositoryProvider).fetchDailyActivityStatusCounts(days: 7);

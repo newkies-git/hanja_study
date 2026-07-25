@@ -38,35 +38,35 @@ function readFirebaseWebClientConfigOrNull() {
   };
 }
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuth: Auth | null = null;
+let firestoreDatabase: Firestore | null = null;
 
 export function isFirebaseConfigured(): boolean {
   return readFirebaseWebClientConfigOrNull() !== null;
 }
 
 export function getFirebaseApp(): FirebaseApp {
-  if (!app) {
-    const cfg = readFirebaseWebClientConfigOrNull();
-    if (!cfg) {
+  if (!firebaseApp) {
+    const firebaseWebClientConfig = readFirebaseWebClientConfigOrNull();
+    if (!firebaseWebClientConfig) {
       throw new Error("Firebase 환경 변수가 설정되지 않았습니다. .env.example 참고.");
     }
-    app = initializeApp(cfg);
+    firebaseApp = initializeApp(firebaseWebClientConfig);
   }
-  return app;
+  return firebaseApp;
 }
 
 export function getFirebaseAuth(): Auth {
-  if (!auth) {
-    auth = getAuth(getFirebaseApp());
+  if (!firebaseAuth) {
+    firebaseAuth = getAuth(getFirebaseApp());
   }
-  return auth;
+  return firebaseAuth;
 }
 
 export function getFirestoreDb(): Firestore {
-  if (!db) {
-    db = getFirestore(getFirebaseApp());
+  if (!firestoreDatabase) {
+    firestoreDatabase = getFirestore(getFirebaseApp());
   }
-  return db;
+  return firestoreDatabase;
 }

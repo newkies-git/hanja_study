@@ -37,12 +37,6 @@ export const COLLECTION_NAMES: CollectionName[] = [
   "hanja_word",
 ];
 
-export const COLLECTION_LABELS: Record<CollectionName, string> = {
-  hanja_basis: "Firestore 한자 (hanja_basis)",
-  hanja_extend: "확장 메타 (hanja_extend)",
-  hanja_word: "단어·성어 (hanja_word)",
-};
-
 /**
  * 로컬 작업(채번·sync_sessions)과 서버 반영(Firestore _meta/data_version)을 한 흐름으로 관리합니다.
  * - 로컬: 편집 시 change_number에 쓰일 활성 세션. 동기화로 서버에 올리면 작업 단위가 끝납니다.

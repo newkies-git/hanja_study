@@ -42,24 +42,6 @@ export interface HanjaReading {
   primary: boolean;
 }
 
-/** hanja_basis 알려진 필드 목록 (클립보드 컬럼 매핑에서 사용) */
-export const HANJA_BASIS_FIELDS = [
-  "한자",
-  "음",
-  "훈",
-  "훈음",
-  "전체",
-  "grade",
-  "readings",
-  "synonyms",
-  "antonyms",
-  "etymology",
-  "meaning",
-  "words",
-  "idioms",
-  "etl",
-] as const;
-
 /** 확장 묶음 기준 최대 `max`자 슬라이스 */
 export function sliceGraphemes(value: unknown, max: number): string {
   if (max <= 0) return "";

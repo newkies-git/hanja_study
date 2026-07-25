@@ -5,10 +5,10 @@ import { useAuthStore } from "@/stores/auth";
 import { useWorkbenchStore } from "@/stores/workbench";
 
 const layoutShell = useDashboardShellLayoutStore();
-const auth = useAuthStore();
-const workbench = useWorkbenchStore();
+const authStore = useAuthStore();
+const workbenchStore = useWorkbenchStore();
 
-const hasServerPending = computed(() => workbench.pendingCollections.length > 0);
+const hasServerPending = computed(() => workbenchStore.pendingCollections.length > 0);
 const workbenchNeedsAttention = computed(() => hasServerPending.value);
 </script>
 
@@ -44,7 +44,7 @@ const workbenchNeedsAttention = computed(() => hasServerPending.value);
     >
       <!-- 변경관리: admin 전용 (로컬 채번 + 서버 버전 발행) -->
       <button
-        v-if="auth.isAdmin"
+        v-if="authStore.isAdmin"
         type="button"
         class="relative flex max-w-[min(100%,14rem)] items-center gap-1.5 truncate rounded-lg border px-2.5 py-1.5 text-xs font-medium transition sm:max-w-[18rem]"
         :class="
@@ -57,7 +57,7 @@ const workbenchNeedsAttention = computed(() => hasServerPending.value);
           (hasServerPending ? '서버에 미발행 변경이 있습니다.' : '클릭하여 채번·발행을 관리합니다.')
         "
         aria-label="변경관리"
-        @click="workbench.openWorkbenchModal"
+        @click="workbenchStore.openWorkbenchModal"
       >
         <span
           v-if="workbenchNeedsAttention"
@@ -68,14 +68,14 @@ const workbenchNeedsAttention = computed(() => hasServerPending.value);
       </button>
 
       <span
-        v-if="auth.isAdmin"
+        v-if="authStore.isAdmin"
         class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary sm:px-2.5 sm:text-xs"
         >admin</span
       >
       <button
         type="button"
         class="btn-secondary shrink-0 whitespace-nowrap px-2.5 py-2 text-xs sm:px-3 sm:text-sm"
-        @click="auth.logout"
+        @click="authStore.logout"
       >
         로그아웃
       </button>

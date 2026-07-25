@@ -9,9 +9,9 @@ import { isLocalApiEnabled } from "@/config/localApi";
 const props = defineProps<{ open: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
-const wb = useWorkbenchStore();
+const workbenchStore = useWorkbenchStore();
 const notifications = useNotificationsStore();
-const auth = useAuthStore();
+const authStore = useAuthStore();
 
 const containerRef = ref<HTMLElement | null>(null);
 useFocusTrap(containerRef, () => props.open);
@@ -22,7 +22,7 @@ const localError = ref<string | null>(null);
 const localSessionLogDraft = ref("");
 const localBusy = ref(false);
 
-const nextGlobal = computed(() => (wb.version?.global ?? 0) + 1);
+const nextGlobal = computed(() => (workbenchStore.version?.global ?? 0) + 1);
 
 function formatDate(d: Date | null): string {
   if (!d) return "—";
@@ -48,10 +48,10 @@ watch(
       serverError.value = null;
       localError.value = null;
       document.addEventListener("keydown", handleKeyDown);
-      void wb.fetchVersion();
-      if (auth.isAdmin) {
-        void wb.fetchLocalSession().then(() => {
-          localSessionLogDraft.value = wb.localSession?.description ?? "";
+      void workbenchStore.fetchVersion();
+      if (authStore.isAdmin) {
+        void workbenchStore.fetchLocalSession().then(() => {
+          localSessionLogDraft.value = workbenchStore.localSession?.description ?? "";
         });
       }
     } else {
@@ -63,8 +63,8 @@ watch(
 async function publishServer() {
   serverError.value = null;
   try {
-    await wb.publish(serverNotes.value);
-    notifications.success(`서버 데이터 v${wb.version?.global ?? "?"} 발행 완료`);
+    await workbenchStore.publish(serverNotes.value);
+    notifications.success(`서버 데이터 v${workbenchStore.version?.global ?? "?"} 발행 완료`);
     emit("close");
   } catch (e) {
     serverError.value = e instanceof Error ? e.message : "발행에 실패했습니다.";
@@ -78,9 +78,9 @@ async function submitNewLocalSession() {
   localError.value = null;
   localBusy.value = true;
   try {
-    await wb.startLocalSession(localSessionLogDraft.value.trim() || null);
-    localSessionLogDraft.value = wb.localSession?.description ?? "";
-    const sid = wb.localSession?.id;
+    await workbenchStore.startLocalSession(localSessionLogDraft.value.trim() || null);
+    localSessionLogDraft.value = workbenchStore.localSession?.description ?? "";
+    const sid = workbenchStore.localSession?.id;
     notifications.success(sid != null ? `채번 #${sid} 발급` : "채번 발급 완료");
   } catch (e) {
     localError.value = e instanceof Error ? e.message : "채번 발급에 실패했습니다.";
@@ -91,12 +91,12 @@ async function submitNewLocalSession() {
 }
 
 async function saveLocalSessionLog() {
-  if (!wb.localSession || localBusy.value) return;
+  if (!workbenchStore.localSession || localBusy.value) return;
   localError.value = null;
   localBusy.value = true;
   try {
-    await wb.setLocalSessionDescription(localSessionLogDraft.value.trim());
-    localSessionLogDraft.value = wb.localSession?.description ?? "";
+    await workbenchStore.setLocalSessionDescription(localSessionLogDraft.value.trim());
+    localSessionLogDraft.value = workbenchStore.localSession?.description ?? "";
     notifications.success("변경 이력 저장됨");
   } catch (e) {
     localError.value = e instanceof Error ? e.message : "저장에 실패했습니다.";
@@ -135,24 +135,24 @@ async function saveLocalSessionLog() {
         <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-5">
           <!-- 로컬 채번 (admin + 로컬 API) -->
           <section
-            v-if="isLocalApiEnabled && auth.isAdmin"
+            v-if="isLocalApiEnabled && authStore.isAdmin"
             class="rounded-xl border border-outline-variant/60 p-3"
           >
             <h3 class="text-sm font-semibold text-onSurface">로컬 채번</h3>
-            <p v-if="wb.localSessionLoading" class="mt-2 text-xs text-onSurface-variant">불러오는 중…</p>
+            <p v-if="workbenchStore.localSessionLoading" class="mt-2 text-xs text-onSurface-variant">불러오는 중…</p>
             <template v-else>
               <p class="mt-1 text-xs text-onSurface-variant">
                 활성:
-                <span v-if="wb.localSession" class="font-mono font-semibold text-primary"
-                  >#{{ wb.localSession.id }}</span
+                <span v-if="workbenchStore.localSession" class="font-mono font-semibold text-primary"
+                  >#{{ workbenchStore.localSession.id }}</span
                 >
                 <span v-else class="text-red-600">없음</span>
               </p>
-              <label class="mt-2 block text-[11px] font-medium text-onSurface-variant" for="wb-local-log"
+              <label class="mt-2 block text-[11px] font-medium text-onSurface-variant" for="workbench-local-log"
                 >변경 이력 (선택)</label
               >
               <textarea
-                id="wb-local-log"
+                id="workbench-local-log"
                 v-model="localSessionLogDraft"
                 rows="3"
                 :disabled="localBusy"
@@ -164,7 +164,7 @@ async function saveLocalSessionLog() {
               </div>
               <div class="mt-2 flex flex-wrap gap-2">
                 <button
-                  v-if="!wb.localSession"
+                  v-if="!workbenchStore.localSession"
                   type="button"
                   class="btn-primary px-3 py-1.5 text-xs"
                   :disabled="localBusy"
@@ -195,7 +195,7 @@ async function saveLocalSessionLog() {
           </section>
 
           <p
-            v-else-if="isLocalApiEnabled && !auth.isAdmin"
+            v-else-if="isLocalApiEnabled && !authStore.isAdmin"
             class="rounded-lg border border-outline-variant/60 bg-surface-low/50 px-3 py-2 text-xs text-onSurface-variant"
           >
             로컬 채번은 admin 권한이 필요합니다.
@@ -209,33 +209,33 @@ async function saveLocalSessionLog() {
           </p>
 
           <!-- 서버 발행 -->
-          <section v-if="auth.isAdmin" class="rounded-xl border border-outline-variant/60 p-3">
+          <section v-if="authStore.isAdmin" class="rounded-xl border border-outline-variant/60 p-3">
             <h3 class="text-sm font-semibold text-onSurface">서버 데이터 발행</h3>
             <div v-if="serverError" class="mt-2 rounded border border-red-200 bg-red-50/90 px-2 py-1.5 text-xs text-red-900">
               {{ serverError }}
             </div>
-            <label class="mt-2 block text-[11px] font-medium text-onSurface-variant" for="wb-server-notes">발행 메모</label>
+            <label class="mt-2 block text-[11px] font-medium text-onSurface-variant" for="workbench-server-notes">발행 메모</label>
             <textarea
-              id="wb-server-notes"
+              id="workbench-server-notes"
               v-model="serverNotes"
               rows="2"
-              :disabled="wb.isPublishing"
+              :disabled="workbenchStore.isPublishing"
               class="input-minimal mt-1 w-full resize-none py-2 text-sm"
             />
             <p class="mt-2 text-xs text-onSurface-variant">
-              global v{{ wb.version?.global ?? 0 }} → v{{ nextGlobal }}
-              <template v-if="wb.version?.publishedAt">
-                · 마지막 {{ formatDate(wb.version.publishedAt) }}
+              global v{{ workbenchStore.version?.global ?? 0 }} → v{{ nextGlobal }}
+              <template v-if="workbenchStore.version?.publishedAt">
+                · 마지막 {{ formatDate(workbenchStore.version.publishedAt) }}
               </template>
             </p>
             <div class="mt-2 flex justify-end">
               <button
                 type="button"
                 class="btn-primary px-3 py-1.5 text-sm"
-                :disabled="wb.isPublishing"
+                :disabled="workbenchStore.isPublishing"
                 @click="publishServer"
               >
-                {{ wb.isPublishing ? "발행 중…" : "발행" }}
+                {{ workbenchStore.isPublishing ? "발행 중…" : "발행" }}
               </button>
             </div>
           </section>

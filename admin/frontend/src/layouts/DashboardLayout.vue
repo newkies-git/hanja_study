@@ -13,8 +13,8 @@ import { useAuthStore } from "@/stores/auth";
 
 const layoutShell = useDashboardShellLayoutStore();
 const { isOnline } = useOnlineStatus();
-const workbench = useWorkbenchStore();
-const auth = useAuthStore();
+const workbenchStore = useWorkbenchStore();
+const authStore = useAuthStore();
 const route = useRoute();
 
 const isSplitManage = computed(() =>
@@ -22,9 +22,9 @@ const isSplitManage = computed(() =>
 );
 
 onMounted(() => {
-  if (!auth.isAdmin) return;
-  void workbench.fetchVersion();
-  void workbench.fetchLocalSession();
+  if (!authStore.isAdmin) return;
+  void workbenchStore.fetchVersion();
+  void workbenchStore.fetchLocalSession();
 });
 </script>
 
@@ -81,5 +81,5 @@ onMounted(() => {
     />
   </div>
   <ToastNotifications />
-  <WorkbenchModal :open="workbench.workbenchModalOpen" @close="workbench.closeWorkbenchModal" />
+  <WorkbenchModal :open="workbenchStore.workbenchModalOpen" @close="workbenchStore.closeWorkbenchModal" />
 </template>
