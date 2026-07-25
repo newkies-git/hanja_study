@@ -22,6 +22,7 @@ part 'app_database.g.dart';
 /// - v3: 사용자 스코프 필드 (`user_progress.user_id`)
   /// - v12: `hanja_basis` 관계어 컬럼 (synonyms, antonyms, analogue, variants)
   /// - v13: `user_progress` 유니크 (user_id, hanja_id) — 계정별 진도 격리
+  /// - v14: 복습·일별 활동 복합 인덱스 (user_id + next_review_at/status/date)
   ///
   /// **중요**: migration은 "삭제-재생성" 방식을 절대 사용하지 않는다.
 /// 사용자의 학습 진도, 오답, 북마크는 핵심 자산이므로 파괴적 변경 금지.
@@ -57,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
   /// 새 테이블/컬럼 추가 시 이 값을 올리고, [migration]의 [onUpgrade]에
   /// 해당 버전 분기를 반드시 추가해야 한다.
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -215,6 +216,22 @@ class AppDatabase extends _$AppDatabase {
             await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_user_progress_user_id '
               'ON user_progress(user_id);',
+            );
+          }
+
+          // v13 → v14: 복습·일별 활동 복합 인덱스
+          if (from < 14) {
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_user_progress_user_next_review '
+              'ON user_progress(user_id, next_review_at);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_user_progress_user_status '
+              'ON user_progress(user_id, status);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_daily_hanja_activity_user_date '
+              'ON daily_hanja_activity(user_id, date);',
             );
           }
         },

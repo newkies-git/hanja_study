@@ -19,6 +19,14 @@ class LocalProgressRepository implements ProgressRepository {
 
   String get _currentUserId => _firebaseAuth.currentUser?.uid ?? '';
 
+  bool get _hasSignedInUser => _currentUserId.isNotEmpty;
+
+  void _ensureSignedInUserForProgressWrite() {
+    if (!_hasSignedInUser) {
+      throw StateError('진도 저장에는 로그인된 사용자가 필요합니다.');
+    }
+  }
+
   Expression<bool> _ownedByCurrentUser($UserProgressTableTable t) =>
       t.userId.equals(_currentUserId);
 
@@ -26,15 +34,18 @@ class LocalProgressRepository implements ProgressRepository {
       t.userId.equals(_currentUserId);
 
   @override
-  Future<UserProgressTableData?> fetchProgress(String hanjaId) =>
-      (_database.select(_database.userProgressTable)
-            ..where(
-              (t) => t.hanjaId.equals(hanjaId) & _ownedByCurrentUser(t),
-            ))
-          .getSingleOrNull();
+  Future<UserProgressTableData?> fetchProgress(String hanjaId) {
+    if (!_hasSignedInUser) return Future.value(null);
+    return (_database.select(_database.userProgressTable)
+          ..where(
+            (t) => t.hanjaId.equals(hanjaId) & _ownedByCurrentUser(t),
+          ))
+        .getSingleOrNull();
+  }
 
   @override
   Future<List<UserProgressTableData>> fetchDueForReview({int limit = 10}) {
+    if (!_hasSignedInUser) return Future.value([]);
     final DateTime now = DateTime.now();
     return (_database.select(_database.userProgressTable)
           ..where(
@@ -50,6 +61,7 @@ class LocalProgressRepository implements ProgressRepository {
 
   @override
   Future<List<UserProgressTableData>> fetchUpcomingForReview({int limit = 10}) {
+    if (!_hasSignedInUser) return Future.value([]);
     final DateTime now = DateTime.now();
     return (_database.select(_database.userProgressTable)
           ..where(
@@ -65,6 +77,7 @@ class LocalProgressRepository implements ProgressRepository {
 
   @override
   Future<int> fetchUpcomingForReviewCount() async {
+    if (!_hasSignedInUser) return 0;
     final DateTime now = DateTime.now();
     final rows = await (_database.select(_database.userProgressTable)
           ..where(
@@ -160,6 +173,7 @@ class LocalProgressRepository implements ProgressRepository {
 
   @override
   Future<void> toggleBookmark(String hanjaId) async {
+    _ensureSignedInUserForProgressWrite();
     final existing = await fetchProgress(hanjaId);
     final DateTime now = DateTime.now();
 
@@ -184,8 +198,9 @@ class LocalProgressRepository implements ProgressRepository {
     required DateTime studiedAt,
     required bool isCorrect,
     bool? isBookmarked,
-    String? forceStatus, // 'learning' | 'mastered'
+    int? quality,
   }) async {
+    _ensureSignedInUserForProgressWrite();
     final existing = await fetchProgress(hanjaId);
     final DateTime now = DateTime.now();
 
@@ -195,57 +210,52 @@ class LocalProgressRepository implements ProgressRepository {
     final double accuracyRate =
         totalAttempts == 0 ? 0.0 : correctAttempts / totalAttempts;
 
-    // ── SM-2 알고리즘 계산 ────────────────────────────────────────────────
+    // SM-2: quality 0–5 (없으면 정답=4 / 오답=1)
+    final int responseQuality = (quality ?? (isCorrect ? 4 : 1)).clamp(0, 5);
+
     int n = existing?.reviewCount ?? 0;
     int interval = existing?.intervalDays ?? 0;
     double ef = existing?.easeFactor ?? 2.5;
 
     final DateTime nextReviewAt;
 
-    if (isCorrect) {
-      // 정답인 경우 (q=4 정도로 가정)
+    if (responseQuality >= 3) {
       if (n == 0) {
         interval = 1;
       } else if (n == 1) {
         interval = 6;
       } else {
-        interval = (interval * ef).round();
+        interval = (interval * ef).round().clamp(1, 3650);
       }
       n++;
-      // EF 업데이트 (q=4 기준: EF' = EF + (0.1 - (5-4)*(0.08+(5-4)*0.02)) = EF - 0.0)
-      // 여기서는 정답 시 EF를 유지하거나 미세하게 조정
-      ef = ef + (0.1 - (5 - 4) * (0.08 + (5 - 4) * 0.02));
+      ef = ef + (0.1 - (5 - responseQuality) * (0.08 + (5 - responseQuality) * 0.02));
     } else {
-      // 오답인 경우 (q=0~2)
       n = 0;
-      interval = 1; // 즉시 다시 학습하도록 1일 설정 (또는 수 시간 내)
-      // 오답 시 EF 감소: EF = EF - 0.2 (하한 1.3)
+      interval = 1;
       ef = (ef - 0.2).clamp(1.3, 2.5);
     }
 
     if (ef < 1.3) ef = 1.3;
     nextReviewAt = DateTime(now.year, now.month, now.day).add(Duration(days: interval));
 
-    // SM-2: 오답 시 lapse — learning 단계로 복귀
-    final String progressStatus = isCorrect
+    final String progressStatus = responseQuality >= 3
         ? (n >= 4 ? 'mastered' : 'learning')
         : 'learning';
-    final String resolvedStatus = (forceStatus == null || forceStatus.isEmpty)
-        ? progressStatus
-        : forceStatus;
 
     await _database.into(_database.userProgressTable).insertOnConflictUpdate(
           UserProgressTableCompanion(
             id: Value(id),
             userId: Value(_currentUserId),
             hanjaId: Value(hanjaId),
-            status: Value(resolvedStatus),
+            status: Value(progressStatus),
             totalAttempts: Value(totalAttempts),
             correctAttempts: Value(correctAttempts),
             accuracyRate: Value(accuracyRate),
             lastStudiedAt: Value(studiedAt),
             nextReviewAt: Value(nextReviewAt),
-            isBookmarked: isBookmarked != null ? Value(isBookmarked) : Value(existing?.isBookmarked ?? false),
+            isBookmarked: isBookmarked != null
+                ? Value(isBookmarked)
+                : Value(existing?.isBookmarked ?? false),
             reviewCount: Value(n),
             intervalDays: Value(interval),
             easeFactor: Value(ef),
@@ -295,7 +305,7 @@ class LocalProgressRepository implements ProgressRepository {
     final activityId = '${date.millisecondsSinceEpoch}_${userId}_$hanjaId';
     // 일별 집계는 "전체 누적 진도"와 같은 기준을 써야 주간/전체 현황이 일관된다.
     // SM-2: mastered → 'mastered', 그 외 → 'learning'
-    final bool isMastered = resolvedStatus == 'mastered';
+    final bool isMastered = progressStatus == 'mastered';
 
     await _database.into(_database.dailyHanjaActivityTable).insertOnConflictUpdate(
           DailyHanjaActivityTableCompanion(
@@ -342,6 +352,7 @@ class LocalProgressRepository implements ProgressRepository {
     required bool isAscending,
     required String schoolLevel,
   }) async {
+    _ensureSignedInUserForProgressWrite();
     final DateTime now = DateTime.now();
     final DateTime todayDate = DateTime(now.year, now.month, now.day);
     final String todayDateStr =
@@ -368,13 +379,13 @@ class LocalProgressRepository implements ProgressRepository {
         }
       }
 
-      // 미완료 행 이월
+      // 미완료 행 전부 이월 (목표량으로 자르지 않음)
       final incomplete = await (_database.select(_database.dailyHanjaActivityTable)
             ..where((t) =>
                 _dailyOwnedByCurrentUser(t) &
                 t.status.equals('mastered').not() &
                 t.date.isSmallerThanValue(todayDate))
-            ..limit(dailyGoal))
+            ..orderBy([(t) => OrderingTerm.asc(t.date)]))
           .get();
 
       final currentTodayHanjaIds = (await (_database.select(_database.dailyHanjaActivityTable)
@@ -595,7 +606,7 @@ class LocalProgressRepository implements ProgressRepository {
               id: Value(id),
               userId: Value(userId),
               hanjaId: Value(hanja.id),
-              status: const Value('review_needed'),
+              status: const Value('learning'),
               totalAttempts: const Value(totalAttempts),
               correctAttempts: const Value(correctAttempts),
               accuracyRate: const Value(accuracyRate),

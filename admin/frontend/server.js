@@ -363,6 +363,100 @@ app.put('/api/session/:id', (req, res) => {
     res.json({ data: session });
 });
 
+const upsertHanjaStmt = db.prepare(`
+    INSERT INTO hanja (
+        id, char_str, reading, meaning, radical, radical_meaning,
+        stroke_count, school_level,
+        shape_explanation, etymology, difficulty, readings,
+        synonyms, antonyms, analogue, variants, origin_note, sync_status, change_number
+    ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ADDED', ?
+    )
+    ON CONFLICT(id) DO UPDATE SET
+        char_str = coalesce(excluded.char_str, char_str),
+        reading = coalesce(excluded.reading, reading),
+        meaning = coalesce(excluded.meaning, meaning),
+        radical = coalesce(excluded.radical, radical),
+        radical_meaning = coalesce(excluded.radical_meaning, radical_meaning),
+        stroke_count = coalesce(excluded.stroke_count, stroke_count),
+        school_level = coalesce(excluded.school_level, school_level),
+        shape_explanation = coalesce(excluded.shape_explanation, shape_explanation),
+        etymology = coalesce(excluded.etymology, etymology),
+        difficulty = coalesce(excluded.difficulty, difficulty),
+        readings = excluded.readings,
+        synonyms = excluded.synonyms,
+        antonyms = excluded.antonyms,
+        analogue = excluded.analogue,
+        variants = excluded.variants,
+        origin_note = excluded.origin_note,
+        sync_status = CASE WHEN sync_status = 'ADDED' THEN 'ADDED' ELSE 'MODIFIED' END,
+        change_number = excluded.change_number
+`);
+
+function runHanjaUpsert(body) {
+    if (!body?.id || !body?.change_number) {
+        throw new Error('id and change_number are required');
+    }
+    upsertHanjaStmt.run(
+        body.id,
+        body.char_str || body.id,
+        body.reading,
+        body.meaning,
+        body.radical,
+        body.radical_meaning,
+        body.stroke_count,
+        body.school_level,
+        body.shape_explanation,
+        body.etymology ?? body.Etymology,
+        body.difficulty,
+        JSON.stringify(body.readings || []),
+        JSON.stringify(body.synonyms || []),
+        JSON.stringify(body.antonyms || []),
+        JSON.stringify(body.analogue || body.Analogue || []),
+        JSON.stringify(body.variants || []),
+        JSON.stringify(body.extend ?? {}),
+        body.change_number,
+    );
+}
+
+const upsertHanjaBatch = db.transaction((items) => {
+    for (const body of items) {
+        runHanjaUpsert(body);
+    }
+});
+
+// PUT /api/hanja/upsert : Create or update hanja (used by server-to-local sync)
+// NOTE: must be registered before PUT /api/hanja/:id
+app.put('/api/hanja/upsert', (req, res) => {
+    try {
+        runHanjaUpsert(req.body);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        const status = err.message?.includes('required') ? 400 : 500;
+        res.status(status).json({ error: err.message || 'Failed to upsert' });
+    }
+});
+
+// PUT /api/hanja/bulk-upsert : 배치 upsert (서버→로컬 동기화)
+app.put('/api/hanja/bulk-upsert', (req, res) => {
+    const items = Array.isArray(req.body?.items) ? req.body.items : null;
+    if (!items) {
+        return res.status(400).json({ error: 'items array is required' });
+    }
+    if (items.length > 500) {
+        return res.status(400).json({ error: 'items length must be <= 500' });
+    }
+    try {
+        upsertHanjaBatch(items);
+        res.json({ success: true, count: items.length });
+    } catch (err) {
+        console.error(err);
+        const status = err.message?.includes('required') ? 400 : 500;
+        res.status(status).json({ error: err.message || 'Failed to bulk upsert' });
+    }
+});
+
 // PUT /api/hanja/:id : Update detail data
 app.put('/api/hanja/:id', (req, res) => {
     const { id } = req.params;
@@ -479,63 +573,6 @@ app.post('/api/hanja', (req, res) => {
     }
 });
 
-// PUT /api/hanja/upsert : Create or update hanja (used by server-to-local sync)
-app.put('/api/hanja/upsert', (req, res) => {
-    const body = req.body;
-
-    if (!body.id || !body.change_number) {
-        return res.status(400).json({ error: 'id and change_number are required' });
-    }
-
-    const readingsStr = JSON.stringify(body.readings || []);
-    const synonymsStr = JSON.stringify(body.synonyms || []);
-    const antonymsStr = JSON.stringify(body.antonyms || []);
-    const analogueStr = JSON.stringify(body.analogue || body.Analogue || []);
-    const variantsStr = JSON.stringify(body.variants || []);
-    const extendStr = JSON.stringify(body.extend ?? {});
-
-    try {
-        db.prepare(`
-            INSERT INTO hanja (
-                id, char_str, reading, meaning, radical, radical_meaning,
-                stroke_count, school_level,
-                shape_explanation, etymology, difficulty, readings,
-                synonyms, antonyms, analogue, variants, origin_note, sync_status, change_number
-            ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ADDED', ?
-            )
-            ON CONFLICT(id) DO UPDATE SET
-                char_str = coalesce(excluded.char_str, char_str),
-                reading = coalesce(excluded.reading, reading),
-                meaning = coalesce(excluded.meaning, meaning),
-                radical = coalesce(excluded.radical, radical),
-                radical_meaning = coalesce(excluded.radical_meaning, radical_meaning),
-                stroke_count = coalesce(excluded.stroke_count, stroke_count),
-                school_level = coalesce(excluded.school_level, school_level),
-                shape_explanation = coalesce(excluded.shape_explanation, shape_explanation),
-                etymology = coalesce(excluded.etymology, etymology),
-                difficulty = coalesce(excluded.difficulty, difficulty),
-                readings = excluded.readings,
-                synonyms = excluded.synonyms,
-                antonyms = excluded.antonyms,
-                analogue = excluded.analogue,
-                variants = excluded.variants,
-                origin_note = excluded.origin_note,
-                sync_status = CASE WHEN sync_status = 'ADDED' THEN 'ADDED' ELSE 'MODIFIED' END,
-                change_number = excluded.change_number
-        `).run(
-            body.id, body.char_str || body.id, body.reading, body.meaning, body.radical, body.radical_meaning,
-            body.stroke_count, body.school_level,
-            body.shape_explanation, body.etymology ?? body.Etymology, body.difficulty, readingsStr,
-            synonymsStr, antonymsStr, analogueStr, variantsStr, extendStr, body.change_number
-        );
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message || 'Failed to upsert' });
-    }
-});
-
 // DELETE /api/hanja/:id : Soft delete hanja
 app.delete('/api/hanja/:id', (req, res) => {
     const { id } = req.params;
@@ -580,32 +617,63 @@ app.get('/api/hanja_stroke/list', (req, res) => {
     res.json({ data: rows, total: totalRow.c, page, limit });
 });
 
-app.put('/api/hanja_stroke/:id', (req, res) => {
-    const { id } = req.params;
-    const body = req.body || {};
-    if (!body.change_number) {
-        return res.status(400).json({ error: 'change_number is required' });
+const upsertStrokeStmt = db.prepare(`
+    INSERT INTO hanja_stroke (id, char_str, radical, font_outline, stroke_outlines, change_number)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+        char_str = excluded.char_str,
+        radical = excluded.radical,
+        font_outline = excluded.font_outline,
+        stroke_outlines = excluded.stroke_outlines,
+        change_number = excluded.change_number
+`);
+
+function runStrokeUpsert(id, body) {
+    if (!id || !body?.change_number) {
+        throw new Error('id and change_number are required');
     }
     const fo = JSON.stringify(body.font_outline ?? []);
     const so = JSON.stringify(body.stroke_outlines ?? []);
     const char_str = body.char_str || id;
-    const radical = body.radical === undefined || body.radical === null ? null : Number(body.radical);
+    const radical =
+        body.radical === undefined || body.radical === null ? null : Number(body.radical);
     const change_number = Number(body.change_number);
+    upsertStrokeStmt.run(id, char_str, radical, fo, so, change_number);
+}
+
+const upsertStrokeBatch = db.transaction((items) => {
+    for (const item of items) {
+        runStrokeUpsert(item.id, item);
+    }
+});
+
+// NOTE: bulk-upsert must be registered before /:id
+app.put('/api/hanja_stroke/bulk-upsert', (req, res) => {
+    const items = Array.isArray(req.body?.items) ? req.body.items : null;
+    if (!items) {
+        return res.status(400).json({ error: 'items array is required' });
+    }
+    if (items.length > 500) {
+        return res.status(400).json({ error: 'items length must be <= 500' });
+    }
     try {
-        db.prepare(`
-            INSERT INTO hanja_stroke (id, char_str, radical, font_outline, stroke_outlines, change_number)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                char_str = excluded.char_str,
-                radical = excluded.radical,
-                font_outline = excluded.font_outline,
-                stroke_outlines = excluded.stroke_outlines,
-                change_number = excluded.change_number
-        `).run(id, char_str, radical, fo, so, change_number);
+        upsertStrokeBatch(items);
+        res.json({ success: true, count: items.length });
+    } catch (err) {
+        console.error(err);
+        const status = err.message?.includes('required') ? 400 : 500;
+        res.status(status).json({ error: err.message || 'Failed to bulk upsert stroke' });
+    }
+});
+
+app.put('/api/hanja_stroke/:id', (req, res) => {
+    try {
+        runStrokeUpsert(req.params.id, req.body || {});
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message || 'Failed to upsert stroke' });
+        const status = err.message?.includes('required') ? 400 : 500;
+        res.status(status).json({ error: err.message || 'Failed to upsert stroke' });
     }
 });
 
@@ -645,34 +713,65 @@ app.get('/api/hanja_word/containing', (req, res) => {
     }
 });
 
+const upsertWordStmt = db.prepare(`
+    INSERT INTO hanja_word (word, reading, meaning, related_hanja, server_doc_id, change_number)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(server_doc_id) DO UPDATE SET
+        word = excluded.word,
+        reading = excluded.reading,
+        meaning = excluded.meaning,
+        related_hanja = excluded.related_hanja,
+        change_number = excluded.change_number
+`);
+
+function runWordUpsert(body) {
+    const server_doc_id = body?.server_doc_id;
+    if (!server_doc_id || !body?.word || !body?.change_number) {
+        throw new Error('server_doc_id, word, change_number are required');
+    }
+    const related_hanja = Array.isArray(body.related_hanja) ? body.related_hanja : [];
+    upsertWordStmt.run(
+        body.word,
+        body.reading ?? '',
+        body.meaning ?? '',
+        JSON.stringify(related_hanja),
+        server_doc_id,
+        Number(body.change_number),
+    );
+}
+
+const upsertWordBatch = db.transaction((items) => {
+    for (const body of items) {
+        runWordUpsert(body);
+    }
+});
+
 app.put('/api/hanja_word/upsert', (req, res) => {
-    const body = req.body || {};
-    const server_doc_id = body.server_doc_id;
-    if (!server_doc_id || !body.word || !body.change_number) {
-        return res.status(400).json({ error: 'server_doc_id, word, change_number are required' });
-    }
-    const reading = body.reading ?? '';
-    const meaning = body.meaning ?? '';
-    const change_number = Number(body.change_number);
-    let related_hanja = [];
-    if (Array.isArray(body.related_hanja)) {
-        related_hanja = body.related_hanja;
-    }
     try {
-        db.prepare(`
-            INSERT INTO hanja_word (word, reading, meaning, related_hanja, server_doc_id, change_number)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ON CONFLICT(server_doc_id) DO UPDATE SET
-                word = excluded.word,
-                reading = excluded.reading,
-                meaning = excluded.meaning,
-                related_hanja = excluded.related_hanja,
-                change_number = excluded.change_number
-        `).run(body.word, reading, meaning, JSON.stringify(related_hanja), server_doc_id, change_number);
+        runWordUpsert(req.body || {});
         res.json({ success: true });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message || 'Failed to upsert word' });
+        const status = err.message?.includes('required') ? 400 : 500;
+        res.status(status).json({ error: err.message || 'Failed to upsert word' });
+    }
+});
+
+app.put('/api/hanja_word/bulk-upsert', (req, res) => {
+    const items = Array.isArray(req.body?.items) ? req.body.items : null;
+    if (!items) {
+        return res.status(400).json({ error: 'items array is required' });
+    }
+    if (items.length > 500) {
+        return res.status(400).json({ error: 'items length must be <= 500' });
+    }
+    try {
+        upsertWordBatch(items);
+        res.json({ success: true, count: items.length });
+    } catch (err) {
+        console.error(err);
+        const status = err.message?.includes('required') ? 400 : 500;
+        res.status(status).json({ error: err.message || 'Failed to bulk upsert word' });
     }
 });
 

@@ -289,23 +289,23 @@ export function useDbSync() {
       tables.hanja_basis.phase = "running";
       tables.hanja_basis.processed = 0;
       await paginateFirestore(firestore, "hanja_basis", pageSize, async (docs) => {
-        for (const d of docs) {
-          const body = firestoreBasisToLocalBody(
+        const items = docs.map((d) =>
+          firestoreBasisToLocalBody(
             d.id,
             d.data() as Record<string, unknown>,
             changeNumber,
-          );
-          const response = await localApiFetch("/api/hanja/upsert", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-          if (!response.ok) {
-            const err = (await response.json().catch(() => ({}))) as { error?: string };
-            throw new Error(err.error || "hanja upsert 실패");
-          }
-          tables.hanja_basis.processed++;
+          ),
+        );
+        const response = await localApiFetch("/api/hanja/bulk-upsert", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+        if (!response.ok) {
+          const err = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(err.error || "hanja bulk upsert 실패");
         }
+        tables.hanja_basis.processed += items.length;
       });
       tables.hanja_basis.phase = "done";
 
@@ -313,24 +313,24 @@ export function useDbSync() {
       tables.hanja_stroke.phase = "running";
       tables.hanja_stroke.processed = 0;
       await paginateFirestore(firestore, "hanja_stroke", pageSize, async (docs) => {
-        for (const d of docs) {
+        const items = docs.map((d) => {
           const data = d.data() as Record<string, unknown>;
-          const fo = (data.font_outline ?? data.svg_paths ?? []) as unknown;
-          const so = (data.stroke_outlines ?? []) as unknown;
-          const response = await localApiFetch(`/api/hanja_stroke/${encodeURIComponent(d.id)}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              change_number: changeNumber,
-              char_str: String(data.char_str ?? d.id),
-              radical: data.radical,
-              font_outline: fo,
-              stroke_outlines: so,
-            }),
-          });
-          if (!response.ok) throw new Error("hanja_stroke 저장 실패");
-          tables.hanja_stroke.processed++;
-        }
+          return {
+            id: d.id,
+            change_number: changeNumber,
+            char_str: String(data.char_str ?? d.id),
+            radical: data.radical,
+            font_outline: (data.font_outline ?? data.svg_paths ?? []) as unknown,
+            stroke_outlines: (data.stroke_outlines ?? []) as unknown,
+          };
+        });
+        const response = await localApiFetch("/api/hanja_stroke/bulk-upsert", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items }),
+        });
+        if (!response.ok) throw new Error("hanja_stroke bulk upsert 실패");
+        tables.hanja_stroke.processed += items.length;
       });
       tables.hanja_stroke.phase = "done";
 
@@ -338,28 +338,30 @@ export function useDbSync() {
       tables.hanja_word.phase = "running";
       tables.hanja_word.processed = 0;
       await paginateFirestore(firestore, "hanja_word", pageSize, async (docs) => {
-        for (const d of docs) {
-          const data = d.data() as Record<string, unknown>;
-          const word = String(data.word ?? "");
-          if (!word) {
-            tables.hanja_word.processed++;
-            continue;
-          }
-          const response = await localApiFetch("/api/hanja_word/upsert", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+        const items = docs
+          .map((d) => {
+            const data = d.data() as Record<string, unknown>;
+            const word = String(data.word ?? "");
+            if (!word) return null;
+            return {
               change_number: changeNumber,
               server_doc_id: d.id,
               word,
               reading: data.reading ?? "",
               meaning: data.meaning ?? "",
               related_hanja: Array.isArray(data.related_hanja) ? data.related_hanja : [],
-            }),
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => item != null);
+        if (items.length > 0) {
+          const response = await localApiFetch("/api/hanja_word/bulk-upsert", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items }),
           });
-          if (!response.ok) throw new Error("hanja_word 저장 실패");
-          tables.hanja_word.processed++;
+          if (!response.ok) throw new Error("hanja_word bulk upsert 실패");
         }
+        tables.hanja_word.processed += docs.length;
       });
       tables.hanja_word.phase = "done";
     } catch (e) {

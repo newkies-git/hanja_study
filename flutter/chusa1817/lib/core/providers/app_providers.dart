@@ -91,6 +91,43 @@ final learnHanjaListProvider = FutureProvider<List<HanjaTableData>>((ref) {
   return ref.watch(hanjaRepositoryProvider).fetchAllOrderedByReading();
 });
 
+/// 사전 목록 페이지 쿼리 (SQL limit/offset).
+@immutable
+class LearnHanjaPageQuery {
+  const LearnHanjaPageQuery({
+    required this.pageIndex,
+    required this.pageSize,
+    required this.readingQuery,
+    required this.sortOrder,
+  });
+
+  final int pageIndex;
+  final int pageSize;
+  final String readingQuery;
+  final HanjaListSortOrder sortOrder;
+
+  @override
+  bool operator ==(Object other) =>
+      other is LearnHanjaPageQuery &&
+      other.pageIndex == pageIndex &&
+      other.pageSize == pageSize &&
+      other.readingQuery == readingQuery &&
+      other.sortOrder == sortOrder;
+
+  @override
+  int get hashCode => Object.hash(pageIndex, pageSize, readingQuery, sortOrder);
+}
+
+final learnHanjaPageProvider = FutureProvider.family<
+    ({List<HanjaTableData> items, int totalCount}), LearnHanjaPageQuery>((ref, query) {
+  return ref.watch(hanjaRepositoryProvider).fetchHanjaPage(
+        offset: query.pageIndex * query.pageSize,
+        limit: query.pageSize,
+        readingQuery: query.readingQuery,
+        sortOrder: query.sortOrder,
+      );
+});
+
 final hanjaByIdProvider = FutureProvider.family<HanjaTableData?, String>((ref, id) {
   return ref.watch(hanjaRepositoryProvider).fetchById(id);
 });

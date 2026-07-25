@@ -1,5 +1,12 @@
 import '../app_database.dart';
 
+/// 사전 목록 정렬.
+enum HanjaListSortOrder {
+  readingAscending,
+  strokeCountAscending,
+  random,
+}
+
 /// 한자 콘텐츠 Repository 인터페이스.
 ///
 /// UI는 이 추상 계층만 바라본다.
@@ -12,8 +19,22 @@ abstract class HanjaRepository {
   /// 여러 ID를 한 번의 쿼리로 일괄 조회한다.
   Future<List<HanjaTableData>> fetchByIds(List<String> ids);
 
-  /// 로컬에 동기화된 한자 전체(가나다순 정렬). 학습 탭 목록용.
+  /// 로컬에 동기화된 한자 전체(가나다순 정렬). 퀴즈 등 전체 목록이 필요할 때.
   Future<List<HanjaTableData>> fetchAllOrderedByReading();
+
+  /// 사전 목록용 페이지 조회. [readingQuery]가 비어 있지 않으면 음(reading) LIKE 필터.
+  Future<({List<HanjaTableData> items, int totalCount})> fetchHanjaPage({
+    required int offset,
+    required int limit,
+    String readingQuery = '',
+    required HanjaListSortOrder sortOrder,
+  });
+
+  /// 퀴즈용 무작위 표본 (SQL ORDER BY RANDOM).
+  Future<List<HanjaTableData>> fetchRandomHanjaSample({
+    required int limit,
+    String? schoolLevel,
+  });
 
   /// 해당 한자의 획순 좌표 목록을 획 순서대로 반환한다.
   Future<List<HanjaStrokeTableData>> fetchStrokes(String hanjaId);
@@ -66,12 +87,14 @@ abstract class ProgressRepository {
   Future<void> toggleBookmark(String hanjaId);
 
   /// 특정 한자에 대한 진도를 "있으면 갱신, 없으면 생성"한다.
+  ///
+  /// [quality]는 SM-2 응답 품질(0–5). null이면 [isCorrect]로 4 또는 1을 사용한다.
   Future<void> upsertProgressByHanjaId({
     required String hanjaId,
     required DateTime studiedAt,
     required bool isCorrect,
     bool? isBookmarked,
-    String? forceStatus,
+    int? quality,
   });
 
   /// 마스터한 한자의 총 갯수를 조회한다.

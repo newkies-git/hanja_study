@@ -31,7 +31,13 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          learnHanjaListProvider.overrideWith((ref) async => fakeHanjaRows),
+          dailyGoalProvider.overrideWith((ref) async => 10),
+          learnHanjaPageProvider.overrideWith(
+            (ref, query) async => (
+              items: fakeHanjaRows,
+              totalCount: fakeHanjaRows.length,
+            ),
+          ),
         ],
         child: MaterialApp(
           home: const Scaffold(body: LearnListScreen()),
@@ -47,4 +53,3 @@ void main() {
     expect(find.text('아름다울'), findsOneWidget);
   });
 }
-

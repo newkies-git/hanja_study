@@ -32,8 +32,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
 
   static const List<int> _countOptions = [5, 10, 20];
 
-  void _startQuiz(List<HanjaTableData> all) {
-    final pool = _applyLevelFilter(all);
+  Future<void> _startQuiz() async {
+    final repository = ref.read(hanjaRepositoryProvider);
+    final sampleSize = (_questionCount * 8).clamp(40, 200);
+    final pool = await repository.fetchRandomHanjaSample(
+      limit: sampleSize,
+      schoolLevel: _levelFilter == QuizLevelFilter.all ? null : _levelFilter.value,
+    );
+    if (!mounted) return;
     if (pool.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -48,11 +54,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       timerSeconds: _selectedTimer.seconds,
     );
     context.push(AppRoutes.quizPlay, extra: session);
-  }
-
-  List<HanjaTableData> _applyLevelFilter(List<HanjaTableData> all) {
-    if (_levelFilter == QuizLevelFilter.all) return all;
-    return all.where((h) => h.schoolLevel == _levelFilter.value).toList();
   }
 
   List<QuizQuestion> _generateQuestions(List<HanjaTableData> pool) {
@@ -114,7 +115,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final hanjaAsync = ref.watch(learnHanjaListProvider);
+    final totalCountAsync = ref.watch(totalHanjaCountProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
@@ -208,14 +209,14 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         ),
         const SizedBox(height: 32),
 
-        hanjaAsync.when(
+        totalCountAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, _) => const Center(child: Text('한자 데이터를 불러오지 못했습니다.')),
-          data: (list) => list.isEmpty
+          data: (total) => total == 0
               ? const Center(child: Text('학습 데이터가 없습니다. 콘텐츠를 먼저 동기화해 주세요.'))
               : GradientPrimaryButton(
                   label: '퀴즈 시작',
-                  onPressed: () => _startQuiz(list),
+                  onPressed: _startQuiz,
                 ),
         ),
       ],

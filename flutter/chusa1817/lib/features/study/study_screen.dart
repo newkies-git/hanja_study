@@ -368,6 +368,17 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     super.dispose();
   }
 
+  /// SM-2 quality (0–5). 오답은 낮게, 정답은 필기 정확도로 3–5 구간 매핑.
+  int _sm2QualityFromStudyResult({
+    required bool isCorrect,
+    required double accuracy,
+  }) {
+    if (!isCorrect) return 1;
+    if (accuracy >= 0.9) return 5;
+    if (accuracy >= 0.7) return 4;
+    return 3;
+  }
+
   void _navigateToPracticeResult() {
     context.push(AppRoutes.practiceResult);
   }
@@ -476,12 +487,12 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     if (isCompleted && _accuracy < 0.5) {
       final proceed = await showDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('정답률 알림'),
           content: const Text('정답률이 50% 미만입니다.\n학습완료 처리하시겠습니까?'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('아니오')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('예')),
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('아니오')),
+            TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('예')),
           ],
         ),
       );
@@ -491,8 +502,6 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
     // DB 저장 전에 목록 캡처 — 저장 이후 provider가 stale 상태여도 올바른 순서 보장
     final list = ref.read(todayLearningHanjaListProvider).value ?? [];
     final currentIndex = list.indexWhere((e) => e.$1.id == widget.hanjaId);
-
-    final bool isMastered = isCompleted;
 
     final sessionId = _sessionId;
     if (sessionId != null) {
@@ -513,12 +522,15 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
           );
     }
 
+    // 북마크·status는 SM-2/기존값 유지 (학습완료 버튼이 덮어쓰지 않음)
     await ref.read(progressRepositoryProvider).upsertProgressByHanjaId(
           hanjaId: widget.hanjaId,
           studiedAt: DateTime.now(),
           isCorrect: _isLastResultCorrect,
-          isBookmarked: isMastered,
-          forceStatus: isMastered ? 'mastered' : 'learning',
+          quality: _sm2QualityFromStudyResult(
+            isCorrect: _isLastResultCorrect,
+            accuracy: _accuracy,
+          ),
         );
 
     // 저장 완료 후 provider invalidate — 홈 복귀 시 최신 데이터 로드

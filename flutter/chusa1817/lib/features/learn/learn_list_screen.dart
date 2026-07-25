@@ -1,16 +1,14 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/database/repositories/repository_interfaces.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
+import '../../core/utils/route_builders.dart';
 import '../../shared/widgets/editorial_top_bar.dart';
 import '../../shared/widgets/filter_pill.dart';
 import '../../shared/widgets/hanja_card.dart';
-import '../../core/database/app_database.dart';
-import '../../core/utils/route_builders.dart';
 
 /// 한자 사전 목록 화면.
 ///
@@ -23,11 +21,10 @@ class LearnListScreen extends ConsumerStatefulWidget {
 }
 
 class _LearnListScreenState extends ConsumerState<LearnListScreen> {
-  _LearnSort _sort = _LearnSort.koreanOrder;
+  HanjaListSortOrder _sortOrder = HanjaListSortOrder.readingAscending;
   String _searchQuery = '';
   int _currentPage = 0;
   final TextEditingController _searchController = TextEditingController();
-
 
   @override
   void dispose() {
@@ -37,8 +34,14 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hanjaListAsync = ref.watch(learnHanjaListProvider);
     final int itemsPerPage = ref.watch(dailyGoalProvider).value ?? 10;
+    final pageQuery = LearnHanjaPageQuery(
+      pageIndex: _currentPage,
+      pageSize: itemsPerPage,
+      readingQuery: _searchQuery,
+      sortOrder: _sortOrder,
+    );
+    final hanjaPageAsync = ref.watch(learnHanjaPageProvider(pageQuery));
 
     return Column(
       children: [
@@ -53,7 +56,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
             onChanged: (val) {
               setState(() {
                 _searchQuery = val.trim();
-                _currentPage = 0; // 검색어 변경 시 첫 페이지로
+                _currentPage = 0;
               });
             },
             decoration: InputDecoration(
@@ -82,27 +85,36 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
               children: [
                 FilterPill(
                   label: '가나다순',
-                  isSelected: _sort == _LearnSort.koreanOrder,
-                  onTap: () => setState(() => _sort = _LearnSort.koreanOrder),
+                  isSelected: _sortOrder == HanjaListSortOrder.readingAscending,
+                  onTap: () => setState(() {
+                    _sortOrder = HanjaListSortOrder.readingAscending;
+                    _currentPage = 0;
+                  }),
                 ),
                 const SizedBox(width: 10),
                 FilterPill(
                   label: '획수순',
-                  isSelected: _sort == _LearnSort.strokeCount,
-                  onTap: () => setState(() => _sort = _LearnSort.strokeCount),
+                  isSelected: _sortOrder == HanjaListSortOrder.strokeCountAscending,
+                  onTap: () => setState(() {
+                    _sortOrder = HanjaListSortOrder.strokeCountAscending;
+                    _currentPage = 0;
+                  }),
                 ),
                 const SizedBox(width: 10),
                 FilterPill(
                   label: '랜덤',
-                  isSelected: _sort == _LearnSort.random,
-                  onTap: () => setState(() => _sort = _LearnSort.random),
+                  isSelected: _sortOrder == HanjaListSortOrder.random,
+                  onTap: () => setState(() {
+                    _sortOrder = HanjaListSortOrder.random;
+                    _currentPage = 0;
+                  }),
                 ),
               ],
             ),
           ),
         ),
         Expanded(
-          child: hanjaListAsync.when(
+          child: hanjaPageAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => Center(
               child: Text(
@@ -110,44 +122,26 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
-            data: (hanjaList) {
-              if (hanjaList.isEmpty) {
-                return const Center(
-                  child: Text('학습할 한자가 아직 준비되지 않았습니다.'),
+            data: (page) {
+              if (page.totalCount == 0) {
+                return Center(
+                  child: Text(
+                    _searchQuery.isEmpty
+                        ? '학습할 한자가 아직 준비되지 않았습니다.'
+                        : '검색 결과가 없습니다.',
+                  ),
                 );
               }
 
-              final List<HanjaTableData> filtered = _searchQuery.isEmpty 
-                  ? List.of(hanjaList) 
-                  : hanjaList.where((h) => h.reading.contains(_searchQuery)).toList();
-
-              if (filtered.isEmpty) {
-                return const Center(child: Text('검색 결과가 없습니다.'));
-              }
-
-              final List<HanjaTableData> sorted = filtered;
-              switch (_sort) {
-                case _LearnSort.koreanOrder:
-                  sorted.sort((a, b) => a.reading.compareTo(b.reading));
-                case _LearnSort.strokeCount:
-                  sorted.sort((a, b) => a.totalStrokes.compareTo(b.totalStrokes));
-                case _LearnSort.random:
-                  final seed = DateTime.now().millisecondsSinceEpoch ~/ (1000 * 30);
-                  sorted.shuffle(Random(seed));
-              }
-
               final int totalPages =
-                  (sorted.length + itemsPerPage - 1) ~/ itemsPerPage;
-
-              // 검색어 변경 등으로 현재 페이지가 범위를 벗어날 수 있으므로 안전 처리
+                  (page.totalCount + itemsPerPage - 1) ~/ itemsPerPage;
               final int maxPage = totalPages > 0 ? totalPages - 1 : 0;
               final int safeCurrentPage = _currentPage.clamp(0, maxPage);
-
-              final int startIndex = safeCurrentPage * itemsPerPage;
-              final int endIndex =
-                  (startIndex + itemsPerPage).clamp(0, sorted.length);
-              final List<HanjaTableData> paginatedList =
-                  sorted.sublist(startIndex, endIndex);
+              if (safeCurrentPage != _currentPage) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _currentPage = safeCurrentPage);
+                });
+              }
 
               return Column(
                 children: [
@@ -160,25 +154,27 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                         mainAxisSpacing: 10,
                         childAspectRatio: 0.72,
                       ),
-                      itemCount: paginatedList.length,
+                      itemCount: page.items.length,
                       itemBuilder: (BuildContext context, int index) {
-                        final hanjaRow = paginatedList[index];
-                        final hanjaId = hanjaRow.id;
-                        final hanja = hanjaRow.character;
-                        final meaning = hanjaRow.meaning;
-
+                        final hanjaRow = page.items[index];
                         return HanjaCard(
-                          hanja: hanja,
+                          hanja: hanjaRow.character,
                           reading: hanjaRow.reading,
-                          meaning: meaning,
+                          meaning: hanjaRow.meaning,
                           totalStrokes: hanjaRow.totalStrokes,
                           radical: hanjaRow.radical,
-                          onTap: () => context.push(RouteBuilders.hanjaDetail(hanjaId)),
+                          onTap: () =>
+                              context.push(RouteBuilders.hanjaDetail(hanjaRow.id)),
                         );
                       },
                     ),
                   ),
-                  _buildPaginationControls(safeCurrentPage, totalPages, sorted.length, itemsPerPage),
+                  _buildPaginationControls(
+                    safeCurrentPage,
+                    totalPages,
+                    page.totalCount,
+                    itemsPerPage,
+                  ),
                 ],
               );
             },
@@ -188,7 +184,12 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
     );
   }
 
-  Widget _buildPaginationControls(int currentPage, int totalPages, int total, int itemsPerPage) {
+  Widget _buildPaginationControls(
+    int currentPage,
+    int totalPages,
+    int total,
+    int itemsPerPage,
+  ) {
     if (totalPages <= 1) return const SizedBox.shrink();
 
     final textTheme = Theme.of(context).textTheme;
@@ -220,16 +221,17 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${currentPage + 1} / $totalPages 페이지',
-                    style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-                    textAlign: TextAlign.center,
+                    '${currentPage + 1} / $totalPages',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: HanjaColors.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Text(
-                    '$rangeStart–$rangeEnd / $total자',
+                    '$rangeStart–$rangeEnd / $total',
                     style: textTheme.labelSmall?.copyWith(
                       color: HanjaColors.onSurfaceVariant,
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -249,5 +251,3 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
     );
   }
 }
-
-enum _LearnSort { koreanOrder, strokeCount, random }

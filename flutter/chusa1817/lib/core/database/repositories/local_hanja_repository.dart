@@ -33,6 +33,57 @@ class LocalHanjaRepository implements HanjaRepository {
           .get();
 
   @override
+  Future<({List<HanjaTableData> items, int totalCount})> fetchHanjaPage({
+    required int offset,
+    required int limit,
+    String readingQuery = '',
+    required HanjaListSortOrder sortOrder,
+  }) async {
+    final String trimmedQuery = readingQuery.trim();
+
+    Expression<bool> matchesQuery($HanjaTableTable table) {
+      if (trimmedQuery.isEmpty) return const Constant(true);
+      return table.reading.like('%$trimmedQuery%');
+    }
+
+    final countExp = _database.hanjaTable.id.count();
+    final countQuery = _database.selectOnly(_database.hanjaTable)
+      ..addColumns([countExp])
+      ..where(matchesQuery(_database.hanjaTable));
+    final totalCount =
+        (await countQuery.map((row) => row.read(countExp)).getSingle()) ?? 0;
+
+    final listQuery = _database.select(_database.hanjaTable)
+      ..where((t) => matchesQuery(t));
+    switch (sortOrder) {
+      case HanjaListSortOrder.readingAscending:
+        listQuery.orderBy([(t) => OrderingTerm.asc(t.reading)]);
+      case HanjaListSortOrder.strokeCountAscending:
+        listQuery.orderBy([(t) => OrderingTerm.asc(t.totalStrokes)]);
+      case HanjaListSortOrder.random:
+        listQuery.orderBy([(t) => OrderingTerm.random()]);
+    }
+    listQuery.limit(limit, offset: offset);
+    final items = await listQuery.get();
+    return (items: items, totalCount: totalCount);
+  }
+
+  @override
+  Future<List<HanjaTableData>> fetchRandomHanjaSample({
+    required int limit,
+    String? schoolLevel,
+  }) {
+    final query = _database.select(_database.hanjaTable);
+    final String? level = schoolLevel?.trim();
+    if (level != null && level.isNotEmpty && level != 'all') {
+      query.where((t) => t.schoolLevel.equals(level));
+    }
+    query.orderBy([(t) => OrderingTerm.random()]);
+    query.limit(limit);
+    return query.get();
+  }
+
+  @override
   Future<List<HanjaStrokeTableData>> fetchStrokes(String hanjaId) =>
       (_database.select(_database.hanjaStrokeTable)
             ..where((t) => t.hanjaId.equals(hanjaId))
