@@ -1,6 +1,11 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+  type AppCheck,
+} from "firebase/app-check";
 
 /** Vite env: 공백·따옴표로 인해 빈 값으로 오인되는 경우 방지 */
 function normalizeViteEnvString(v: unknown): string {
@@ -41,6 +46,7 @@ function readFirebaseWebClientConfigOrNull() {
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuth: Auth | null = null;
 let firestoreDatabase: Firestore | null = null;
+let firebaseAppCheck: AppCheck | null = null;
 
 export function isFirebaseConfigured(): boolean {
   return readFirebaseWebClientConfigOrNull() !== null;
@@ -53,8 +59,34 @@ export function getFirebaseApp(): FirebaseApp {
       throw new Error("Firebase 환경 변수가 설정되지 않았습니다. .env.example 참고.");
     }
     firebaseApp = initializeApp(firebaseWebClientConfig);
+    initAppCheckIfConfigured(firebaseApp);
   }
   return firebaseApp;
+}
+
+/** Firebase App Check (reCAPTCHA v3) 초기화 */
+function initAppCheckIfConfigured(app: FirebaseApp): void {
+  if (typeof window === "undefined" || firebaseAppCheck) return;
+
+  const siteKey = normalizeViteEnvString(
+    import.meta.env.VITE_FIREBASE_APP_CHECK_KEY ||
+      import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY,
+  );
+
+  if (!siteKey) return;
+
+  try {
+    if (import.meta.env.DEV) {
+      // 로컬 개발 환경에서 디버그 토큰 허용
+      (self as unknown as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+    firebaseAppCheck = initializeAppCheck(app, {
+      provider: new ReCaptchaV3Provider(siteKey),
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch (error) {
+    console.warn("Firebase App Check 초기화 실패:", error);
+  }
 }
 
 export function getFirebaseAuth(): Auth {

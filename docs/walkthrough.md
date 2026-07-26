@@ -1,20 +1,33 @@
-# 스크롤 Stretch Overscroll 방지 설정 워크스루
+# 어드민 백오피스 Firebase App Check (reCAPTCHA v3) 연동 워크스루
 
 ## 1. 개요
-Android 12+ (API 31+) 시스템 기본값으로 적용되는 **스크롤 경계 상/하단 늘어남 효과(Stretch Overscroll Effect)**를 완화하고, 전역적으로 경계에서 늘어나지 않고 깔끔하게 고정되는 `ClampingScrollPhysics` 기반의 `NoStretchScrollBehavior`를 적용했습니다.
+Firebase Console 상에서 어드민 웹 앱(`chusa1718-admin`)에 **App Check (reCAPTCHA v3)**가 활성화된 환경에 맞춰, [`admin/webapp`](../admin/webapp/README.md) 소스코드 내에 `firebase/app-check` SDK(`initializeAppCheck` & `ReCaptchaV3Provider`) 활성화 로직을 수립하고 인프라 설정을 완료했습니다.
 
 ---
 
-## 2. 주요 보완 내역
+## 2. 주요 연동 내역
 
-1. **`lib/core/theme/hanja_theme.dart`**:
-   - `NoStretchScrollBehavior` 커스텀 클래스 추가
-   - `buildOverscrollIndicator`: 늘어남(Stretch) 및 파동(Glow) 효과 완전히 제거
-   - `getScrollPhysics`: 경계 상/하단에서 고정되는 `ClampingScrollPhysics` 반환
-2. **`lib/main.dart`**:
-   - `MaterialApp.router` 내 `scrollBehavior: const NoStretchScrollBehavior()` 적용하여 앱 전체 화면 스크롤 뷰포트에 공통 적용
+1. **`admin/webapp/src/firebase.ts`**:
+   - `firebase/app-check` 패키지의 `initializeAppCheck` 및 `ReCaptchaV3Provider` 추가
+   - `VITE_FIREBASE_APP_CHECK_KEY` 또는 `VITE_RECAPTCHA_V3_SITE_KEY` 환경 변수 읽기 처리
+   - 개발 환경(`import.meta.env.DEV`)에서는 `FIREBASE_APPCHECK_DEBUG_TOKEN` 활성화
+2. **`admin/webapp/.env.example`**:
+   - `VITE_FIREBASE_APP_CHECK_KEY=` 규격 환경 변수 문서화
+3. **`docs/SPEC-admin.md`**:
+   - 어드민 백오피스 기술 스택 및 보안 명세에 App Check (reCAPTCHA v3) 명시
 
 ---
 
-## 3. 검증 결과
-- **Flutter 테스트 수트**: **16 / 16 Passed (100% 통과)**
+## 3. Vercel 배포 후 설정 가이드 (체크리스트)
+
+1. **Google reCAPTCHA Console**:
+   - [reCAPTCHA Admin Console](https://www.google.com/recaptcha/admin) 접속 $\rightarrow$ reCAPTCHA v3 Key에 `chusa1817-admin.vercel.app` 도메인 추가 등록
+2. **Vercel Environment Variables**:
+   - Vercel Dashboard Settings $\rightarrow$ `VITE_FIREBASE_APP_CHECK_KEY` (Site Key) 추가
+   - Vercel **Redeploy (재배포)** 실행
+
+---
+
+## 4. 검증 결과
+- **Vitest 유닛 테스트**: **14 / 14 Passed (100% 통과)**
+- **Vite 프로덕션 빌드**: **`built in 1.13s` (0에러 성공)**
