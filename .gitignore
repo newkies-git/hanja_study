@@ -1,4 +1,4 @@
-# Python
+# Python & ETL
 __pycache__/
 *.py[cod]
 *$py.class
@@ -7,37 +7,36 @@ venv/
 .env
 *.egg-info/
 .pytest_cache/
+admin-etl/output/*.part*.json
 
-# Flutter (앱·패키지 생성 후 하위에 생기는 산출물)
-flutter/**/.dart_tool/
-flutter/**/build/
-flutter/**/.flutter-plugins-dependencies
-flutter/**/*.iml
+# Flutter Client (앱 산출물 & 스크린샷 캡처)
+client/**/.dart_tool/
+client/**/build/
+client/**/.flutter-plugins-dependencies
+client/**/*.iml
+client/**/screenshots/
+client/**/*.log
+client/chusa1817/.claude/
 
-# Firebase 서비스 계정 키 (절대 커밋하지 말 것)
+# Firebase 서비스 계정 키 (절대 커밋 금지)
 **/serviceAccount*.json
 **/*-adminsdk-*.json
 
-# Firebase CLI 로컬 캐시 (admin/firestore 등에서 deploy 시)
+# Firebase CLI 로컬 캐시
 .firebase/
 
-# Android 업로드 keystore (저장소 루트에 둔 경우)
+# Android 업로드 keystore
 /chusa1817-upload-keystore.jks
 
-# OS / editor
+# OS / Editor
 .DS_Store
+*.log
 
-# 로컬·스크래치 (의도적으로 추적 제외)
-\!use/
-admin/python/output/
-flutter/chusa1817/to-do.md
-flutter/chusa1817/.claude/
+# Admin Webapp (Vite · Vue 3)
+admin/webapp/node_modules/
+admin/webapp/dist/
+admin/webapp/*.tsbuildinfo
+admin/webapp/.claude/
 
-# Admin frontend (Vite)
-admin/frontend/node_modules/
-admin/frontend/dist/
-admin/frontend/*.tsbuildinfo
-admin/frontend/.claude/
-
-# Admin 데이터(chusa.db는 레포에 포함). 용량 큰 덤프만 제외
-admin/data/data.zip
+# Admin 데이터 (chusa.db는 레포에 포함, 압축 덤프 제외)
+admin-etl/data/data.zip
