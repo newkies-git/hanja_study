@@ -40,6 +40,7 @@ class _HanjaAppBody extends ConsumerWidget {
     return MaterialApp.router(
       title: '추사 1817',
       debugShowCheckedModeBanner: false,
+      scrollBehavior: const NoStretchScrollBehavior(),
       theme:      HanjaTheme.light(),
       darkTheme:  HanjaTheme.dark(),
       themeMode:  themeMode,

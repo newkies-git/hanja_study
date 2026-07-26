@@ -154,6 +154,27 @@ abstract final class HanjaTheme {
   }
 }
 
+/// 스크롤 시 화면이 늘어나는 현상(Android 12+ Stretch Overscroll)을 방지하는 커스텀 [ScrollBehavior].
+class NoStretchScrollBehavior extends ScrollBehavior {
+  const NoStretchScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    // 늘어남(Stretch) 및 오버스크롤 파동(Glow) 효과를 완전히 제거
+    return child;
+  }
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    // 스크롤 경계에서 늘어나지 않고 딱 고정되는 ClampingScrollPhysics 적용
+    return const ClampingScrollPhysics();
+  }
+}
+
 /// [BuildContext] 헬퍼 — 테마 적응형 색상 단축키.
 extension HanjaThemeContext on BuildContext {
   ColorScheme get cs => Theme.of(this).colorScheme;
