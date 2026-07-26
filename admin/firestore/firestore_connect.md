@@ -295,7 +295,7 @@ firebase deploy --only firestore:rules --project chusa-1817
    cd admin/python
    pip install -r requirements-firebase.txt
    export GOOGLE_APPLICATION_CREDENTIALS=/Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
-   # (레포 안 firestore/ 에 adminsdk JSON 을 두지 말 것 — firestore/README.md 참고)
+   # (레포 안 admin/firestore/ 에 adminsdk JSON 을 두지 말 것 — admin/firestore/README.md 참고)
    python set_firebase_custom_claims.py --project-id chusa-1817 --email YOUR_EMAIL --admin true
    ```
 
@@ -396,7 +396,7 @@ Firebase CLI 미설치 시 안내 메시지에 따라 `brew install firebase-cli
 cd admin/python
 pip install -r requirements-firebase.txt
 export GOOGLE_APPLICATION_CREDENTIALS=/Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
-# (레포 안 firestore/ 에 adminsdk JSON 을 두지 말 것 — firestore/README.md 참고)
+# (레포 안 admin/firestore/ 에 adminsdk JSON 을 두지 말 것 — admin/firestore/README.md 참고)
 python upload_to_firestore.py --project-id chusa-1817
 ```
 
