@@ -4,6 +4,7 @@ import { getFirestore, type Firestore } from "firebase/firestore";
 import {
   initializeAppCheck,
   ReCaptchaV3Provider,
+  CustomProvider,
   type AppCheck,
 } from "firebase/app-check";
 
@@ -64,12 +65,12 @@ export function getFirebaseApp(): FirebaseApp {
   return firebaseApp;
 }
 
-/** Firebase App Check (reCAPTCHA v3 / Debug) 초기화 */
+/** Firebase App Check (reCAPTCHA v3 / Debug) 안전한 초기화 */
 function initAppCheckIfConfigured(app: FirebaseApp): void {
   if (typeof window === "undefined" || firebaseAppCheck) return;
 
   if (import.meta.env.DEV) {
-    // 로컬 개발 환경(localhost)에서 디버그 토큰 허용
+    // 로컬 개발 환경(localhost)에서 디버그 토큰 활성화
     (self as unknown as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   }
 
@@ -78,15 +79,27 @@ function initAppCheckIfConfigured(app: FirebaseApp): void {
       import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY,
   );
 
-  if (!siteKey) return;
-
   try {
-    firebaseAppCheck = initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(siteKey),
-      isTokenAutoRefreshEnabled: true,
-    });
+    if (siteKey) {
+      firebaseAppCheck = initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(siteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } else if (import.meta.env.DEV) {
+      // siteKey 미설정 시 개발 환경 전용 Custom Debug Provider 사용
+      firebaseAppCheck = initializeAppCheck(app, {
+        provider: new CustomProvider({
+          getToken: () =>
+            Promise.resolve({
+              token: "DEV_DEBUG_TOKEN",
+              expireTimeMillis: Date.now() + 3600 * 1000,
+            }),
+        }),
+        isTokenAutoRefreshEnabled: true,
+      });
+    }
   } catch (error) {
-    console.warn("Firebase App Check 초기화 실패:", error);
+    console.warn("Firebase App Check 초기화 예외:", error);
   }
 }
 
