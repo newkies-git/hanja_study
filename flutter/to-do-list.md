@@ -9,7 +9,7 @@
 
 | 순위 | 영역 | 항목 | 이유 |
 |------|------|------|------|
-| **P1** | 보안 | **Firebase App Check 운영 적용** | SDK 일부만 붙음. Console 메트릭·Enforce·관리 웹(reCAPTCHA)·디버그 토큰 절차를 이해한 뒤 적용. **규칙에 `request.app` 쓰지 말 것** — Enforce는 Console만. 상세: `admin/firestore/firestore_connect.md` §2.1 |
+| ~~P1~~ | ~~보안~~ | ~~**Firebase App Check & API Key 보안 적용**~~ | ✅ `firebase_bootstrap.dart` 토큰 오토 리프레시 구현, 콘솔 Enforce 절차 가이드 완료 |
 | **P1** | 온보딩 | 온보딩 콘텐츠 완성 | 신규 사용자 첫인상 (현재 플레이스홀더) |
 | ~~P1~~ | ~~통계~~ | ~~통계 화면 실데이터 연동~~ | ✅ 실데이터 연동됨 (문서 구식 표기 정리) |
 | ~~P1~~ | ~~복습~~ | ~~SM-2 간격 반복~~ | ✅ quality 매핑·forceStatus 제거·일일 이월 limit 수정 |

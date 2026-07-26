@@ -9,8 +9,6 @@ import '../../firebase_options.dart';
 ///
 /// App Check 토큰은 SDK가 요청에 첨부한다. Firestore **강제 적용(Enforce)** 은
 /// 보안 규칙이 아니라 Firebase Console에서만 켠다 (`request.app` 을 rules에 쓰지 말 것).
-/// **TODO**: Console 메트릭·Enforce·관리 웹(reCAPTCHA)·디버그 토큰 절차를 정리한 뒤 운영 적용.
-/// 현재는 Enforce 하지 않는다. 목록: `flutter/to-do-list.md` P1 App Check.
 Future<void> bootstrapFirebase() async {
   try {
     if (Firebase.apps.isEmpty) {
@@ -38,6 +36,10 @@ Future<void> _activateAppCheck() async {
           ? const AppleDebugProvider()
           : const AppleDeviceCheckProvider(),
     );
+    await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+    if (kDebugMode) {
+      debugPrint('Firebase App Check 활성화 완료 (디버그 프로바이더 적용)');
+    }
   } catch (error) {
     debugPrint('Firebase App Check 활성화 실패(계속 진행): $error');
   }

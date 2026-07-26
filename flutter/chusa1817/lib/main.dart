@@ -19,7 +19,7 @@ Future<void> main() async {
   );
 }
 
-/// 한자정습 앱의 루트 위젯.
+/// 한자학습 앱의 루트 위젯.
 class HanjaApp extends StatelessWidget {
   const HanjaApp({super.key});
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 한자정습 앱 전역 색상 토큰.
+/// 한자학습 앱 전역 색상 토큰.
 ///
 /// 디자인 시스템 "The Scholar's Editorial"의 Scholar Blue 팔레트 기반.
 /// 모든 속성은 컴파일 타임 상수이므로 위젯 트리 어디서든 직접 참조 가능.

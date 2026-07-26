@@ -38,22 +38,13 @@ flowchart LR
 
 버전은 도구 실행 시점에 따라 달라질 수 있으므로 `pubspec.lock`을 기준으로 한다.
 
-### 2.1 App Check (TODO — 운영 적용 보류)
+### 2.1 App Check 운영 적용 및 API Key 제한
 
-> **상태: 해야 할 일.** 개념·Enforce 타이밍·관리 웹 연동을 정리한 뒤 진행한다.  
-> 지금은 Console에서 **Enforce를 켜지 않는다.**
+> **상태: 운영 적용 완료.** `firebase_bootstrap.dart`에서 App Check SDK(Play Integrity / DeviceCheck / DebugProvider)가 활성화되어 토큰이 자동 갱신된다.
 
-- **Enforce는 Console만**: App Check → APIs → Cloud Firestore → Enforce.  
-  API 게이트웨이에서 유효 토큰 없는 요청을 차단한다. **규칙 파일은 수정하지 않는다.**
-- **`firestore.rules`에 `request.app` 없음**: 규칙에 넣으면 Permission Denied로 정상 사용자까지 막힐 수 있다.
-- **규칙 역할**: `allow read: if isSignedIn();` 등 기존 Auth 검증을 그대로 둔다.
-- **적용 전 체크리스트 (TODO)**:
-  1. Console 메트릭(Verified / 구버전·미토큰) 이해
-  2. 디버그 토큰 등록 절차 숙지
-  3. 관리 웹 reCAPTCHA App Check 연동 여부 결정
-  4. 그다음 Firestore Enforce
-
-Flutter SDK는 `firebase_bootstrap.dart`에서 App Check를 활성화해 두었으나, Enforce 전까지는 모니터링용에 가깝다.
+- **Enforce는 Console에서만 지정**: App Check → APIs → Cloud Firestore → Enforce. API 게이트웨이에서 유효 토큰 없는 요청을 자동 차단한다.
+- **`firestore.rules` 보안 규칙**: `request.app`을 규칙에 직접 작성하지 않고 기존 Auth 검증(`allow read: if isSignedIn();`)을 그대로 유지한다.
+- **API 키 제한**: GCP Console(`API 및 서비스 > 사용자 인증 정보`)에서 Android(`com.basis.breeze.chusa1817`) 및 iOS 패키지 제한을 적용하여 외부 무단 요청을 방지한다.
 
 ---
 

@@ -134,6 +134,15 @@ abstract class ProgressRepository {
 
   /// [샘플 데이터 생성] 추천 복습 섹션을 테스트하기 위해 가상의 오답 데이터를 생성한다.
   Future<void> seedSampleReviewHanja();
+
+  /// 익명 세션 진도를 정식 계정으로 이관한다.
+  ///
+  /// [fromUserId]와 [toUserId]가 같거나 비어 있으면 no-op.
+  /// 대상 계정에 이미 같은 `hanjaId` 진도가 있으면 대상 행을 유지하고 출처 행을 삭제한다.
+  Future<void> migrateLocalUserScopedData({
+    required String fromUserId,
+    required String toUserId,
+  });
 }
 
 /// 학습 세션 Repository 인터페이스.

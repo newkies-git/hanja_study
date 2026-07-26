@@ -617,4 +617,155 @@ class LocalProgressRepository implements ProgressRepository {
           );
     }
   }
+
+  @override
+  Future<void> migrateLocalUserScopedData({
+    required String fromUserId,
+    required String toUserId,
+  }) async {
+    if (fromUserId.isEmpty || toUserId.isEmpty || fromUserId == toUserId) {
+      return;
+    }
+
+    await _database.transaction(() async {
+      final DateTime now = DateTime.now();
+
+      final List<UserProgressTableData> sourceProgress =
+          await (_database.select(_database.userProgressTable)
+                ..where((t) => t.userId.equals(fromUserId)))
+              .get();
+      final Set<String> targetProgressHanjaIds = (await (_database
+                  .select(_database.userProgressTable)
+                ..where((t) => t.userId.equals(toUserId)))
+              .get())
+          .map((row) => row.hanjaId)
+          .toSet();
+
+      for (final UserProgressTableData row in sourceProgress) {
+        if (targetProgressHanjaIds.contains(row.hanjaId)) {
+          await (_database.delete(_database.userProgressTable)
+                ..where((t) => t.id.equals(row.id)))
+              .go();
+          continue;
+        }
+        await (_database.update(_database.userProgressTable)
+              ..where((t) => t.id.equals(row.id)))
+            .write(
+              UserProgressTableCompanion(
+                userId: Value(toUserId),
+                updatedAt: Value(now),
+                syncStatus: const Value('local_only'),
+              ),
+            );
+      }
+
+      final List<DailyHanjaActivityTableData> sourceActivities =
+          await (_database.select(_database.dailyHanjaActivityTable)
+                ..where((t) => t.userId.equals(fromUserId)))
+              .get();
+      final Set<String> targetActivityKeys = (await (_database
+                  .select(_database.dailyHanjaActivityTable)
+                ..where((t) => t.userId.equals(toUserId)))
+              .get())
+          .map(
+            (row) =>
+                '${row.date.toUtc().millisecondsSinceEpoch}_${row.hanjaId}',
+          )
+          .toSet();
+
+      for (final DailyHanjaActivityTableData row in sourceActivities) {
+        final String activityKey =
+            '${row.date.toUtc().millisecondsSinceEpoch}_${row.hanjaId}';
+        if (targetActivityKeys.contains(activityKey)) {
+          await (_database.delete(_database.dailyHanjaActivityTable)
+                ..where((t) => t.id.equals(row.id)))
+              .go();
+          continue;
+        }
+        await (_database.update(_database.dailyHanjaActivityTable)
+              ..where((t) => t.id.equals(row.id)))
+            .write(
+              DailyHanjaActivityTableCompanion(
+                userId: Value(toUserId),
+                updatedAt: Value(now),
+                syncStatus: const Value('local_only'),
+              ),
+            );
+      }
+
+      final List<DailyActivityStatsTableData> sourceStats =
+          await (_database.select(_database.dailyActivityStatsTable)
+                ..where((t) => t.userId.equals(fromUserId)))
+              .get();
+
+      for (final DailyActivityStatsTableData row in sourceStats) {
+        final String targetStatsId =
+            '${row.date.millisecondsSinceEpoch}_$toUserId';
+        final DailyActivityStatsTableData? existingTarget =
+            await (_database.select(_database.dailyActivityStatsTable)
+                  ..where((t) => t.id.equals(targetStatsId)))
+                .getSingleOrNull();
+
+        if (existingTarget != null) {
+          await (_database.update(_database.dailyActivityStatsTable)
+                ..where((t) => t.id.equals(existingTarget.id)))
+              .write(
+                DailyActivityStatsTableCompanion(
+                  loginCount: Value(
+                    existingTarget.loginCount + row.loginCount,
+                  ),
+                  sessionCount: Value(
+                    existingTarget.sessionCount + row.sessionCount,
+                  ),
+                  plannedCount: Value(
+                    math.max(existingTarget.plannedCount, row.plannedCount),
+                  ),
+                  inProgressCount: Value(
+                    math.max(
+                      existingTarget.inProgressCount,
+                      row.inProgressCount,
+                    ),
+                  ),
+                  completedCount: Value(
+                    math.max(
+                      existingTarget.completedCount,
+                      row.completedCount,
+                    ),
+                  ),
+                  updatedAt: Value(now),
+                  syncStatus: const Value('local_only'),
+                ),
+              );
+          await (_database.delete(_database.dailyActivityStatsTable)
+                ..where((t) => t.id.equals(row.id)))
+              .go();
+          continue;
+        }
+
+        await (_database.delete(_database.dailyActivityStatsTable)
+              ..where((t) => t.id.equals(row.id)))
+            .go();
+        await _database.into(_database.dailyActivityStatsTable).insert(
+              DailyActivityStatsTableCompanion.insert(
+                id: targetStatsId,
+                date: row.date,
+                userId: toUserId,
+                loginCount: Value(row.loginCount),
+                sessionCount: Value(row.sessionCount),
+                plannedCount: Value(row.plannedCount),
+                inProgressCount: Value(row.inProgressCount),
+                completedCount: Value(row.completedCount),
+                syncStatus: const Value('local_only'),
+                createdAt: Value(row.createdAt),
+                updatedAt: Value(now),
+                syncRevision: Value(row.syncRevision),
+              ),
+            );
+      }
+
+      await (_database.update(_database.loginHistoryTable)
+            ..where((t) => t.userId.equals(fromUserId)))
+          .write(LoginHistoryTableCompanion(userId: Value(toUserId)));
+    });
+  }
 }

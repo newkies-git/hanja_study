@@ -325,6 +325,21 @@ final dueForReviewHanjaProvider =
       .toList();
 });
 
+/// 계정 전환(로그인·로그아웃·익명 승격) 후 사용자 스코프 UI 캐시를 무효화한다.
+void invalidateUserScopedDataProviders(Ref ref) {
+  ref.invalidate(currentUserProfileProvider);
+  ref.invalidate(masteredHanjaCountProvider);
+  ref.invalidate(learningHanjaCountProvider);
+  ref.invalidate(todayCompletedCountProvider);
+  ref.invalidate(streakDaysProvider);
+  ref.invalidate(weeklyActivityBreakdownProvider);
+  ref.invalidate(upcomingReviewHanjaProvider);
+  ref.invalidate(recommendedReviewHanjaProvider);
+  ref.invalidate(dueForReviewHanjaProvider);
+  ref.invalidate(dailyPlanProvider);
+  ref.invalidate(todayLearningHanjaListProvider);
+}
+
 final firebaseFirestoreProvider = Provider<FirebaseFirestore>((ref) {
   return FirebaseFirestore.instance;
 });

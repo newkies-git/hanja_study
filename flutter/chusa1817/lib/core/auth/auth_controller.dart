@@ -17,20 +17,67 @@ class AuthController extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
+  String? _captureAnonymousUserId(FirebaseAuth auth) {
+    final User? user = auth.currentUser;
+    if (user == null || !user.isAnonymous) return null;
+    return user.uid;
+  }
+
+  Future<void> _finalizeSignedInUser({
+    required User? user,
+    required String? previousAnonymousUserId,
+  }) async {
+    if (user == null) return;
+
+    if (previousAnonymousUserId != null &&
+        previousAnonymousUserId.isNotEmpty &&
+        previousAnonymousUserId != user.uid) {
+      await ref.read(progressRepositoryProvider).migrateLocalUserScopedData(
+            fromUserId: previousAnonymousUserId,
+            toUserId: user.uid,
+          );
+    }
+
+    await ref.read(activityRepositoryProvider).recordLogin(user.uid);
+    invalidateUserScopedDataProviders(ref);
+  }
+
+  Future<UserCredential> _linkOrSignInWithCredential({
+    required FirebaseAuth auth,
+    required AuthCredential credential,
+  }) async {
+    final User? currentUser = auth.currentUser;
+    if (currentUser != null && currentUser.isAnonymous) {
+      try {
+        return await currentUser.linkWithCredential(credential);
+      } on FirebaseAuthException catch (error) {
+        final bool shouldFallBackToSignIn =
+            error.code == 'credential-already-in-use' ||
+                error.code == 'email-already-in-use' ||
+                error.code == 'provider-already-linked';
+        if (!shouldFallBackToSignIn) rethrow;
+      }
+    }
+    return auth.signInWithCredential(credential);
+  }
+
   Future<void> signInWithEmailPassword({
     required String email,
     required String password,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final credential = await ref.read(firebaseAuthProvider).signInWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-      final user = credential.user;
-      if (user != null) {
-        await ref.read(activityRepositoryProvider).recordLogin(user.uid);
-      }
+      final FirebaseAuth auth = ref.read(firebaseAuthProvider);
+      final String? anonymousUserId = _captureAnonymousUserId(auth);
+      final UserCredential credential =
+          await auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await _finalizeSignedInUser(
+        user: credential.user,
+        previousAnonymousUserId: anonymousUserId,
+      );
     });
   }
 
@@ -41,28 +88,32 @@ class AuthController extends AsyncNotifier<void> {
       if (googleUser == null) return;
 
       final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
+      final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await ref.read(firebaseAuthProvider).signInWithCredential(credential);
-      final user = userCredential.user;
-      if (user != null) {
-        await ref.read(activityRepositoryProvider).recordLogin(user.uid);
-      }
+      final FirebaseAuth auth = ref.read(firebaseAuthProvider);
+      final String? anonymousUserId = _captureAnonymousUserId(auth);
+      final UserCredential userCredential = await _linkOrSignInWithCredential(
+        auth: auth,
+        credential: credential,
+      );
+      await _finalizeSignedInUser(
+        user: userCredential.user,
+        previousAnonymousUserId: anonymousUserId,
+      );
     });
   }
 
   Future<void> signInWithApple() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      // 1. Generate a random nonce for security
-      final rawNonce = _generateNonce();
-      final hashedNonce = _sha256ofString(rawNonce);
+      final String rawNonce = _generateNonce();
+      final String hashedNonce = _sha256ofString(rawNonce);
 
-      // 2. Start Apple ID Authentication
-      final appleCredential = await SignInWithApple.getAppleIDCredential(
+      final AuthorizationCredentialAppleID appleCredential =
+          await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
@@ -70,18 +121,21 @@ class AuthController extends AsyncNotifier<void> {
         nonce: hashedNonce,
       );
 
-      // 3. Create Firebase Credential
       final OAuthCredential credential = OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
         rawNonce: rawNonce,
       );
 
-      // 4. Sign in to Firebase
-      final userCredential = await ref.read(firebaseAuthProvider).signInWithCredential(credential);
-      final user = userCredential.user;
-      if (user != null) {
-        await ref.read(activityRepositoryProvider).recordLogin(user.uid);
-      }
+      final FirebaseAuth auth = ref.read(firebaseAuthProvider);
+      final String? anonymousUserId = _captureAnonymousUserId(auth);
+      final UserCredential userCredential = await _linkOrSignInWithCredential(
+        auth: auth,
+        credential: credential,
+      );
+      await _finalizeSignedInUser(
+        user: userCredential.user,
+        previousAnonymousUserId: anonymousUserId,
+      );
     });
   }
 
@@ -92,30 +146,41 @@ class AuthController extends AsyncNotifier<void> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final credential = await ref.read(firebaseAuthProvider).createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-      
-      final user = credential.user;
-      if (user != null) {
-        // 1. Firebase Auth 프로필 이름 업데이트
-        await user.updateDisplayName(name);
-        // 2. 변경사항 즉시 반영을 위한 리로드
-        await user.reload();
+      final FirebaseAuth auth = ref.read(firebaseAuthProvider);
+      final String? anonymousUserId = _captureAnonymousUserId(auth);
+      final User? currentUser = auth.currentUser;
 
-        // 3. 로컬 DB(Drift)에 사용자 프로필 저장 (PRD5: Local-First)
-        final userRepo = ref.read(userRepositoryProvider);
-        await userRepo.upsert(UserProfileTableCompanion(
-          id: Value(user.uid),
-          email: Value(email),
-          displayName: Value(name),
-          updatedAt: Value(DateTime.now()),
-        ));
-
-        // 4. 첫 로그인 기록
-        await ref.read(activityRepositoryProvider).recordLogin(user.uid);
+      late final UserCredential credential;
+      if (currentUser != null && currentUser.isAnonymous) {
+        credential = await currentUser.linkWithCredential(
+          EmailAuthProvider.credential(email: email, password: password),
+        );
+      } else {
+        credential = await auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
       }
+
+      final User? user = credential.user;
+      if (user == null) return;
+
+      await user.updateDisplayName(name);
+      await user.reload();
+      final User reloadedUser = auth.currentUser ?? user;
+
+      final userRepo = ref.read(userRepositoryProvider);
+      await userRepo.upsert(UserProfileTableCompanion(
+        id: Value(reloadedUser.uid),
+        email: Value(email),
+        displayName: Value(name),
+        updatedAt: Value(DateTime.now()),
+      ));
+
+      await _finalizeSignedInUser(
+        user: reloadedUser,
+        previousAnonymousUserId: anonymousUserId,
+      );
     });
   }
 
@@ -129,15 +194,16 @@ class AuthController extends AsyncNotifier<void> {
   Future<void> signOut() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final auth = ref.read(firebaseAuthProvider);
+      final FirebaseAuth auth = ref.read(firebaseAuthProvider);
       await GoogleSignIn().signOut();
       await auth.signOut();
-      
+
       final settings = ref.read(settingsRepositoryProvider);
       await settings.set(AppSettingsKeys.onboardingCompleted, 'false');
-      
-      ref.invalidate(onboardingCompletedProvider);
+
       await auth.signInAnonymously();
+      invalidateUserScopedDataProviders(ref);
+      ref.invalidate(onboardingCompletedProvider);
     });
   }
 
@@ -162,4 +228,3 @@ class AuthController extends AsyncNotifier<void> {
 
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, void>(AuthController.new);
-
