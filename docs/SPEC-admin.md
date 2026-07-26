@@ -69,6 +69,10 @@ admin/
 - **읽기 권한 (`read`)**: 인증된 모든 사용자 (`request.auth != null`) 읽기 허용 (Flutter 클라이언트 포함)
 - **쓰기 권한 (`write`)**: JWT 토큰 내 커스텀 클레임이 `request.auth.token.admin == true`인 관리자만 허용
 
+### 3.7 Firebase App Check 연동 (`src/firebase.ts`)
+- **프로덕션 (reCAPTCHA v3)**: `VITE_FIREBASE_APP_CHECK_KEY` 환경 변수를 통한 Vercel 운영 웹 앱 무단 호출 방지
+- **개발 환경 (Debug Fallback)**: `import.meta.env.DEV` 개발 모드에서 `FIREBASE_APPCHECK_DEBUG_TOKEN` 및 `CustomProvider` 폴백으로 `localhost` 스로틀링 400 에러 방지
+
 ---
 
 ## 4. 검증 및 빌드 절차 (Verification & Build)

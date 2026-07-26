@@ -40,41 +40,45 @@ flowchart LR
 
 ### 2.1 App Check 운영 적용 및 API Key 제한
 
-> **상태: 운영 적용 완료.** `firebase_bootstrap.dart`에서 App Check SDK(Play Integrity / DeviceCheck / DebugProvider)가 활성화되어 토큰이 자동 갱신된다.
+> **상태: 운영 적용 완료.**
+> - **Flutter 앱 (`client/chusa1817`)**: `firebase_bootstrap.dart`에서 App Check SDK(Play Integrity / DeviceCheck / DebugProvider)가 활성화되어 토큰이 자동 갱신된다.
+> - **어드민 웹App (`admin/webapp`)**: `src/firebase.ts`에서 `firebase/app-check` SDK(`initializeAppCheck` & `ReCaptchaV3Provider` / `CustomProvider` 디버그 폴백)가 활성화되어 Vercel 프로덕션 및 `localhost` 개발 환경 모두 지원한다.
 
 - **Enforce는 Console에서만 지정**: App Check → APIs → Cloud Firestore → Enforce. API 게이트웨이에서 유효 토큰 없는 요청을 자동 차단한다.
-- **`firestore.rules` 보안 규칙**: `request.app`을 규칙에 직접 작성하지 않고 기존 Auth 검증(`allow read: if isSignedIn();`)을 그대로 유지한다.
-- **API 키 제한**: GCP Console(`API 및 서비스 > 사용자 인증 정보`)에서 Android(`com.basis.breeze.chusa1817`) 및 iOS 패키지 제한을 적용하여 외부 무단 요청을 방지한다.
+- **`firestore.rules` 보안 규칙**: `request.app`을 규칙에 직접 작성하지 않고 기존 Auth 검증(`allow read: if isSignedIn();`, 쓰기는 `isAdmin()`)을 그대로 유지한다.
+- **API 키 제한**: GCP Console(`API 및 서비스 > 사용자 인증 정보`)에서 Android/iOS 패키지 제한 및 Web App HTTP Referrer(`https://chusa1817-admin.vercel.app/*`) 제한을 적용하여 외부 무단 요청을 방지한다.
 
 ---
 
 ## 3. 저장소 내 관련 파일 위치
 
-### 3.1 Flutter (앱 코드)
+### 3.1 Flutter (클라이언트 앱 코드)
 
 | 경로 | 설명 |
 |------|------|
-| `flutter/chusa1817/lib/main.dart` | `WidgetsFlutterBinding.ensureInitialized()` → `bootstrapFirebase()` → `ProviderScope`로 앱 실행 |
-| `flutter/chusa1817/lib/firebase_options.dart` | `Firebase.initializeApp`용 `DefaultFirebaseOptions` (플레이스홀더; 실제 값은 `flutterfire configure` 권장) |
-| `flutter/chusa1817/lib/core/firebase/firebase_bootstrap.dart` | `bootstrapFirebase()` — Core → **App Check** → 익명 로그인; 실패 시에도 앱은 계속 실행 |
-| `flutter/chusa1817/lib/core/firebase/firestore_paths.dart` | 컬렉션·문서 ID 상수 (`config/content`, `hanja`, `words`, `strokes` 서브컬렉션명) |
-| `flutter/chusa1817/lib/core/firebase/firestore_mappers.dart` | Firestore `Map` → Drift `*Companion` 매핑 |
-| `flutter/chusa1817/lib/core/firebase/firestore_content_sync.dart` | `FirestoreContentSyncService` — 페이지 단위 조회 및 DB 반영 |
-| `flutter/chusa1817/lib/core/providers/app_providers.dart` | `appDatabaseProvider`, `firebaseFirestoreProvider`, `firestoreContentSyncProvider` |
-| `flutter/chusa1817/lib/core/firebase/initial_content_sync.dart` | 기동 직후 로컬 `hanja`가 비어 있을 때만 `syncAllContent()` 1회 |
+| `client/chusa1817/lib/main.dart` | `WidgetsFlutterBinding.ensureInitialized()` → `bootstrapFirebase()` → `ProviderScope`로 앱 실행 |
+| `client/chusa1817/lib/firebase_options.dart` | `Firebase.initializeApp`용 `DefaultFirebaseOptions` |
+| `client/chusa1817/lib/core/firebase/firebase_bootstrap.dart` | `bootstrapFirebase()` — Core → **App Check** → 익명 로그인; 실패 시에도 앱은 계속 실행 |
+| `client/chusa1817/lib/core/firebase/firestore_paths.dart` | 컬렉션·문서 ID 상수 (`config/content`, `hanja`, `words`, `strokes` 서브컬렉션명) |
+| `client/chusa1817/lib/core/firebase/firestore_mappers.dart` | Firestore `Map` → Drift `*Companion` 매핑 |
+| `client/chusa1817/lib/core/firebase/content_sync_controller.dart` | `ContentSyncController` — Firestore 마스터 데이터 수신 및 로컬 DB 반영 |
+| `client/chusa1817/lib/core/providers/app_providers.dart` | `appDatabaseProvider`, `firebaseFirestoreProvider`, `contentSyncControllerProvider` |
+| `client/chusa1817/lib/core/firebase/initial_content_sync.dart` | 앱 기동/로그인 직후 로컬 DB가 비어 있을 경우 동기화 완수 후 메인 화면 진입 |
 
-### 3.2 Android
+### 3.2 Vue 3 어드민 백오피스 (`admin/webapp`)
 
 | 경로 | 설명 |
 |------|------|
-| `flutter/chusa1817/android/settings.gradle.kts` | `com.google.gms.google-services` 플러그인 선언 (`apply false`) |
-| `flutter/chusa1817/android/app/build.gradle.kts` | `id("com.google.gms.google-services")` 적용 |
-| `flutter/chusa1817/android/app/google-services.json` | Firebase Android 앱 설정 (플레이스홀더; `flutterfire configure`로 실제 값 권장). **Firebase projectId는 `chusa-1817`**. |
+| `admin/webapp/src/firebase.ts` | `initializeAppCheck` 및 `ReCaptchaV3Provider` / DEV 모드 `CustomProvider` 디버그 폴백 |
+| `admin/webapp/src/views/LoginView.vue` | Firebase Auth 로그인 및 관리자 클레임 검증 |
+| `admin/webapp/src/views/dashboard/FirestoreManageLayout.vue` | Firestore 마스터 한자 CRUD 및 pagination 쿼리 |
 
-### 3.3 iOS / macOS
+### 3.3 Android / iOS
 
-- Firebase 콘솔에서 받은 **`GoogleService-Info.plist`**를 Xcode `Runner` 타깃에 추가해야 한다.  
-- `firebase_options.dart`의 iOS/macOS 항목이 해당 번들 ID·프로젝트와 일치해야 한다.
+| 경로 | 설명 |
+|------|------|
+| `client/chusa1817/android/app/build.gradle.kts` | `id("com.google.gms.google-services")` 적용 |
+| `client/chusa1817/android/app/google-services.json` | Firebase Android 앱 설정. **Firebase projectId는 `chusa-1817`**. |
 
 ### 3.4 `admin/firestore/` (Firebase CLI · 규칙 배포)
 
@@ -84,14 +88,14 @@ flowchart LR
 | `admin/firestore/.firebaserc` | 기본 프로젝트 `chusa-1817` (`firebase use` 생략 가능) |
 | `admin/firestore/firestore.rules` | 배포용 보안 규칙 |
 | `admin/firestore/README.md` | 이 폴더 요약 |
-| `flutter/scripts/setup_firebase_flutter.sh` | 로그인·**`admin/firestore`에서 규칙 배포**·`flutterfire configure` (저장소 루트에서 `./flutter/scripts/...`) |
 
-### 3.5 `admin/admin-etl/` (Admin SDK 업로드 · 클레임)
+### 3.5 `admin-etl/` (Admin SDK 업로드 · 클레임)
 
 | 경로 | 설명 |
 |------|------|
-| `admin/admin-etl/upload_to_firestore.py` | JSON 산출물 → Firestore 일괄 업로드 (Admin SDK) |
-| `admin/admin-etl/requirements-firebase.txt` | 업로드·클레임 스크립트용 `firebase-admin` |
+| `admin-etl/upload_to_firestore.py` | JSON 산출물 → Firestore 일괄 업로드 (Admin SDK) |
+| `admin-etl/set_firebase_custom_claims.py` | 사용자 계정에 `admin: true` 커스텀 클레임 부여 스크립트 |
+| `admin-etl/requirements-firebase.txt` | 업로드·클레임 스크립트용 `firebase-admin` |
 
 ### 3.6 본 문서
 
