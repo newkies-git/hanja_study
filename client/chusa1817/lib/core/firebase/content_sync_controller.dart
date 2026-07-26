@@ -128,6 +128,7 @@ class ContentSyncController extends AsyncNotifier<ContentSyncResult?> {
 
   void _invalidateHanjaListCaches() {
     ref.invalidate(learnHanjaListProvider);
+    ref.invalidate(learnHanjaPageProvider);
     ref.invalidate(totalHanjaCountProvider);
     ref.invalidate(hanjaStrokeVisualProvider);
     ref.invalidate(hanjaStrokePointsProvider);
