@@ -13,6 +13,41 @@ const showLocalApiDisabledNotice = computed(
   () => route.query.localApi === "0" && !isLocalApiEnabled,
 );
 const firebaseConfigured = computed(() => isFirebaseConfigured());
+
+const statsCards = [
+  {
+    title: "교육용 기초 한자",
+    count: "1,817 자",
+    subtext: "2000년 개정 1,800자 + 급수 배당 17자",
+    icon: "🎓",
+    badge: "완료",
+    badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  },
+  {
+    title: "획순 SVG 데이터셋",
+    count: "1,817 자 (100%)",
+    subtext: "획별 좌표 정규화 및 SVG Path 수록",
+    icon: "✍️",
+    badge: "완료",
+    badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  },
+  {
+    title: "연관 어휘 및 고사성어",
+    count: "8,000+ 개",
+    subtext: "단어 7,000+개 및 고사성어 1,000+개 연계",
+    icon: "📚",
+    badge: "구축 완료",
+    badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
+  },
+  {
+    title: "보안 & 서비스 상태",
+    count: "App Check 적용",
+    subtext: "Firestore Security Rules & OAuth 제한",
+    icon: "🔒",
+    badge: "보안 강화",
+    badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
+  },
+];
 </script>
 
 <template>
@@ -36,7 +71,7 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
             板
           </div>
           <div class="min-w-0 flex-1">
-            <h1 class="page-title">대시보드</h1>
+            <h1 class="page-title">추사1817 어드민 대시보드</h1>
           </div>
         </div>
         <div class="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">
@@ -58,7 +93,7 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
             :to="{ name: 'db-sync' }"
             class="btn-secondary px-3 py-1.5 text-xs sm:text-sm"
           >
-            DB 동기화
+            DB 동기화 & 배치 업로드
           </RouterLink>
           <RouterLink
             :to="{ name: 'settings-auth' }"
@@ -69,6 +104,28 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
         </div>
       </div>
     </section>
+
+    <!-- 대시보드 핵심 지표 카드 -->
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div
+        v-for="card in statsCards"
+        :key="card.title"
+        class="relative overflow-hidden rounded-xl border border-outline-variant/70 bg-surface-lowest p-4 shadow-float transition-shadow hover:shadow-md"
+      >
+        <div class="flex items-start justify-between">
+          <span class="text-2xl" aria-hidden="true">{{ card.icon }}</span>
+          <span
+            class="inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+            :class="card.badgeColor"
+          >
+            {{ card.badge }}
+          </span>
+        </div>
+        <h3 class="mt-3 text-xs font-semibold text-onSurface-variant">{{ card.title }}</h3>
+        <p class="mt-1 text-lg font-bold text-onSurface">{{ card.count }}</p>
+        <p class="mt-1 text-[11px] text-onSurface-variant/80">{{ card.subtext }}</p>
+      </div>
+    </div>
 
     <div
       v-if="showLocalApiDisabledNotice"
