@@ -1,20 +1,20 @@
-# to-do-list.md 최신화 (Phase 1 화면 구성 중심) 워크스루
+# Android 에뮬레이터 앱 실행 가이드 작성 워크스루
 
 ## 1. 개요
-사용자 지침에 따라 **복잡한 백엔드/알고리즘 비즈니스 로직 추가보다 UI/UX 에디토리얼 시각 디자인 및 화면 레이아웃 구성 완성에 최우선 촛점**을 맞추는 개발 방침을 [`client/to-do-list.md`](../client/to-do-list.md) 최상단에 수립하고 반영했습니다.
+Android 에뮬레이터에서 Flutter 클라이언트 앱(추사 1817 - `chusa1817`)을 시동하고 모바일 레이아웃 최적화 및 뷰포트 오버플로우를 검증할 수 있는 상세 구동 가이드 문서 [`client/android_emulator_guide.md`](../client/android_emulator_guide.md)를 작성하고, [`client/README.md`](../client/README.md) 인덱스에 연동했습니다.
 
 ---
 
-## 2. 반영된 최우선 화면 구성 완성 과제 (Phase 1)
+## 2. 주요 구성 내용
 
-1. **단어 & 고사성어 탐색 뷰 완성 (`/learn/words`, `/learn/idioms`)**:
-   - 7,000+ 단어 및 1,000+ 고사성어 에디토리얼 카드리스트 레이아웃
-   - 고사성어 유래담 모달 (`IdiomOriginModal`) 카드 렌더링
-   - 2자/4자 필터 칩 및 한자음 검색바 디자인 완성
-2. **성어/단어 퀴즈 플레이 뷰 완성 (`/quiz/words`)**:
-   - 성어 훈음 선택 4지선다 카드 & 빈칸 한자 채우기 퀴즈 레이아웃
-   - 퀴즈 세션 프로그레스바 및 결과 카드 디자인
-3. **획순 애니메이션 배속 토글 UI (`StrokeAnimationPlayer`)**:
-   - 0.5x, 1.0x, 1.5x, 2.0x 배속 선택 칩 및 컨트롤 버튼 보강
-4. **필기 캔버스 옵션 설정 모달 (`WritingCanvasSettingsModal`)**:
-   - 가이드 라인 굵기(1~8px), 투명도(20~100%), 펜 굵기 조절 슬라이더 팝업 UI
+1. **에뮬레이터 목록 확인**: `flutter emulators` CLI 명령
+2. **에뮬레이터 구동**: `flutter emulators --launch Medium_Phone_API_36.0`
+3. **디바이스 인식 점검**: `flutter devices`
+4. **앱 실행**: `cd client/chusa1817 && flutter run -d emulator-5554`
+5. **핫리로드 & 레이아웃 검증**: `r` (Hot Reload), `v` (DevTools Layout Explorer)
+
+---
+
+## 3. 검증 결과
+- **상대 경로 링크**: 문서 간 하이퍼링크가 환경 독립적인 상대 경로로 연결됨
+- **CLI 동작**: `Medium_Phone_API_36.0` 및 `flutter_emulator` 2종 정상 인식 확인 완료

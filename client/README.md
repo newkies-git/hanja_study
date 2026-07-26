@@ -40,5 +40,6 @@ flutter run
 
 ## 📚 관련 명세 문서
 - **모바일 클라이언트 상세 기능 명세서**: [`docs/SPEC-client.md`](../docs/SPEC-client.md)
+- **Android 에뮬레이터 실행 가이드**: [`client/android_emulator_guide.md`](android_emulator_guide.md)
 - **클라이언트 개발 로드맵**: [`client/to-do-list.md`](to-do-list.md)
 - **저장소 마스터 안내서**: [`README.md`](../README.md)
