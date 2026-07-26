@@ -32,33 +32,36 @@ flutter emulators --launch flutter_emulator
 
 ---
 
-## 📱 3. 연결된 디바이스 ID 확인
+## 📱 3. 연결된 디바이스 ID 확인 및 부팅 대기
 
-에뮬레이터 부팅이 완료되면 연결된 디바이스 목록에서 에뮬레이터 ID를 확인합니다.
+에뮬레이터 실행 후 부팅이 완전히 끝날 때까지 5~10초 대기한 뒤 디바이스 목록을 확인합니다.
 
 ```bash
 flutter devices
 ```
 
-**[출력 예시]**
+> ⚠️ **`Device emulator-5554 is offline` 메시지가 뜨는 경우**:
+> Android OS 시스템 부팅이 진행 중인 상태입니다. 에뮬레이터 화면에 Android 홈 화면이 뜰 때까지 잠시 기다린 후 `flutter devices`를 다시 실행하면 `online(device)` 상태로 변경됩니다.
+
+**[부팅 완료 시 출력 예시]**
 ```text
-emulator-5554 • Medium Phone API 36.0 • android-arm64 • Android 15 (API 36)
+emulator-5554 • flutter emulator • android-x86_64 • Android 14 / 15
 ```
 
 ---
 
 ## 🏃 4. Flutter 앱 실행 (`flutter run`)
 
-클라이언트 디렉터리로 이동하여 에뮬레이터에 앱을 빌드하고 배포합니다.
+`pubspec.yaml` 파일이 존재하는 **Flutter 프로젝트 루트 디렉터리(`client/chusa1817`)**로 이동하여 앱을 빌드하고 실행합니다.
 
 ```bash
-# 1. 클라이언트 앱 디렉터리로 이동
-cd client/chusa1817
+# 1. Flutter 프로젝트 루트 디렉터리로 이동 (필수)
+cd /Users/yutaek/zWorkSpace/zBasis/HANJA/client/chusa1817
 
-# 2-A. 에뮬레이터가 1개만 실행 중인 경우 (단축 명령)
+# 2-A. 부팅 완료된 에뮬레이터로 앱 실행
 flutter run
 
-# 2-B. 디바이스 ID를 지정하여 실행하는 경우
+# 2-B. 디바이스 ID를 명시하여 실행하는 경우
 flutter run -d emulator-5554
 ```
 
