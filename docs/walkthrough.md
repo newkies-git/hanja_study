@@ -1,20 +1,35 @@
-# Android 에뮬레이터 앱 실행 가이드 작성 워크스루
+# 로그인 및 빈 로컬 DB 동기화 순서 제어 워크스루
 
 ## 1. 개요
-Android 에뮬레이터에서 Flutter 클라이언트 앱(추사 1817 - `chusa1817`)을 시동하고 모바일 레이아웃 최적화 및 뷰포트 오버플로우를 검증할 수 있는 상세 구동 가이드 문서 [`client/android_emulator_guide.md`](../client/android_emulator_guide.md)를 작성하고, [`client/README.md`](../client/README.md) 인덱스에 연동했습니다.
+사용자 로그인 인증 완료 후, 로컬 사전 DB가 비어있는 상태(한자 0건)일 경우 **Firestore 마스터 데이터 동기화를 우선 완료한 뒤 메인 앱 화면을 진입**하도록 실행 순서를 보완했습니다.
 
 ---
 
-## 2. 주요 구성 내용
+## 2. 변경된 동기화 & 로그인 제어 흐름
 
-1. **에뮬레이터 목록 확인**: `flutter emulators` CLI 명령
-2. **에뮬레이터 구동**: `flutter emulators --launch Medium_Phone_API_36.0`
-3. **디바이스 인식 점검**: `flutter devices`
-4. **앱 실행**: `cd client/chusa1817 && flutter run -d emulator-5554`
-5. **핫리로드 & 레이아웃 검증**: `r` (Hot Reload), `v` (DevTools Layout Explorer)
+```mermaid
+graph TD
+    START[사용자 로그인 / 게스트 시작] --> AUTH[Firebase Auth 인증 완료]
+    AUTH --> CHECK{로컬 DB 사전 데이터 존재 여부}
+
+    CHECK -->|사전 0건: 비어있음| SPLASH[전면 동기화 스플래시 화면 유지]
+    SPLASH --> SYNC[Firestore 마스터 데이터 수신 및 로컬 DB 저장]
+    SYNC --> MAIN[메인 앱 화면 진입: 1,817자 즉시 표시]
+
+    CHECK -->|사전 데이터 존재| MAIN_DIRECT[메인 앱 화면 즉시 진입]
+    MAIN_DIRECT --> BG_SYNC[백그라운드 차분 동기화]
+```
 
 ---
 
-## 3. 검증 결과
-- **상대 경로 링크**: 문서 간 하이퍼링크가 환경 독립적인 상대 경로로 연결됨
-- **CLI 동작**: `Medium_Phone_API_36.0` 및 `flutter_emulator` 2종 정상 인식 확인 완료
+## 3. 주요 수정 내역
+
+- **`lib/core/firebase/initial_content_sync.dart`**:
+  - `hanjaRepositoryProvider.fetchTotalCount()` 기반 초기 데이터 존재 여부 검사
+  - 0건일 경우 전면 에디토리얼 동기화 스플래시 UI 표출 및 `syncIfNeeded()` 완료 대기
+  - 데이터 동기화 완수 후 `widget.child` 메인 화면으로 전이
+
+---
+
+## 4. 검증 결과
+- **Flutter 테스트 수트**: **16 / 16 Passed (100% 통과)**
