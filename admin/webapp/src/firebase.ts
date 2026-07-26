@@ -64,9 +64,14 @@ export function getFirebaseApp(): FirebaseApp {
   return firebaseApp;
 }
 
-/** Firebase App Check (reCAPTCHA v3) 초기화 */
+/** Firebase App Check (reCAPTCHA v3 / Debug) 초기화 */
 function initAppCheckIfConfigured(app: FirebaseApp): void {
   if (typeof window === "undefined" || firebaseAppCheck) return;
+
+  if (import.meta.env.DEV) {
+    // 로컬 개발 환경(localhost)에서 디버그 토큰 허용
+    (self as unknown as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
 
   const siteKey = normalizeViteEnvString(
     import.meta.env.VITE_FIREBASE_APP_CHECK_KEY ||
@@ -76,10 +81,6 @@ function initAppCheckIfConfigured(app: FirebaseApp): void {
   if (!siteKey) return;
 
   try {
-    if (import.meta.env.DEV) {
-      // 로컬 개발 환경에서 디버그 토큰 허용
-      (self as unknown as Record<string, unknown>).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
     firebaseAppCheck = initializeAppCheck(app, {
       provider: new ReCaptchaV3Provider(siteKey),
       isTokenAutoRefreshEnabled: true,
