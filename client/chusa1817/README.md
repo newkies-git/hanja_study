@@ -8,10 +8,10 @@
 
 - **Framework**: Flutter (Dart 3)
 - **State Management**: `flutter_riverpod` (AsyncNotifier / Provider)
-- **Router**: `go_router` ([app_router.dart](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/flutter/chusa1817/lib/core/router/app_router.dart))
+- **Router**: `go_router` ([app_router.dart](lib/core/router/app_router.dart))
 - **Database (Offline-First)**:
-  - Local: Drift (SQLite) ([app_database.dart](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/flutter/chusa1817/lib/core/database/app_database.dart))
-  - Remote: Firebase Cloud Firestore & Auth ([content_sync_controller.dart](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/flutter/chusa1817/lib/core/firebase/content_sync_controller.dart))
+  - Local: Drift (SQLite) ([app_database.dart](lib/core/database/app_database.dart))
+  - Remote: Firebase Cloud Firestore & Auth ([content_sync_controller.dart](lib/core/firebase/content_sync_controller.dart))
 - **Security**: Firebase App Check (`PlayIntegrity` / `DeviceCheck` / `DebugProvider`)
 
 ---
@@ -20,7 +20,7 @@
 
 ### 1. 패키지 설치
 ```bash
-cd flutter/chusa1817
+cd client/chusa1817
 flutter pub get
 ```
 
@@ -54,4 +54,4 @@ lib/
  └─ shared/           # 공통 원고지/에디토리얼 UI 컴포넌트
 ```
 
-상세 기획은 [`docs/PRD.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/PRD.md) 및 [`docs/impl_plan/implementation_plan.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/impl_plan/implementation_plan.md)를 참고하세요.
+상세 기획은 [`docs/PRD.md`](../../docs/PRD.md) 및 [`docs/implementation_plan.md`](../../docs/implementation_plan.md)를 참고하세요.

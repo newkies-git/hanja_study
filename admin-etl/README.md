@@ -51,5 +51,5 @@ python set_firebase_custom_claims.py --project-id chusa-1817 --email admin@examp
 ---
 
 ## 📚 관련 명세 문서
-- **ETL 파이프라인 상세 기능 명세서**: [`docs/SPEC-admin-etl.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/SPEC-admin-etl.md)
-- **저장소 마스터 안내서**: [`README.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/README.md)
+- **ETL 파이프라인 상세 기능 명세서**: [`docs/SPEC-admin-etl.md`](../docs/SPEC-admin-etl.md)
+- **저장소 마스터 안내서**: [`README.md`](../README.md)

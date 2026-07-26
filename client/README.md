@@ -8,9 +8,9 @@ HANJA 저장소의 **한자 학습 모바일 클라이언트 애플리케이션 
 
 | 경로 | 역할 및 구성 |
 | :--- | :--- |
-| **[`chusa1817/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/client/chusa1817/README.md)** | **Flutter 프로젝트 루트** (Riverpod, Drift, GoRouter, Firebase App Check) |
-| **[`scripts/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/client/scripts/setup_firebase_flutter.sh)** | `setup_firebase_flutter.sh` (Firebase 프로젝트 구성 및 App Check 자동화 스크립트) |
-| **[`to-do-list.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/client/to-do-list.md)** | 클라이언트 개발 현황 점검 및 기능 로드맵 |
+| **[`chusa1817/`](chusa1817/README.md)** | **Flutter 프로젝트 루트** (Riverpod, Drift, GoRouter, Firebase App Check) |
+| **[`scripts/`](scripts/setup_firebase_flutter.sh)** | `setup_firebase_flutter.sh` (Firebase 프로젝트 구성 및 App Check 자동화 스크립트) |
+| **[`to-do-list.md`](to-do-list.md)** | 클라이언트 개발 현황 점검 및 기능 로드맵 |
 
 ---
 
@@ -39,6 +39,6 @@ flutter run
 ---
 
 ## 📚 관련 명세 문서
-- **모바일 클라이언트 상세 기능 명세서**: [`docs/SPEC-client.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/SPEC-client.md)
-- **클라이언트 개발 로드맵**: [`client/to-do-list.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/client/to-do-list.md)
-- **저장소 마스터 안내서**: [`README.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/README.md)
+- **모바일 클라이언트 상세 기능 명세서**: [`docs/SPEC-client.md`](../docs/SPEC-client.md)
+- **클라이언트 개발 로드맵**: [`client/to-do-list.md`](to-do-list.md)
+- **저장소 마스터 안내서**: [`README.md`](../README.md)

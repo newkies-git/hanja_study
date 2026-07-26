@@ -15,22 +15,19 @@
 
 ## 2. 주요 변경 파일 및 컴포넌트
 
-### Component 1: Admin Dashboard Home ([DashboardHomeView.vue](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/frontend/src/views/dashboard/DashboardHomeView.vue))
-- **[MODIFY]** [DashboardHomeView.vue](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/frontend/src/views/dashboard/DashboardHomeView.vue)
-  - 대시보드 메인 화면에 4대 핵심 지표 요약 카드 추가:
-    - 🎓 기초 한자 (1,817자)
-    - ✍️ 획순 SVG 데이터 완성도
-    - 📚 관련 단어 (7,000+개) & 고사성어 (1,000+개)
-    - 🔒 Firebase App Check & Auth 상태
+### Component 1: Admin Dashboard Home ([DashboardHomeView.vue](../admin/webapp/src/views/dashboard/DashboardHomeView.vue))
+- **[MODIFY]** [DashboardHomeView.vue](../admin/webapp/src/views/dashboard/DashboardHomeView.vue)
+  - 4개 핵심 모니터링 지표 카드 구현 (교육용 1,817자 완료율, 획순 SVG 100%, 어휘 8,000+개, App Check 보안 현황)
+  - 파이프라인 빠른 실행 바로가기 연동
 
-### Component 2: Drag & Drop Batch File Uploader ([DatabaseSyncView.vue](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/frontend/src/views/dashboard/DatabaseSyncView.vue))
-- **[MODIFY]** [DatabaseSyncView.vue](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/frontend/src/views/dashboard/DatabaseSyncView.vue)
+### Component 2: Drag & Drop Batch File Uploader ([DatabaseSyncView.vue](../admin/webapp/src/views/dashboard/DatabaseSyncView.vue))
+- **[MODIFY]** [DatabaseSyncView.vue](../admin/webapp/src/views/dashboard/DatabaseSyncView.vue)
   - Drag & Drop 파일 드롭존 추가 (`.json`, `.csv`)
   - 파일 타입 자동 감지 (`hanja_basis.csv`, `stroke_entities.json`, `word_entities.json`)
   - Firestore 컬렉션 Batch Write 연동 및 실시간 프로그레스 바 제공
 
-### Component 3: Related Words & Idioms Tab UI ([HanjaDetailTabRelated.vue](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/frontend/src/components/dashboard/HanjaDetailTabRelated.vue))
-- **[MODIFY]** [HanjaDetailTabRelated.vue](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/frontend/src/components/dashboard/HanjaDetailTabRelated.vue)
+### Component 3: Related Words & Idioms Tab UI ([HanjaDetailTabRelated.vue](../admin/webapp/src/components/dashboard/HanjaDetailTabRelated.vue))
+- **[MODIFY]** [HanjaDetailTabRelated.vue](../admin/webapp/src/components/dashboard/HanjaDetailTabRelated.vue)
   - 단어 및 고사성어 항목 렌더링, 검색, 추가/삭제 UI 기능 보강
 
 ---

@@ -8,8 +8,8 @@ HANJA 저장소의 **관리자 백오피스 웹 애플리케이션(`webapp/`)** 
 
 | 경로 | 역할 및 구성 |
 | :--- | :--- |
-| **[`webapp/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/webapp/package.json)** | **어드민 관리 웹 앱** (Vite 6, Vue 3, TypeScript, Tailwind CSS 대시보드) |
-| **[`firestore/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/firestore/README.md)** | **Firestore CLI 배포 환경** (`firebase.json`, `.firebaserc`, `firestore.rules`, `firestore_connect.md`) |
+| **[`webapp/`](webapp/package.json)** | **어드민 관리 웹 앱** (Vite 6, Vue 3, TypeScript, Tailwind CSS 대시보드) |
+| **[`firestore/`](firestore/README.md)** | **Firestore CLI 배포 환경** (`firebase.json`, `.firebaserc`, `firestore.rules`, `firestore_connect.md`) |
 
 ---
 
@@ -40,6 +40,6 @@ firebase deploy --only firestore:rules --project chusa-1817
 ---
 
 ## 📚 관련 명세 문서
-- **어드민 백오피스 상세 기능 명세서**: [`docs/SPEC-admin.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/SPEC-admin.md)
-- **Firestore 연동 & 보안 마스터 문서**: [`admin/firestore/firestore_connect.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/firestore/firestore_connect.md)
-- **저장소 마스터 안내서**: [`README.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/README.md)
+- **어드민 백오피스 상세 기능 명세서**: [`docs/SPEC-admin.md`](../docs/SPEC-admin.md)
+- **Firestore 연동 & 보안 마스터 문서**: [`admin/firestore/firestore_connect.md`](firestore/firestore_connect.md)
+- **저장소 마스터 안내서**: [`README.md`](../README.md)
