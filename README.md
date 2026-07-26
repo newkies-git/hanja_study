@@ -8,9 +8,9 @@
 
 | 경로 | 설명 |
 |------|------|
-| [`client/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/client/chusa1817/README.md) | **Flutter 클라이언트 앱** (`chusa1817`: Riverpod, Drift, GoRouter, Firebase App Check) |
-| [`admin/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/admin-readme.md) | **어드민 백오피스 Web App** (`webapp`: Vue 3 어드민 UI, `firestore`: CLI 보안 규칙) |
-| [`admin-etl/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin-etl/run_hanja_etl.sh) | **데이터 파이프라인 (ETL)** (Python 한자/획순/어휘 수집·정제 및 Firestore 업로더) |
+| [`client/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/client/README.md) | **Flutter 클라이언트 앱** (`chusa1817`: Riverpod, Drift, GoRouter, Firebase App Check) |
+| [`admin/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/README.md) | **어드민 백오피스 Web App** (`webapp`: Vue 3 어드민 UI, `firestore`: CLI 보안 규칙) |
+| [`admin-etl/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin-etl/README.md) | **데이터 파이프라인 (ETL)** (Python 한자/획순/어휘 수집·정제 및 Firestore 업로더) |
 | [`docs/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/PRD.md) | **기획·요구사항·명세 통합 문서** (`PRD.md`, `SPEC-client.md`, `SPEC-admin.md`, `SPEC-admin-etl.md`, `implementation_plan.md`, `walkthrough.md`) |
 
 ---
