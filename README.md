@@ -11,7 +11,6 @@
 | [`docs/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/PRD.md) | **기획·요구사항·명세 통합 문서** (`PRD.md`, `SM-2.md`, `impl_plan/`, `work_through/`) |
 | [`flutter/chusa1817/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/flutter/chusa1817/README.md) | **Flutter 클라이언트 앱** (Riverpod, Drift, GoRouter, Firebase App Check) |
 | [`admin/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/admin-readme.md) | **어드민 포털 및 파이프라인** (`frontend/`: Vue 3 어드민 UI, `python/`: 데이터 정제, `firestore/`: CLI 보안 규칙) |
-| [`uiux/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/uiux/DESIGN.md) | **UI/UX 디자인 시스템** (`DESIGN.md`: 앱 디자인 톤, `DESIGN-admin.md`: 어드민 디자인 톤) |
 
 ---
 

@@ -13,9 +13,7 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 | `admin/python/` | ETL(네이버 한자사전 스크래핑), JSON 산출물, Firestore 업로드·Auth 커스텀 클레임 스크립트 |
 | `admin/python/output/` | ETL 파이프라인 결과. **`hanja_extend`·`hanja_stroke`·`hanja_word`는 JSON(객체 배열)이 표준 형식**이며, `hanja_entities.json` / `stroke_entities.json` / `word_entities.json`이 각각 2~4단계 원천이다. `hanja_basis`는 CSV. 관리 웹「한자 마스터 등록」에서 순서대로 업로드(JSON 직접 또는 CSV). |
 | `ref_hud_vue_v6.0/` (저장소 루트) | HUD Vue 템플릿 참고 자료(문서·스타터) |
-| `admin/frontend/` | 관리 웹앱(Vite · Vue 3 · TypeScript · Tailwind). 레이아웃은 HUD와 유사하게 사이드바+헤더, 스타일은 `uiux/DESIGN-admin.md` 토큰 |
-
-**UI/UX 디자인 시스템**은 코드와 분리해 `uiux/DESIGN-admin.md`에 둔다(에디토리얼 admin 톤·컬러·타이포 규칙).
+| `admin/frontend/` | 관리 웹앱(Vite · Vue 3 · TypeScript · Tailwind). 레이아웃은 HUD와 유사하게 사이드바+헤더 구성 |
 
 ### Admin 웹 (`admin/frontend`)
 
@@ -77,7 +75,6 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 | `admin/admin-readme.md` | 이 파일 — `admin/` 전체 맵 |
 | `admin/firestore/README.md` | Firestore CLI 폴더 구성·배포 한 줄 요약 |
 | `admin/firestore/firestore_connect.md` | Firestore 스키마, 앱 매핑, 배포·업로드 절차 |
-| `uiux/DESIGN-admin.md` | Admin 대시보드 디자인 시스템(컬러·타이포·컴포넌트) |
 
 ---
 
