@@ -1,22 +1,22 @@
-# Firebase 서비스 계정 키 (레포 밖 보관)
+# Firestore & Firebase 보안 안내
 
-이 디렉터리에는 **Admin SDK JSON을 두지 않습니다.**  
-키가 워크스페이스에 있으면 백업·실수 커밋·공유로 유출될 수 있습니다.
+> **Firestore CLI 프로젝트 루트**: [`admin/firestore/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/firestore/README.md)  
+> **상세 연결·스키마 문서**: [`admin/firestore/firestore_connect.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/firestore/firestore_connect.md)
 
-## 권장 위치
+---
 
-레포 밖 (예):
+## 🔒 Firebase 서비스 계정 키 (레포 밖 보관)
 
+이 디렉터리에는 **Admin SDK 서비스 계정 JSON 키를 절대 보관하지 않습니다.**
+
+### 권장 위치 (저장소 외부)
 ```text
 /Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
 ```
 
-## 사용
-
+### 환경 변수 설정
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS=/Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
 ```
 
-클레임 부여 등: `admin/firestore/firestore_connect.md` § 커스텀 클레임 참고.
-
-유출이 의심되면 Firebase Console에서 해당 서비스 계정 키를 **즉시 폐기·재발급**하세요.
+자세한 Firestore 보안 규칙 배포, App Check 강제 적용 및 클레임 부여는 [`admin/firestore/firestore_connect.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/firestore/firestore_connect.md)를 참고하세요.

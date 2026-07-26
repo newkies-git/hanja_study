@@ -1,41 +1,59 @@
-# hanja_study
+# hanja_study (한자정습 — 추사 1817)
 
-한국 교육용 기초 한자 1,800자를 중심으로 한 **한자 학습 모바일 앱**(가칭: 한자학습)과 관련 **데이터 파이프라인**을 담는 저장소입니다.
+한국 교육용 기초 한자 1,800자를 중심으로 한 **한자 학습 모바일 앱(추사 1817)**과 어드민 관리 백오피스 및 데이터 파이프라인 저장소입니다.
 
-## 저장소 구조
+---
+
+## 📁 저장소 구조 (Repository Structure)
 
 | 경로 | 설명 |
 |------|------|
-| `docs/` | 기획·요구사항(PR `PRD*.md`), 질의·메모(`Q*.txt`) |
-| `python/` | 한자 데이터 수집·가공 스크립트 (`hanja_pipeline.py`) |
-| `flutter/fe/` | Flutter 클라이언트(앱) — 프로젝트 생성 후 배치 예정 |
-| `flutter/be/` | API·BFF 등 백엔드 연동 코드 |
-| `flutter/db/` | 로컬 DB 스키마·마이그레이션 등 |
+| [`docs/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/PRD.md) | **기획·요구사항·명세 통합 문서** (`PRD.md`, `SM-2.md`, `impl_plan/`, `work_through/`) |
+| [`flutter/chusa1817/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/flutter/chusa1817/README.md) | **Flutter 클라이언트 앱** (Riverpod, Drift, GoRouter, Firebase App Check) |
+| [`admin/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/admin-readme.md) | **어드민 포털 및 파이프라인** (`frontend/`: Vue 3 어드민 UI, `python/`: 데이터 정제, `firestore/`: CLI 보안 규칙) |
+| [`uiux/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/uiux/DESIGN.md) | **UI/UX 디자인 시스템** (`DESIGN.md`: 앱 디자인 톤, `DESIGN-admin.md`: 어드민 디자인 톤) |
 
-## 문서
+---
 
-상세 기획은 `docs/PRD.md`부터 참고하면 됩니다.
+## 📚 주요 문서 인덱스 (Documentation Index)
 
-## Python 파이프라인
+- **제품 요구사항 (PRD)**: [`docs/PRD.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/PRD.md) (기능·비기능 명세, 교육용 1,800자 개정 내역 포함)
+- **간격 반복 알고리즘**: [`docs/SM-2.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/SM-2.md) (SM-2 알고리즘 스펙)
+- **구현 현황 & 로드맵**: [`docs/impl_plan/implementation_plan.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/impl_plan/implementation_plan.md) (프로젝트 현황 점검 및 로드맵)
+- **실행 & 검증 기록**: [`docs/work_through/walkthrough.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/work_through/walkthrough.md) (최신 변경 및 테스트 검증)
+- **Firestore 연동 & 보안**: [`admin/firestore/firestore_connect.md`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/firestore/firestore_connect.md) (App Check, API Key, 스키마)
 
-교육용 한자 목록 정리, 네이버 한자사전 기반 엔티티 생성 등에 사용합니다.
+---
 
+## 🚀 빠르게 실행하기 (Quick Start)
+
+### 1. Flutter 모바일 앱 실행
 ```bash
-cd python
+cd flutter/chusa1817
+flutter pub get
+flutter analyze --no-fatal-infos
+flutter test
+flutter run
+```
+
+### 2. 어드민 관리 웹 실행
+```bash
+cd admin/frontend
+npm install
+npm run dev
+```
+
+### 3. Python 데이터 파이프라인
+```bash
+cd admin/python
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
-playwright install chromium
 python hanja_pipeline.py
 ```
 
-- 산출물·중간 파일 기본 위치: `python/output/`, `python/grade3_1817.txt`(선택)
-- 스크립트는 자기 디렉터리 기준으로 경로를 잡습니다.
+---
 
-## Flutter
+## 📄 라이선스
 
-`flutter/fe` 등 하위에 앱·패키지를 생성한 뒤 개발하면 됩니다. (예: `cd flutter/fe && flutter create .`)
-
-## 라이선스
-
-미정 — 필요 시 `LICENSE`를 추가하세요.
+본 서비스 및 데이터는 **비상업적 교육 목적으로 개발 및 운영**됩니다.
