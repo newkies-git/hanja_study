@@ -154,4 +154,18 @@ router.beforeEach(async (to: RouteLocationNormalized) => {
   return true;
 });
 
+/** 새 배포로 인해 기존 청크 JS 해시가 변경되었을 때 자동 새로고침으로 최신 리소스 로드 */
+router.onError((error, to) => {
+  const errorMessage = error?.message || "";
+  const isChunkLoadFailed =
+    errorMessage.includes("Failed to fetch dynamically imported module") ||
+    errorMessage.includes("Importing a module script failed") ||
+    error?.name === "ChunkLoadError";
+
+  if (isChunkLoadFailed && typeof window !== "undefined") {
+    console.warn("새 배포로 인한 청크 로드 실패: 최신 자원으로 자동 새로고침합니다.");
+    window.location.assign(to.fullPath);
+  }
+});
+
 export default router;
