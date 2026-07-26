@@ -193,6 +193,15 @@ class LocalProgressRepository implements ProgressRepository {
   }
 
   @override
+  Future<List<UserProgressTableData>> fetchBookmarkedProgress() {
+    final String userId = _currentUserId;
+    return (_database.select(_database.userProgressTable)
+          ..where((t) => t.userId.equals(userId) & t.isBookmarked.equals(true))
+          ..orderBy([(t) => OrderingTerm.desc(t.updatedAt)]))
+        .get();
+  }
+
+  @override
   Future<void> upsertProgressByHanjaId({
     required String hanjaId,
     required DateTime studiedAt,

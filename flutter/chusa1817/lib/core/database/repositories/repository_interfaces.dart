@@ -86,6 +86,9 @@ abstract class ProgressRepository {
   /// 즐겨찾기를 토글한다.
   Future<void> toggleBookmark(String hanjaId);
 
+  /// 즐겨찾기 설정된 모든 진도 목록을 반환한다.
+  Future<List<UserProgressTableData>> fetchBookmarkedProgress();
+
   /// 특정 한자에 대한 진도를 "있으면 갱신, 없으면 생성"한다.
   ///
   /// [quality]는 SM-2 응답 품질(0–5). null이면 [isCorrect]로 4 또는 1을 사용한다.

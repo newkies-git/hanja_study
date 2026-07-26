@@ -132,6 +132,15 @@ final hanjaByIdProvider = FutureProvider.family<HanjaTableData?, String>((ref, i
   return ref.watch(hanjaRepositoryProvider).fetchById(id);
 });
 
+final bookmarkedHanjaListProvider = FutureProvider<List<HanjaTableData>>((ref) async {
+  final progressRepo = ref.watch(progressRepositoryProvider);
+  final hanjaRepo = ref.watch(hanjaRepositoryProvider);
+  final bookmarkedProgress = await progressRepo.fetchBookmarkedProgress();
+  if (bookmarkedProgress.isEmpty) return <HanjaTableData>[];
+  final ids = bookmarkedProgress.map((p) => p.hanjaId).toList();
+  return hanjaRepo.fetchByIds(ids);
+});
+
 /// 획순·쓰기 가이드용. `svg_paths`가 있으면 [viewer/stroke_entities_viewer.html] 과 동일 좌표계,
 /// 없으면 획별 로컬 0~1 좌표를 타일 그리드로 배치한다 (`normalize_to_unit_square` 획마다 독립).
 final hanjaStrokeVisualProvider =

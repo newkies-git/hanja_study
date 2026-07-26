@@ -103,7 +103,10 @@ class _HanjaDetailScreenState extends ConsumerState<HanjaDetailScreen> {
                             await ref.read(progressRepositoryProvider).toggleBookmark(hanjaRow.id);
                             // 상태 갱신
                             ref.invalidate(hanjaProgressProvider(hanjaRow.id));
-                            // 가벼운 진동 피드백 (선택사항)
+                            ref.invalidate(hanjaByIdProvider(hanjaRow.id));
+                            ref.invalidate(bookmarkedHanjaListProvider);
+                            ref.invalidate(learnHanjaPageProvider);
+                            // 가벼운 진동 피드백
                             HapticFeedback.lightImpact();
                           },
                         ),

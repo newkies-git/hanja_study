@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/database/app_database.dart';
 import '../../core/database/repositories/repository_interfaces.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/theme/hanja_colors.dart';
@@ -157,15 +158,7 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
                       itemCount: page.items.length,
                       itemBuilder: (BuildContext context, int index) {
                         final hanjaRow = page.items[index];
-                        return HanjaCard(
-                          hanja: hanjaRow.character,
-                          reading: hanjaRow.reading,
-                          meaning: hanjaRow.meaning,
-                          totalStrokes: hanjaRow.totalStrokes,
-                          radical: hanjaRow.radical,
-                          onTap: () =>
-                              context.push(RouteBuilders.hanjaDetail(hanjaRow.id)),
-                        );
+                        return _LearnedHanjaCardTile(hanjaRow: hanjaRow);
                       },
                     ),
                   ),
@@ -248,6 +241,33 @@ class _LearnListScreenState extends ConsumerState<LearnListScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LearnedHanjaCardTile extends ConsumerWidget {
+  const _LearnedHanjaCardTile({required this.hanjaRow});
+
+  final HanjaTableData hanjaRow;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progressAsync = ref.watch(hanjaProgressProvider(hanjaRow.id));
+    final bool isBookmarked = progressAsync.value?.isBookmarked ?? false;
+
+    return HanjaCard(
+      hanja: hanjaRow.character,
+      reading: hanjaRow.reading,
+      meaning: hanjaRow.meaning,
+      totalStrokes: hanjaRow.totalStrokes,
+      radical: hanjaRow.radical,
+      isBookmarked: isBookmarked,
+      onBookmarkTap: () async {
+        await ref.read(progressRepositoryProvider).toggleBookmark(hanjaRow.id);
+        ref.invalidate(hanjaProgressProvider(hanjaRow.id));
+        ref.invalidate(bookmarkedHanjaListProvider);
+      },
+      onTap: () => context.push(RouteBuilders.hanjaDetail(hanjaRow.id)),
     );
   }
 }

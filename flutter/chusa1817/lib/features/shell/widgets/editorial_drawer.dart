@@ -151,6 +151,18 @@ class EditorialDrawer extends StatelessWidget {
                         child: Divider(color: Colors.white12, height: 1),
                       ),
                       _DrawerMenuItem(
+                        icon: Icons.person_outline_rounded,
+                        label: '내 프로필',
+                        isSelected: false,
+                        onTap: () {
+                          final ScaffoldState? scaffold = Scaffold.maybeOf(context);
+                          if (scaffold?.isDrawerOpen ?? false) {
+                            Navigator.of(context).pop();
+                          }
+                          context.push(AppRoutes.profile);
+                        },
+                      ),
+                      _DrawerMenuItem(
                         icon: Icons.info_outline_rounded,
                         label: 'About 추사1817',
                         isSelected: false,

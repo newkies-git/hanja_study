@@ -11,6 +11,8 @@ class HanjaCard extends StatelessWidget {
     required this.totalStrokes,
     required this.radical,
     required this.onTap,
+    this.isBookmarked = false,
+    this.onBookmarkTap,
   });
 
   final String hanja;
@@ -19,6 +21,8 @@ class HanjaCard extends StatelessWidget {
   final int totalStrokes;
   final String radical;
   final VoidCallback onTap;
+  final bool isBookmarked;
+  final VoidCallback? onBookmarkTap;
 
   @override
   Widget build(BuildContext context) {
@@ -46,49 +50,68 @@ class HanjaCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+            child: Stack(
               children: [
-                Text(
-                  hanja,
-                  style: textTheme.displaySmall?.copyWith(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  reading,
-                  style: textTheme.titleMedium?.copyWith(
-                    color: HanjaColors.primary,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  meaning,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: HanjaColors.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _InfoChip(
-                      label: '$totalStrokes',
-                      backgroundColor: const Color(0xFFFFE8B4), // 연한 노란색
-                      textColor: const Color(0xFFE65100), // 오렌지/노란색 계열
+                if (onBookmarkTap != null)
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: IconButton(
+                      iconSize: 20,
+                      constraints: const BoxConstraints(),
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        isBookmarked ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: isBookmarked ? const Color(0xFFFFB300) : HanjaColors.outlineVariant,
+                      ),
+                      onPressed: onBookmarkTap,
                     ),
-                    _InfoChip(
-                      label: radical,
-                      backgroundColor: HanjaColors.primaryFixed.withValues(alpha: 0.5), // 연한 파란색
-                      textColor: HanjaColors.primaryContainer, // 파란색 계열
+                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      hanja,
+                      style: textTheme.displaySmall?.copyWith(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      reading,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: HanjaColors.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      meaning,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: HanjaColors.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Spacer(),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _InfoChip(
+                          label: '$totalStrokes',
+                          backgroundColor: const Color(0xFFFFE8B4), // 연한 노란색
+                          textColor: const Color(0xFFE65100), // 오렌지/노란색 계열
+                        ),
+                        _InfoChip(
+                          label: radical,
+                          backgroundColor: HanjaColors.primaryFixed.withValues(alpha: 0.5), // 연한 파란색
+                          textColor: HanjaColors.primaryContainer, // 파란색 계열
+                        ),
+                      ],
                     ),
                   ],
                 ),
