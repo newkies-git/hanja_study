@@ -1,6 +1,6 @@
 # Admin 영역 안내 (`admin/`)
 
-HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firestore 운영**과 관련된 자료를 `admin/` 한 곳에 모아 둔다. 클라이언트 앱(Flutter) 코드는 **`flutter/chusa1817`**에 그대로 두며, 이 문서의 경로는 저장소 루트를 기준으로 한다.
+HANJA 저장소에서 **백오피스(Vue 3 Web App) 및 Firebase/Firestore 운영** 관련 파일은 `admin/` 아래에서 관리합니다. 데이터 파이프라인(ETL)은 **`admin-etl/`**, 클라이언트 모바일 앱은 **`client/`**로 분리되어 독립적으로 관리됩니다.
 
 ---
 
@@ -8,12 +8,11 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 
 | 경로 | 역할 |
 |------|------|
+| `admin/webapp/` | **관리 웹앱** (Vite · Vue 3 · TypeScript · Tailwind CSS 어드민 대시보드) |
 | `admin/firestore/` | **Firestore 규칙 배포용 Firebase CLI 루트** — `firebase.json`, `.firebaserc`, `firestore.rules`, `README.md`, `firestore_connect.md` |
-| `flutter/scripts/setup_firebase_flutter.sh` | 로컬에서 Firebase CLI 로그인, **`admin/firestore`에서 규칙 배포**, `flutterfire configure` 안내·실행 |
-| `admin/admin-etl/` | ETL(네이버 한자사전 스크래핑), JSON 산출물, Firestore 업로드·Auth 커스텀 클레임 스크립트 |
-| `admin/admin-etl/output/` | ETL 파이프라인 결과. **`hanja_extend`·`hanja_stroke`·`hanja_word`는 JSON(객체 배열)이 표준 형식**이며, `hanja_entities.json` / `stroke_entities.json` / `word_entities.json`이 각각 2~4단계 원천이다. `hanja_basis`는 CSV. 관리 웹「한자 마스터 등록」에서 순서대로 업로드(JSON 직접 또는 CSV). |
-| `ref_hud_vue_v6.0/` (저장소 루트) | HUD Vue 템플릿 참고 자료(문서·스타터) |
-| `admin/webapp/` | 관리 웹앱(Vite · Vue 3 · TypeScript · Tailwind). 레이아웃은 HUD와 유사하게 사이드바+헤더 구성 |
+| `admin-etl/` | **Python ETL 데이터 파이프라인** (네이버 한자 스크래핑, 획순 SVG 추출, Firestore 업로더) |
+| `client/chusa1817/` | **Flutter 모바일 클라이언트 앱** |
+| `client/scripts/setup_firebase_flutter.sh` | 로컬에서 Firebase CLI 로그인, **`admin/firestore`에서 규칙 배포**, `flutterfire configure` 안내·실행 |
 
 ### Admin 웹 (`admin/webapp`)
 
@@ -37,18 +36,18 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 - 한 번에 맞추려면 저장소 루트에서:
 
   ```bash
-  ./flutter/scripts/setup_firebase_flutter.sh
+  ./client/scripts/setup_firebase_flutter.sh
   ```
 
-  이 스크립트는 **`admin/firestore`에서 규칙을 배포**하고, **저장소 루트**의 `flutter/chusa1817`에 대해 `flutterfire configure`를 돌린다.
+  이 스크립트는 **`admin/firestore`에서 규칙을 배포**하고, **저장소 루트**의 `client/chusa1817`에 대해 `flutterfire configure`를 돌린다.
 
 - 상세: `admin/firestore/firestore_connect.md` · 폴더 요약: `admin/firestore/README.md`
 
 ---
 
-## Python ETL (데이터 파이프라인 · 업로드 · 클레임)
+## Python ETL (`admin-etl/`)
 
-작업 디렉터리: `admin/admin-etl/`
+작업 디렉터리: `admin-etl/`
 
 | 작업 | 명령 예 |
 |------|---------|
@@ -57,13 +56,13 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 | Firestore 업로드 | `pip install -r requirements-firebase.txt` → `python upload_to_firestore.py --project-id chusa-1817` |
 | Admin Auth 클레임 | `python set_firebase_custom_claims.py --project-id chusa-1817 --email … --admin true` |
 
-`upload_to_firestore.py`의 기본 JSON 경로는 **`admin/admin-etl/output/`** 아래를 가리킨다.
+`upload_to_firestore.py`의 기본 JSON 경로는 **`admin-etl/output/`** 아래를 가리킨다.
 
 ---
 
-## Flutter 앱과의 관계
+## Flutter 앱과의 관계 (`client/`)
 
-- 앱 소스: **`flutter/chusa1817`**
+- 앱 소스: **`client/chusa1817`**
 - Firestore에서 읽기 전용 동기화, 익명 로그인 등은 `firestore_connect.md` 절차를 따른다.
 
 ---

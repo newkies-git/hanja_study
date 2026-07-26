@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # Flutter 앱 chusa1817을 Firebase 프로젝트 chusa-1817에 연결하는 로컬 절차.
-# 위치: flutter/scripts/ (저장소 루트는 본 파일 기준 ../.. 로 계산)
+# 위치: client/scripts/ (저장소 루트는 본 파일 기준 ../.. 로 계산)
 # 대화형 단계(firebase login, flutterfire)를 안내하고, 가능한 것만 자동화한다.
 # 실행 cwd는 어디든 가능하며, 단계마다 필요한 디렉터리로 명시적으로 이동한다.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-# flutter/scripts → 저장소 루트
+# client/scripts → 저장소 루트
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ADMIN="$REPO_ROOT/admin"
 FIRESTORE_DIR="$ADMIN/firestore"
-APP="$REPO_ROOT/flutter/chusa1817"
+APP="$REPO_ROOT/client/chusa1817"
 
 echo "== HANJA / Firebase 프로젝트 chusa-1817 + 앱 chusa1817 =="
 echo "REPO_ROOT=$REPO_ROOT"
