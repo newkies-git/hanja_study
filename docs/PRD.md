@@ -1050,4 +1050,54 @@ Backend
    - 획순 SVG Path/데이터: 네이버 한자사전 획순보기 참조
    - 서비스 라이선스: 비상업적 학습 목적으로 구현 및 운영
 
+---
+
+## 부록 H — SM-2 간격 반복 복습 알고리즘 명세
+
+### 1. 알고리즘 개요
+Piotr Wozniak이 개발한 SM-2 (Spaced Repetition) 알고리즘을 기반으로 사용자의 암기 상태에 따른 복습 주기를 지수적으로 계산한다.
+
+### 2. 변수 및 계산 규칙
+- **Review Count ($n$)**: 연속 정답 횟수 (초기값: 0)
+- **Interval ($I$)**: 다음 복습까지의 일수 (초기값: 0)
+- **Ease Factor ($EF$)**: 한자의 암기 난이도 계수 (초기값: 2.5, 하한: 1.3)
+
+**정답 시 ($q \ge 3$)**:
+- $n = 0 \Rightarrow I = 1$일
+- $n = 1 \Rightarrow I = 6$일
+- $n \ge 2 \Rightarrow I = I \times EF$
+- $EF' = EF + (0.1 - (5 - q) \times (0.08 + (5 - q) \times 0.02))$
+
+**오답 시 ($q < 3$)**:
+- $n = 0$으로 리셋, $I = 1$일
+- $EF' = \max(1.3, EF - 0.2)$
+
+### 3. 복습 노출 및 오답노트 필터링 조건
+- **오늘의 복습 / 다가오는 복습**: `status IN ('learning', 'mastered') AND nextReviewAt <= now` (SM-2 자동 스케줄링)
+- **오답노트 수동 복습**: 시도한 한자 중 `accuracyRate` 오름차순 및 `totalAttempts` 내림차순 전체 목록 (수동 확인용)
+
+---
+
+## 부록 I — Google Play Store 릴리스 및 배포 명세
+
+### 1. 전제 및 패키지 정보
+- Package / Application ID: `com.basis.breeze.chusa1817`
+- 버전 관리: `pubspec.yaml`의 `version: x.y.z+build` 중 `+` 뒤의 `versionCode`가 빌드 시마다 상향되어야 함.
+
+### 2. keystore 생성 및 `key.properties` 설정
+- 업로드 키스토어 파일명: `chusa1817-upload-keystore.jks`
+- 설정 파일: `flutter/chusa1817/android/key.properties`
+```properties
+storePassword=<비밀번호>
+keyPassword=<키 비밀번호>
+keyAlias=chusa1817
+storeFile=../../chusa1817-upload-keystore.jks
+```
+
+### 3. 릴리스 AAB 빌드 및 지문 등록
+- 빌드 명령: `flutter build appbundle --release`
+- output: `build/app/outputs/bundle/release/app-release.aab`
+- Firebase / GCP Console: `keytool -list -v`로 확인한 SHA1 & SHA-256 지문 및 OAuth 클라이언트 등록 필수.
+
+
 
