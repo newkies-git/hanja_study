@@ -87,7 +87,7 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
       <strong class="font-medium">admin</strong> 클레임이 없으면 Firestore 쓰기가 거절됩니다.
       <code
         class="mx-0.5 rounded-md border border-amber-300/60 bg-white/90 px-1.5 py-0.5 font-mono text-xs text-amber-900"
-      >admin/python/set_firebase_custom_claims.py</code>
+      >admin/admin-etl/set_firebase_custom_claims.py</code>
       로 부여한 뒤
       <strong class="font-medium">토큰 새로고침</strong>을 눌러 반영하세요.
     </div>
@@ -206,7 +206,7 @@ const firebaseConfigured = computed(() => isFirebaseConfigured());
         클레임 부여는 프로젝트에서 제공하는 스크립트
         <code
           class="rounded-md border border-outline-variant/50 bg-surface-lowest px-1.5 py-0.5 font-mono text-[11px] text-primary"
-        >admin/python/set_firebase_custom_claims.py</code>
+        >admin/admin-etl/set_firebase_custom_claims.py</code>
         를 사용합니다. 변경 후 반드시 이 페이지에서 토큰을 갱신해야 Firestore에 반영됩니다.
       </p>
     </div>

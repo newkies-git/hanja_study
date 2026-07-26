@@ -76,4 +76,4 @@ echo
 echo "완료. 현재 셸 디렉터리: $(pwd) (바로 다음에 flutter run 가능)"
 echo "다음을 확인하세요."
 echo "  - Firebase 콘솔: Authentication → 익명 로그인 사용 설정 (현재 Firestore 규칙이 auth 요구)"
-echo "  - Firestore 데이터: admin/python/upload_to_firestore.py (서비스 계정 또는 ADC)"
+echo "  - Firestore 데이터: admin/admin-etl/upload_to_firestore.py (서비스 계정 또는 ADC)"

@@ -10,14 +10,14 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 |------|------|
 | `admin/firestore/` | **Firestore 규칙 배포용 Firebase CLI 루트** — `firebase.json`, `.firebaserc`, `firestore.rules`, `README.md`, `firestore_connect.md` |
 | `flutter/scripts/setup_firebase_flutter.sh` | 로컬에서 Firebase CLI 로그인, **`admin/firestore`에서 규칙 배포**, `flutterfire configure` 안내·실행 |
-| `admin/python/` | ETL(네이버 한자사전 스크래핑), JSON 산출물, Firestore 업로드·Auth 커스텀 클레임 스크립트 |
-| `admin/python/output/` | ETL 파이프라인 결과. **`hanja_extend`·`hanja_stroke`·`hanja_word`는 JSON(객체 배열)이 표준 형식**이며, `hanja_entities.json` / `stroke_entities.json` / `word_entities.json`이 각각 2~4단계 원천이다. `hanja_basis`는 CSV. 관리 웹「한자 마스터 등록」에서 순서대로 업로드(JSON 직접 또는 CSV). |
+| `admin/admin-etl/` | ETL(네이버 한자사전 스크래핑), JSON 산출물, Firestore 업로드·Auth 커스텀 클레임 스크립트 |
+| `admin/admin-etl/output/` | ETL 파이프라인 결과. **`hanja_extend`·`hanja_stroke`·`hanja_word`는 JSON(객체 배열)이 표준 형식**이며, `hanja_entities.json` / `stroke_entities.json` / `word_entities.json`이 각각 2~4단계 원천이다. `hanja_basis`는 CSV. 관리 웹「한자 마스터 등록」에서 순서대로 업로드(JSON 직접 또는 CSV). |
 | `ref_hud_vue_v6.0/` (저장소 루트) | HUD Vue 템플릿 참고 자료(문서·스타터) |
-| `admin/frontend/` | 관리 웹앱(Vite · Vue 3 · TypeScript · Tailwind). 레이아웃은 HUD와 유사하게 사이드바+헤더 구성 |
+| `admin/webapp/` | 관리 웹앱(Vite · Vue 3 · TypeScript · Tailwind). 레이아웃은 HUD와 유사하게 사이드바+헤더 구성 |
 
-### Admin 웹 (`admin/frontend`)
+### Admin 웹 (`admin/webapp`)
 
-1. `cd admin/frontend && cp .env.example .env` 후 Firebase 웹 앱 키를 채운다.  
+1. `cd admin/webapp && cp .env.example .env` 후 Firebase 웹 앱 키를 채운다.  
 2. `npm install` → `npm run dev` (기본 포트 `5174`).  
 3. Authentication에서 **이메일/비밀번호** 로그인을 켜고, 쓰기가 필요하면 `set_firebase_custom_claims.py`로 `admin` 클레임을 부여한다.  
 4. 한자 마스터 등록(CSV 업로드) 등에서 `Missing or insufficient permissions`가 나오면 **`admin/firestore/firestore_connect.md` §11.1**을 본다.
@@ -46,9 +46,9 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 
 ---
 
-## Python (ETL · 업로드 · 클레임)
+## Python ETL (데이터 파이프라인 · 업로드 · 클레임)
 
-작업 디렉터리: `admin/python/`
+작업 디렉터리: `admin/admin-etl/`
 
 | 작업 | 명령 예 |
 |------|---------|
@@ -57,7 +57,7 @@ HANJA 저장소에서 **백오피스·데이터 파이프라인·Firebase/Firest
 | Firestore 업로드 | `pip install -r requirements-firebase.txt` → `python upload_to_firestore.py --project-id chusa-1817` |
 | Admin Auth 클레임 | `python set_firebase_custom_claims.py --project-id chusa-1817 --email … --admin true` |
 
-`upload_to_firestore.py`의 기본 JSON 경로는 **`admin/python/output/`** 아래를 가리킨다(스크립트의 `_repo_root()` = `admin/`).
+`upload_to_firestore.py`의 기본 JSON 경로는 **`admin/admin-etl/output/`** 아래를 가리킨다.
 
 ---
 

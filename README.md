@@ -10,7 +10,7 @@
 |------|------|
 | [`docs/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/docs/PRD.md) | **기획·요구사항·명세 통합 문서** (`PRD.md`, `SM-2.md`, `impl_plan/`, `work_through/`) |
 | [`flutter/chusa1817/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/flutter/chusa1817/README.md) | **Flutter 클라이언트 앱** (Riverpod, Drift, GoRouter, Firebase App Check) |
-| [`admin/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/admin-readme.md) | **어드민 포털 및 파이프라인** (`frontend/`: Vue 3 어드민 UI, `python/`: 데이터 정제, `firestore/`: CLI 보안 규칙) |
+| [`admin/`](file:///Users/yutaek/zWorkSpace/zBasis/HANJA/admin/admin-readme.md) | **어드민 포털 및 파이프라인** (`webapp/`: Vue 3 어드민 UI, `admin-etl/`: 데이터 정제, `firestore/`: CLI 보안 규칙) |
 
 ---
 
@@ -37,14 +37,14 @@ flutter run
 
 ### 2. 어드민 관리 웹 실행
 ```bash
-cd admin/frontend
+cd admin/webapp
 npm install
 npm run dev
 ```
 
 ### 3. Python 데이터 파이프라인
 ```bash
-cd admin/python
+cd admin/admin-etl
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

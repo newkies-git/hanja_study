@@ -1,6 +1,6 @@
 # Firestore 연동 작업 정리 (chusa1817)
 
-이 문서는 **HANJA** 저장소의 Flutter 앱 `flutter/chusa1817`에 적용된 **Firebase / Firestore 연동** 내용을 정리한다. **Firestore 규칙 배포용 Firebase CLI 프로젝트 루트**는 `admin/firestore/`(`firebase.json`, `.firebaserc`, `firestore.rules`)이고, **Python 업로드·클레임 스크립트**는 `admin/python/`에 둔다. 서버 스키마 업로드, 클라이언트 동기화, 빌드 설정을 한곳에서 참고할 수 있도록 한다.
+이 문서는 **HANJA** 저장소의 Flutter 앱 `flutter/chusa1817`에 적용된 **Firebase / Firestore 연동** 내용을 정리한다. **Firestore 규칙 배포용 Firebase CLI 프로젝트 루트**는 `admin/firestore/`(`firebase.json`, `.firebaserc`, `firestore.rules`)이고, **Python 업로드·클레임 스크립트**는 `admin/admin-etl/`에 둔다. 서버 스키마 업로드, 클라이언트 동기화, 빌드 설정을 한곳에서 참고할 수 있도록 한다.
 
 **Firebase `projectId`는 `chusa-1817`**이다. Dart 패키지명·Android `applicationId`의 `chusa1817`과 혼동하지 말 것.
 
@@ -86,12 +86,12 @@ flowchart LR
 | `admin/firestore/README.md` | 이 폴더 요약 |
 | `flutter/scripts/setup_firebase_flutter.sh` | 로그인·**`admin/firestore`에서 규칙 배포**·`flutterfire configure` (저장소 루트에서 `./flutter/scripts/...`) |
 
-### 3.5 `admin/python/` (Admin SDK 업로드 · 클레임)
+### 3.5 `admin/admin-etl/` (Admin SDK 업로드 · 클레임)
 
 | 경로 | 설명 |
 |------|------|
-| `admin/python/upload_to_firestore.py` | JSON 산출물 → Firestore 일괄 업로드 (Admin SDK) |
-| `admin/python/requirements-firebase.txt` | 업로드·클레임 스크립트용 `firebase-admin` |
+| `admin/admin-etl/upload_to_firestore.py` | JSON 산출물 → Firestore 일괄 업로드 (Admin SDK) |
+| `admin/admin-etl/requirements-firebase.txt` | 업로드·클레임 스크립트용 `firebase-admin` |
 
 ### 3.6 본 문서
 
@@ -270,7 +270,7 @@ firebase deploy --only firestore:rules --project chusa-1817
 
 - **읽기**: 로그인한 사용자(`request.auth != null`)면 `config`, `hanja`, `hanja/{id}/strokes`, `words`, `hanja_basis`, `hanja_extend`, `hanja_stroke`, `hanja_word`, `_meta/data_version` 등에 **읽기 가능**(Flutter 익명 로그인 포함).
 - **쓰기**: 위 경로의 클라이언트 쓰기는 **`request.auth.token.admin == true`**(또는 문자열 `'true'`)인 경우에만 허용. 그 외 클라이언트 쓰기는 거절된다.
-- **Admin 웹**(`admin/frontend`): 이메일 로그인 후 동일 조건으로 `hanja_basis` 등에 쓸 수 있다. **일반 사용자 토큰**으로는 `Missing or insufficient permissions`가 난다.
+- **Admin 웹**(`admin/webapp`): 이메일 로그인 후 동일 조건으로 `hanja_basis` 등에 쓸 수 있다. **일반 사용자 토큰**으로는 `Missing or insufficient permissions`가 난다.
 - **Python Admin SDK**(`upload_to_firestore.py` 등)는 규칙을 우회하므로 서비스 계정으로 적재 가능.
 
 ---
@@ -292,7 +292,7 @@ firebase deploy --only firestore:rules --project chusa-1817
    Firestore 규칙의 `isAdmin()`은 JWT의 `admin` 클레임을 본다. 해당 **이메일 계정**에 클레임을 넣는다:
 
    ```bash
-   cd admin/python
+   cd admin/admin-etl
    pip install -r requirements-firebase.txt
    export GOOGLE_APPLICATION_CREDENTIALS=/Users/yutaek/zWorkSpace/zBasis/.secrets/hanja/chusa-1817-firebase-adminsdk.json
    # (레포 안 admin/firestore/ 에 adminsdk JSON 을 두지 말 것 — admin/firestore/README.md 참고)
@@ -302,7 +302,7 @@ firebase deploy --only firestore:rules --project chusa-1817
    클레임을 바꾼 뒤에는 브라우저에서 **로그아웃 후 재로그인**하거나, 관리 앱 **설정 → 인증 · 클레임**에서 **토큰 새로고침**을 눌러 ID 토큰을 갱신해야 한다. 갱신 전 토큰에는 이전 클레임이 남아 있을 수 있다.
 
 3. **웹 앱·프로젝트 일치**  
-   `admin/frontend/.env`의 `VITE_FIREBASE_PROJECT_ID` 등이 **반드시 `chusa-1817`**(또는 실제 쓰는 프로젝트)과 같아야 한다. Flutter용·다른 Firebase 프로젝트 키를 넣으면 읽기는 되어도 규칙/데이터가 엇갈리거나 쓰기가 거절될 수 있다.
+   `admin/webapp/.env`의 `VITE_FIREBASE_PROJECT_ID` 등이 **반드시 `chusa-1817`**(또는 실제 쓰는 프로젝트)과 같아야 한다. Flutter용·다른 Firebase 프로젝트 키를 넣으면 읽기는 되어도 규칙/데이터가 엇갈리거나 쓰기가 거절될 수 있다.
 
 4. **Authentication**  
    Admin 웹은 **이메일/비밀번호**(또는 사용 중인 로그인 방식)가 Firebase 콘솔에서 사용 설정되어 있어야 한다. 로그인 자체가 안 되면 쓰기 이전 단계에서 막힌다.
@@ -322,9 +322,9 @@ firebase deploy --only firestore:rules --project chusa-1817
 | 로컬 파일(예) | 대상 Firestore 컬렉션 | 비고 |
 |---------------|------------------------|------|
 | *(별도 기준 CSV)* | `hanja_basis` (1단계) | CSV 전용 |
-| **`admin/python/output/hanja_entities.json`** 각 요소 | **`hanja_extend` (2단계)** | **JSON 표준** (`id` = 문서 ID) |
-| **`admin/python/output/stroke_entities.json`** 각 요소 | **`hanja_stroke` (3단계)** | **JSON 표준** (`stroke_data_id` = 문서 ID) |
-| **`admin/python/output/word_entities.json`** 각 요소 | **`hanja_word` (4단계)** | **JSON 표준** (`word_id` = 문서 ID) |
+| **`admin/admin-etl/output/hanja_entities.json`** 각 요소 | **`hanja_extend` (2단계)** | **JSON 표준** (`id` = 문서 ID) |
+| **`admin/admin-etl/output/stroke_entities.json`** 각 요소 | **`hanja_stroke` (3단계)** | **JSON 표준** (`stroke_data_id` = 문서 ID) |
+| **`admin/admin-etl/output/word_entities.json`** 각 요소 | **`hanja_word` (4단계)** | **JSON 표준** (`word_id` = 문서 ID) |
 
 `hanja_entities`의 `stroke_data_id`는 획 블록(`stroke_entities`)과 묶어 검증·가공할 때 유용하다.
 
